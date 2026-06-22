@@ -1,221 +1,74 @@
-#include <filesystem>
-#include <optional>
-#include <fstream>
+/*
+ * VS Mod Manager - A mod management tool for Vintage Story
+ * Copyright (C) 2026 Amaroq & StardustVulpine
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-#include <cpr/cpr.h>
+#include "App.hpp"
 
-#include "ZipArchive.hpp"
-#include "Logger.hpp"
-#include <QString>
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QVariant>
-#include <QVariantMap>
-#include <QJsonObject>
-#include <QJsonArray>
-
-#include <semver/semver.hpp>
-
-static QJsonObject jsonModsRoot;
-static vsmodchecker::Logger gLogger("VSModChecker", vsmodchecker::Logger::Level::Info);
+template <>
+struct std::formatter<QString, char> : std::formatter<std::string_view, char>
+{
+    auto format(const QString& s, std::format_context& ctx) const {
+        // Transcode UTF-16 -> UTF-8 once, then defer to string_view formatter.
+        const QByteArray utf8 = s.toUtf8();
+        return std::formatter<std::string_view, char>::format(
+            std::string_view{utf8.constData(),
+                             static_cast<std::size_t>(utf8.size())},
+            ctx);
+    }
+};
 
 namespace {
-    constexpr auto GetModUrl(std::string_view modId) {
-        return cpr::Url{std::format("https://mods.vintagestory.at/api/mod/{}", modId)};
-    }
-
-    std::optional<std::string> GetEnv(std::string_view name) {
-        char *value = std::getenv(name.data());
-        if (!value) {
-            return std::nullopt;
-        }
-        return std::string(value);
-    }
-
-    std::filesystem::path GetConfigPath() {
-        if (std::optional<std::string> configPath = GetEnv("XDG_CONFIG_HOME")) {
-            return *configPath;
-        }
-        if (std::optional<std::string> homePath = GetEnv("HOME")) {
-            return *homePath + "/.config";
-        }
-
-        throw std::runtime_error("Could not find XDG_CONFIG_HOME or HOME environment variables");
-    }
-
-    void InitModList(const std::filesystem::path& modPath) {
-        for (const auto& entry : std::filesystem::directory_iterator(modPath)) {
-            if (!entry.is_regular_file() || entry.path().extension() != ".zip") {
-                continue;
-            }
-
-            vsmodchecker::ZipArchive zipArchive(entry.path());
-            vsmodchecker::ZipArchive::FileIndex zipFileId = zipArchive.getFileIndex("modinfo.json");
-
-            if (zipFileId == -1) {
-                gLogger.Error("Failed to locate modinfo.json in zip file: {}", entry.path());
-                continue;
-            }
-
-            const auto& [fileBuffer, fileSize] = zipArchive.getFileContent(zipFileId);
-            QString modVersion, modId;
-            try {
-                QJsonParseError errorCode{.error = QJsonParseError::NoError};
-                auto json = QJsonDocument::fromJson(QByteArray{fileBuffer.get(), fileSize}, &errorCode);
-                if (errorCode.error != QJsonParseError::NoError) {
-                    gLogger.Error("Failed to parse modinfo.json from zip file: {} Reason: {}", entry.path(), errorCode.errorString().toStdString());
-                    continue;
-                }
-                for (const auto& [key, value] : json.object().asKeyValueRange()) {
-                    auto lowercaseKey = key.toString().toLower();
-
-                    if (lowercaseKey == "version") {
-                        modVersion = value.toString();
-                    } else if (lowercaseKey == "modid") {
-                        modId = value.toString();
-                    }
-                }
-            } catch (const std::exception& e) {
-                gLogger.Error("Failed to parse modinfo.json from zip file: {} Reason: {}", entry.path(), e.what());
-                continue;
-            }
-
-            auto modObj = QJsonObject{
-                {
-                    {"version", modVersion},
-                    {"file", QString::fromStdString(entry.path().filename().string())}
-                }
-            };
-
-            jsonModsRoot[modId] = std::move(modObj);
-        }
-    }
-
-    /*void qtMsgHandler(QtMsgType type,
+    QtMessageHandler qtMsgHandlerOld;
+    void qtMsgHandler(QtMsgType type,
                       const QMessageLogContext& ctx,
                       const QString& msg) {
-        const std::string s = msg.toStdString();
+        static constexpr std::string_view COLOR_GREEN { "\033[1;32m" };
+        static constexpr std::string_view COLOR_RED { "\033[1;31m" };
+        static constexpr std::string_view COLOR_YELLOW { "\033[1;33m" };
+        static constexpr std::string_view COLOR_WHITE { "\033[0;37m" };
+        static constexpr std::string_view COLOR_RESET { "\033[0m" };
+        std::string res;
         switch (type) {
-            case QtDebugMsg:    gLogger.Debug("[Qt] {}", s); break;
-            case QtInfoMsg:     gLogger.Info ("[Qt] {}", s); break;
-            case QtWarningMsg:  gLogger.Warn ("[Qt] {}", s); break;
-            case QtCriticalMsg:
-            case QtFatalMsg:    gLogger.Error("[Qt] {} ({}:{})",
-                                              s,
+#ifdef DEBUG
+            case QtDebugMsg:    res = std::format("{}{}{}", COLOR_WHITE, msg, COLOR_RESET); break;
+#endif
+            case QtInfoMsg:     res = std::format("{}{}{}", COLOR_GREEN, msg, COLOR_RESET); break;
+            case QtWarningMsg:  res = std::format("{}{}{}", COLOR_YELLOW, msg, COLOR_RESET); break;
+
+            case QtCriticalMsg: res = std::format("{}{}{}", COLOR_RED, msg, COLOR_RESET); break;
+            case QtFatalMsg:    res = std::format("{}{} ({}:{}){}", COLOR_RED,
+                                              msg,
                                               ctx.file ? ctx.file : "?",
-                                              ctx.line);
+                                              ctx.line, COLOR_RESET);
+                break;
+            default:
                 break;
         }
-    }*/
+
+        if (qtMsgHandlerOld && !res.empty()) {
+            qtMsgHandlerOld(type, ctx, QString::fromStdString(res));
+        }
+    }
 }
 
 int main(int argc, char* argv[]) {
-    std::filesystem::path modPath = GetConfigPath() / "VintagestoryData" / "Mods";
-    if (!std::filesystem::exists(modPath)) {
-        gLogger.Error("Mods directory does not exist: {}", modPath);
-        return 1;
-    }
+    qSetMessagePattern("[%{time hh:mm:ss.zzz}] %{type} %{if-debug}%{file}:%{line} %{endif}- %{message}");
+    qtMsgHandlerOld = qInstallMessageHandler(qtMsgHandler);
+    vsmodchecker::App app(argc, argv);
 
-    InitModList(modPath);
-
-    std::vector<std::future<void>> futures;
-    for (auto [key, value] : jsonModsRoot.asKeyValueRange()) {
-        auto obj = value.toObject();
-        futures.emplace_back(std::async(std::launch::async, [modPath, key, version = semver::version::parse(obj["version"].toString().toStdString()), fileName = obj["file"].toString()] {
-            cpr::Response response = cpr::Get(GetModUrl(std::string_view{static_cast<const char *>(key.data()), key.size()}));
-
-            if (response.status_code != 200) {
-                gLogger.Error("Failed to retrieve mod info for {}: {}", key.toString().toStdString(), response.status_code);
-                return;
-            }
-
-            if (response.header["content-type"] != "application/json") {
-                gLogger.Error("Invalid response format for {}: {}", key.toString().toStdString(), response.header["Content-Type"]);
-                return;
-            }
-
-            auto doc = QJsonDocument::fromJson(QByteArray(response.text.data(), response.downloaded_bytes));
-            auto responseJson = doc.object()["mod"].toObject();
-            auto modName = responseJson["name"].toString();
-            auto lastestReleaseJsonObj = responseJson["releases"].toArray().first();
-
-            QJsonObject modEntry;
-            modEntry["modName"] = modName;
-            modEntry["latestVersion"] = lastestReleaseJsonObj["modversion"].toString();
-            modEntry["author"] = responseJson["author"];
-
-            gLogger.Debug("Retrieved mod info for {}", modName.toStdString());
-            auto latestReleaseVersion = semver::version::parse( lastestReleaseJsonObj["modversion"].toString().toStdString());
-
-            if (latestReleaseVersion > version) {
-                /*gLogger.Info("New version available for {}: {}", key, latestReleaseVersion);
-
-                cpr::Url downloadUrl{lastestReleaseJsonObj["mainfile"].get<std::string>()};
-                cpr::Response downloadResponse = cpr::Get(downloadUrl);
-
-                if (downloadResponse.status_code != 200) {
-                    gLogger.Error("Failed to download mod for {}: {}", modName, downloadResponse.status_code);
-                    return;
-                }
-
-                if (downloadResponse.header["content-type"] != "application/zip") {
-                    gLogger.Error("Invalid response format for {}: {}", modName, downloadResponse.header["content-type"]);
-                    return;
-                }
-
-                std::error_code ec;
-                std::filesystem::remove(modPath / fileName, ec);
-                if (ec) {
-                    gLogger.Error("Failed to remove old mod file for {}: {}", modName, ec.message());
-                    return;
-                }
-
-                std::ofstream newFile(modPath / lastestReleaseJsonObj["filename"], std::ios::binary);
-                if (!newFile) {
-                    gLogger.Error("Failed to create new mod file for {}", modName);
-                    return;
-                }
-
-                newFile.write(downloadResponse.text.data(), downloadResponse.downloaded_bytes);
-                newFile.close();*/
-            } else {
-                modEntry["latestVersion"] = "latest";
-                gLogger.Info("No new version available for {}", modName.toStdString());
-            }
-
-            jsonModsRoot[key.toString()] = modEntry;
-        }));
-    }
-
-    for (const auto& future : futures) {
-        future.wait();
-    }
-
-    //qInstallMessageHandler(qtMsgHandler);
-    QGuiApplication app(argc, argv);
-    QQmlApplicationEngine engine;
-    engine.loadFromModule("main", "Main");
-
-    if (engine.rootObjects().isEmpty()) {
-        return -1;
-    }
-
-    QObject *rootObj = engine.rootObjects().first();
-    auto listModel = rootObj->findChild<QObject*>("modModel");
-
-    for (const auto& [key, value] : jsonModsRoot.asKeyValueRange()) {
-        auto obj = value.toObject();
-        QVariantMap entry;
-        entry["modName"] = obj["modName"].toString();
-        entry["author"] = obj["author"].toString();
-        entry["version"] = obj["version"].toString();
-        entry["updateVersion"] = obj["latestVersion"].toString();
-        entry["modEnabled"] = true;
-        entry["tag"]= "Farming";
-
-        QMetaObject::invokeMethod(listModel, "appendEntry",
-                              Q_ARG(QVariant, entry));
-    }
-
-    return app.exec();
+    return vsmodchecker::App::exec();
 }
