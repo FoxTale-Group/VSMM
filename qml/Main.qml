@@ -2,10 +2,17 @@ import QtQml
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Controls.impl
+import main
 
 ApplicationWindow
 {
     id: windowMain
+
+    Component.onCompleted: {
+        console.log("name: ", Qt.application.name)
+        console.log("version: ", Qt.application.version)
+    }
 
     //region WINDOW SIZE
     width: 800
@@ -21,11 +28,23 @@ ApplicationWindow
     background: Rectangle {
         anchors.fill: parent
         color: "#1e1e1e" // Main app background color
-        radius: 10 // Window corner radius
+        radius: {
+            if (Window.window.visibility === Window.Maximized) {
+                return 0
+            } else {
+                return 10 // Window corner radius
+            }
+        }
 
         // 3. Move the border here so it perfectly hugs the rounded corners
         border.color: "#555555"
-        border.width: 1
+        border.width: {
+            if (Window.window.visibility === Window.Maximized) {
+                return 0
+            } else {
+                return 1 // If window is not maximized, display border
+            }
+        }
     }
     //endregion
 
@@ -120,7 +139,13 @@ ApplicationWindow
         Rectangle {
             anchors.fill: parent
             color: "transparent"
-            radius: 10 // Must match the window radius!
+            radius: {
+                if (Window.window.visibility === Window.Maximized) {
+                    return 0
+                } else {
+                    return 10 // Must match the window radius!
+                }
+            }
         }
 
         MouseArea {
@@ -128,7 +153,7 @@ ApplicationWindow
             onPressed: Window.window.startSystemMove()
             // Double-click to maximize/restore
             onDoubleClicked: {
-                if (mainWindow.visibility === Window.Maximized) {
+                if (Window.window.visibility === Window.Maximized) {
                     Window.window.showNormal()
                 } else {
                     Window.window.showMaximized()
@@ -139,18 +164,18 @@ ApplicationWindow
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 20
-            anchors.bottomMargin: 5
-            anchors.topMargin: 1
-            anchors.rightMargin: 1
+            anchors.bottomMargin: 0
+            anchors.topMargin: 3
+            anchors.rightMargin: 3
 
             Text {
                 id: windowTitleText
-                text: "Vintage Story Mod Manager"
+                text: Qt.application.name
                 color: "white"
             }
             Text {
                 id: versionTextDisplay
-                text: "v0.0.1"
+                text: "v" + Qt.application.version
                 color: "#7e7e7e"
                 Layout.fillWidth: true
             }
@@ -216,21 +241,11 @@ ApplicationWindow
     }
     //endregion
 
-
     property int updatesAvailable: {
         let c = 0;
-        for (let i = 0; i < modModel.count; i++)
-            if (modModel.get(i).updateVersion !== "latest") c++
+        for (let i = 0; i < ModListModel.count; i++)
+            if (ModListModel.get(i).updateVersion !== "latest") c++
         return c
-    }
-
-    ListModel {
-        id: modModel
-        objectName: "modModel"
-
-        function appendEntry(entry) {
-            append(entry)
-        }
     }
 
     function tagColor(tag)
@@ -250,7 +265,7 @@ ApplicationWindow
     {
         id: appContent
         anchors.fill: parent
-        anchors.topMargin: 2
+        anchors.topMargin: 7
         anchors.leftMargin: 20
         anchors.rightMargin: 20
         anchors.bottomMargin: 20
@@ -268,7 +283,7 @@ ApplicationWindow
                 model:
                     [{
                         label: "Installed",
-                        value: modModel.count,
+                        value: ModListModel.count,
                         color: "#2a2a2a", textColor: "#e0e0e0"
                     }, {
                         label: "Updates available",
@@ -387,7 +402,7 @@ ApplicationWindow
                     }
                 }
 
-                onClicked: console.log("Checking for updates...")
+                onClicked: ModManager.reloadMods()
             }
 
             Button
@@ -397,12 +412,12 @@ ApplicationWindow
 
                 Layout.preferredHeight: 40
 
-                icon.source: "qrc:/qt/qml/main/icons/sync.svg"
+                icon.source: "qrc:/qt/qml/main/icons/check_update.svg"
                 icon.color: "white"
                 icon.width: 30
                 icon.height: 30
 
-                display: AbstractButton.TextOnly
+                display: AbstractButton.TextBesideIcon
 
                 font.bold: true
                 palette.buttonText: "white"
@@ -432,11 +447,11 @@ ApplicationWindow
             Button
             {
                 id: button_UpdateSelected
-                text: "Update selected mods"
+                text: "Update selected"
 
                 Layout.preferredHeight: 40
 
-                icon.source: "qrc:/qt/qml/main/icons/select_check_box.svg"
+                icon.source: "qrc:/qt/qml/main/icons/download.svg"
                 icon.color: "white"
                 icon.width: 30
                 icon.height: 30
@@ -471,7 +486,7 @@ ApplicationWindow
             Button
             {
                 id: button_UpdateAll
-                text: "Update all mods"
+                text: "Update all"
 
                 Layout.preferredHeight: 40
 
@@ -511,7 +526,7 @@ ApplicationWindow
         }
         //endregion
 
-        // Search bar
+        //region SEARCH BAR
         RowLayout
         {
             Layout.fillWidth: true
@@ -525,6 +540,7 @@ ApplicationWindow
                 font.pixelSize: 14
             }
         }
+        //endregion
 
         //region MOD LIST
         Rectangle {
@@ -539,12 +555,26 @@ ApplicationWindow
             ListView {
                 id: modListView
                 anchors.fill: parent
-                anchors.margins: 1
-                model: modModel
+                Layout.margins: 1
+                model: ModListModel
                 spacing: 0
                 clip: true
 
+                ScrollBar.vertical: ScrollBar {
+                    id: vbar
+                    policy: ScrollBar.AlwaysOn
+                    width: 16
+                    background: Item {}
+                    // The Handle
+                    contentItem: Rectangle {
+                        implicitWidth: 16
+                        radius: 8
+                        color: vbar.pressed ? "#666666" : (vbar.hovered ? "#555555" : "#444444")
+                    }
+                }
+
                 delegate: Rectangle {
+                    id: modEntry
                     width: modListView.width
                     height: 64
                     color: "transparent"
@@ -556,25 +586,32 @@ ApplicationWindow
                         anchors.bottom: parent.bottom
                         height: 1
                         color: "#333333"
-                        visible: index !== modModel.count - 1
+                        visible: index !== ModListModel.count - 1
                     }
 
                     RowLayout {
-                        id: actionButtons
-                        Layout.fillWidth: true
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
                         spacing: 16
 
                         CheckBox {
                             id: selectForUpdate
                             checked: false
-                            anchors.margins: 16
+                            Layout.topMargin: 16
+                            Layout.bottomMargin: 16
+                            Layout.leftMargin: 0
+                            Layout.rightMargin: 0
                             width: 15
                             height: 15
                             onCheckedChanged: {
                                 if (checked) {
-                                    console.log(modName + " is selected for update")
+                                    console.log(name + " is selected for update")
                                 } else {
-                                    console.log(modName + " is not selected for update anymore")
+                                    console.log(name + " is not selected for update anymore")
                                 }
                             }
                         }
@@ -582,111 +619,132 @@ ApplicationWindow
                         // Mod Icon
                         Rectangle {
                             id: icon
-                            anchors.margins: 16
+                            Layout.topMargin: 16
+                            Layout.bottomMargin: 16
+                            Layout.leftMargin: 0
+                            Layout.rightMargin: 0
                             width: 36
                             height: 36
                             radius: 8
-                            color: Qt.darker(tagColor(tag), 1.8)
+                            color: "#1D9E75"
 
-                            Label {
+                            IconImage {
+                                source: "qrc:/qt/qml/main/icons/extension.svg"
+                                color: "white"
                                 anchors.centerIn: parent
-                                text: "\u29C9"
-                                color: tagColor(tag)
-                                font.pixelSize: 16
+                                sourceSize.width: 24
+                                sourceSize.height: 24
                             }
                         }
 
+                        ColumnLayout {
+                            spacing: 4
+                            clip: true
 
-                    }
-
-
-
-
-
-                    ToolButton {
-                        id: menuButton
-                        anchors.right: parent.right
-                        anchors.rightMargin: 8
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "\u22EE"
-                        onClicked: console.log("Mod options for " + modName)
-                    }
-
-                    Button {
-                        id: updateModButton
-                        text: "Download update"
-                        visible: updateVersion !== "latest"
-                        highlighted: updateVersion !== "latest"
-                        anchors.right: menuButton.left
-                        anchors.rightMargin: 4
-                        anchors.verticalCenter: parent.verticalCenter
-                        onClicked: console.log("Open add mod dialog")
-                    }
-
-                    ColumnLayout {
-                        anchors.left: icon.right
-                        anchors.leftMargin: 12
-                        anchors.right: updateModButton.left
-                        anchors.rightMargin: 12
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 2
-                        clip: true
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-
-                            Label {
-                                text: modName
-                                font.pixelSize: 14
-                                font.weight: Font.Medium
-                                color: "#e0e0e0"
-                                Layout.maximumWidth: 200
-                                elide: Text.ElideRight
-                            }
-                            Label {
-                                text: "v" + version
-                                font.pixelSize: 11
-                                color: "#888888"
-                            }
-                            Rectangle {
-                                visible: updateVersion !== "latest"
-                                radius: 6
-                                color: "#3a2f12"
-                                implicitWidth: updateLabel.width + 16
-                                implicitHeight: 18
+                            // Mod name, version layout
+                            RowLayout {
+                                spacing: 8
 
                                 Label {
-                                    id: updateLabel
-                                    anchors.centerIn: parent
-                                    text: "v" + updateVersion + " available"
-                                    font.pixelSize: 11
-                                    color: "#e0a23a"
+                                    text: name
+                                    font.pixelSize: 14
+                                    font.weight: Font.Medium
+                                    color: "#e0e0e0"
+                                    Layout.maximumWidth: 200
+                                    elide: Text.ElideRight
                                 }
-                            }
-                            Rectangle {
-                                visible: updateVersion === "latest"
-                                radius: 6
-                                color: "#05552f"
-                                implicitWidth: latestLabel.width + 16
-                                implicitHeight: 18
 
                                 Label {
-                                    id: latestLabel
-                                    anchors.centerIn: parent
-                                    text: "Latest version"
+                                    text: "v" + version
                                     font.pixelSize: 11
-                                    color: "#00ff00"
+                                    color: "#888888"
+                                }
+
+                                Rectangle {
+                                    visible: updateVersion !== "latest"
+                                    radius: 6
+                                    color: "#3a2f12"
+                                    implicitWidth: updateLabel.width + 16
+                                    implicitHeight: 18
+
+                                    Label {
+                                        id: updateLabel
+                                        anchors.centerIn: parent
+                                        text: "v" + updateVersion + " available"
+                                        font.pixelSize: 11
+                                        color: "#e0a23a"
+                                    }
+                                }
+                                Rectangle {
+                                    visible: updateVersion === "latest"
+                                    radius: 6
+                                    color: "#05552f"
+                                    implicitWidth: latestLabel.width + 16
+                                    implicitHeight: 18
+
+                                    Label {
+                                        id: latestLabel
+                                        anchors.centerIn: parent
+                                        text: "Latest version"
+                                        font.pixelSize: 11
+                                        color: "#00ff00"
+                                    }
                                 }
                             }
-                            Item { Layout.fillWidth: true } // Filler
+
+                            // Mod author, category layout
+                            RowLayout {
+                                Layout.maximumWidth: modEntry.width * 0.5
+                                spacing: 8
+                                clip: true
+
+                                Label {
+                                    text: "by " + author
+                                    font.pixelSize: 12
+                                    color: "#999999"
+                                }
+
+                                Label {
+                                    text: " · "
+                                    font.pixelSize: 12
+                                    color: "#999999"
+                                }
+
+                                Repeater {
+                                    model: tags
+                                    delegate: Label {
+                                        text: modelData
+                                        font.pixelSize: 10
+                                        color: tagColor(modelData)
+                                        background: Rectangle {
+                                            color: "#333333"
+                                            radius: 4
+                                        }
+                                        padding: 2
+                                    }
+                                }
+                                Item { Layout.fillWidth: true }
+                            }
                         }
 
-                        Label {
-                            text: "by " + author + " · " + tag
-                            font.pixelSize: 12
-                            color: "#999999"
+                        Item { Layout.fillWidth: true }
+
+
+
+                        Button {
+                            id: updateModButton
+                            text: "Download update"
+                            visible: updateVersion !== "latest"
+                            highlighted: updateVersion !== "latest"
+                            onClicked: console.log("Open add mod dialog")
                         }
+
+                        ToolButton {
+                            id: menuButton
+                            text: "\u22EE"
+                            onClicked: console.log("Mod options for " + name)
+                        }
+
                     }
                 }
             }

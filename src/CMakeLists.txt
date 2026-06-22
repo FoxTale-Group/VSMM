@@ -1,13 +1,15 @@
+
 qt_policy(SET QTP0001 NEW)
 qt_policy(SET QTP0004 NEW)
 
 configure_file(config.hpp.in config.hpp)
 
-qt_add_executable(${PROJECT_NAME} main.cpp
-        ZipArchive.cpp
+qt_add_executable(${PROJECT_NAME}
+        main.cpp
         App.cpp
-        ModManager.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE zip semver Qt6::Core Qt6::Quick Qt6::Qml Qt6::Network)
+        ZipArchive.cpp
+        ZipArchive.hpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE zip cpr semver Qt6::Core Qt6::Quick Qt6::Qml)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 set_source_files_properties(../qml/Main.qml PROPERTIES
@@ -30,9 +32,13 @@ qt_add_qml_module(${PROJECT_NAME}
             ../icons/fullscreen.svg
             ../icons/minimize.svg
             ../icons/select_check_box.svg
+            ../icons/check_update.svg
+            ../icons/extension.svg
         SOURCES
             ModListModel.cpp
             ModListModel.hpp
             ModManager.cpp
             ModManager.hpp
+
+
 )
