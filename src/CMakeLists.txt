@@ -17,4 +17,18 @@ qt_add_qml_module(${PROJECT_NAME}
         URI main
         VERSION 1.0
         QML_FILES ../qml/Main.qml
+        RESOURCES
+            ../icons/add.svg
+            ../icons/add_box.svg
+            ../icons/delete.svg
+            ../icons/download.svg
+            ../icons/download_all.svg
+            ../icons/sync.svg
+            ../icons/upgrade_one.svg
+            ../icons/close.svg
+            ../icons/close_fullscreen.svg
+            ../icons/fullscreen.svg
+            ../icons/minimize.svg
+            ../icons/select_check_box.svg
+
 )
