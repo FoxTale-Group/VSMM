@@ -44,7 +44,9 @@ namespace vsmodchecker {
         if (modsDir.isEmpty()) {
             modsDir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/VintagestoryData/Mods";
         }
-        if (!mModManager.initModsList(modsDir.toStdString())) {
+
+        mModManager.setModsPath(modsDir.toStdString());
+        if (!mModManager.initModsList()) {
             throw std::runtime_error("Failed to initialize mods list");
         }
 

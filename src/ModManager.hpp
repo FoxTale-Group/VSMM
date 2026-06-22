@@ -36,16 +36,20 @@ namespace vsmodchecker {
         };
 
         explicit ModManager(QNetworkAccessManager &networkManager, QObject *parent = nullptr);
-        bool initModsList(const std::filesystem::path &modsPath);
-        void checkNewVersions();
+        void setModsPath(std::filesystem::path modsPath);
+        bool initModsList();
         [[nodiscard]] const QList<ModEntry>& getModsList() const;
-
-    signals:
-        void modAdded(const ModEntry& mod);
 
     private:
         QList<ModEntry> mModsList;
         QNetworkAccessManager &mNetworkManager;
+        std::filesystem::path mModsPath;
+
+    signals:
+        void modAdded(const ModEntry& mod);
+
+    public slots:
+        void checkNewVersions();
 
     private slots:
         void requestInfoFinished();

@@ -35,11 +35,21 @@ namespace vsmodchecker {
     ModManager::ModManager(QNetworkAccessManager &networkManager, QObject *parent) : QObject{parent}, mNetworkManager{networkManager} {
     }
 
-    bool ModManager::initModsList(const std::filesystem::path &modsPath) {
+    void ModManager::setModsPath(std::filesystem::path modsPath) {
         if (!std::filesystem::exists(modsPath)) {
+            throw std::runtime_error("Mods path does not exist");
+        }
+
+        mModsPath = std::move(modsPath);
+    }
+
+    bool ModManager::initModsList() {
+        if (mModsPath.empty()) {
+            qCritical("Mods path is not set");
             return false;
         }
-        for (const auto& entry : std::filesystem::directory_iterator(modsPath)) {
+
+        for (const auto& entry : std::filesystem::directory_iterator(mModsPath)) {
             if (!entry.is_regular_file() || entry.path().extension() != ".zip") {
                 continue;
             }
@@ -102,10 +112,10 @@ namespace vsmodchecker {
 
     void ModManager::requestInfoFinished() {
         auto response = qobject_cast<QNetworkReply *>(sender());
-
         if (!response) {
             return;
         }
+
         response->deleteLater();
         const QString modid = response->property("modid").toString();
 
@@ -143,35 +153,6 @@ namespace vsmodchecker {
         auto currentVersion = semver::version::parse(mod.version.toStdString());
         if (latestReleaseVersion > currentVersion) {
             qInfo() << QString("New version available for %1: %2").arg(mod.name).arg(mod.latestVersion);
-
-            /*cpr::Url downloadUrl{lastestReleaseJsonObj["mainfile"].get<std::string>()};
-            cpr::Response downloadResponse = cpr::Get(downloadUrl);
-
-            if (downloadResponse.status_code != 200) {
-                gLogger.Error("Failed to download mod for {}: {}", modName, downloadResponse.status_code);
-                return;
-            }
-
-            if (downloadResponse.header["content-type"] != "application/zip") {
-                gLogger.Error("Invalid response format for {}: {}", modName, downloadResponse.header["content-type"]);
-                return;
-            }
-
-            std::error_code ec;
-            std::filesystem::remove(modPath / fileName, ec);
-            if (ec) {
-                gLogger.Error("Failed to remove old mod file for {}: {}", modName, ec.message());
-                return;
-            }
-
-            std::ofstream newFile(modPath / lastestReleaseJsonObj["filename"], std::ios::binary);
-            if (!newFile) {
-                gLogger.Error("Failed to create new mod file for {}", modName);
-                return;
-            }
-
-            newFile.write(downloadResponse.text.data(), downloadResponse.downloaded_bytes);
-            newFile.close();*/
         } else {
             mod.latestVersion = "latest";
             qInfo() << QString("No new version available for %1").arg(mod.name);
