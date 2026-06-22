@@ -30,5 +30,9 @@ qt_add_qml_module(${PROJECT_NAME}
             ../icons/fullscreen.svg
             ../icons/minimize.svg
             ../icons/select_check_box.svg
-
+        SOURCES
+            ModListModel.cpp
+            ModListModel.hpp
+            ModManager.cpp
+            ModManager.hpp
 )

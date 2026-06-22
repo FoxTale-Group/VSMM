@@ -20,12 +20,15 @@
 #include <config.hpp>
 #include <QCommandLineParser>
 #include <QCommandLineOption>
+#include <qqmlcontext.h>
 #include <QStandardPaths>
+
+#include "ModListModel.hpp"
 
 namespace vsmodchecker {
     App::App(int &argc, char *argv[]) :
         QGuiApplication{argc, argv},
-        mQmlEngine{this}, mNetworkManager{this}, mModManager{mNetworkManager, this}
+        mQmlEngine{this}, mNetworkManager{this}
     {
         setApplicationDisplayName(APP_NAME);
         setApplicationName(APP_NAME);
@@ -45,30 +48,28 @@ namespace vsmodchecker {
             modsDir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/VintagestoryData/Mods";
         }
 
-        mModManager.setModsPath(modsDir.toStdString());
-        if (!mModManager.initModsList()) {
-            throw std::runtime_error("Failed to initialize mods list");
-        }
+        initQmlEngine(modsDir.toStdString());
+    }
 
+    void App::initQmlEngine(std::filesystem::path modsPath) {
         mQmlEngine.loadFromModule("main", "Main");
         if (mQmlEngine.rootObjects().isEmpty()) {
             throw std::runtime_error("Failed to load QML");
         }
 
-        QObject *rootObj = mQmlEngine.rootObjects().first();
-        auto listModel = rootObj->findChild<QObject*>("modModel");
-
-        connect(&mModManager, &ModManager::modAdded, this, [listModel](const ModManager::ModEntry& mod) {
-            QVariantMap entry;
-            entry["modName"] = mod.name;
-            entry["author"] = mod.author;
-            entry["version"] = mod.version;
-            entry["updateVersion"] = mod.latestVersion;
-            entry["modEnabled"] = true;
-            entry["tag"]= "Farming";
-
-            QMetaObject::invokeMethod(listModel, "appendEntry",
-                                  Q_ARG(QVariant, entry));
+        auto modList = mQmlEngine.singletonInstance<ModListModel *>("main", "ModListModel");
+        auto modManager = mQmlEngine.singletonInstance<ModManager *>("main", "ModManager");
+        modManager->setNetworkManager(&mNetworkManager);
+        connect(modManager, &ModManager::modAdded, this, [modList](const ModEntry& mod) {
+            modList->addMod(mod);
         });
+        connect(modManager, &ModManager::modsCleared, this, [modList]() {
+            modList->clear();
+        });
+
+        modManager->setModsPath(std::move(modsPath));
+        if (!modManager->initModsList()) {
+            throw std::runtime_error("Failed to initialize mods list");
+        }
     }
 } // vsmodchecker

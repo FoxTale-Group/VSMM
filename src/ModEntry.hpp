@@ -16,23 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
 
-#include "ModManager.hpp"
+#pragma once
+
+#include <QUrl>
 
 namespace vsmodchecker {
-    class App final : public QGuiApplication {
-    public:
-        App(int& argc, char *argv[]);
-        ~App() override = default;
-
-    private:
-        void initQmlEngine(std::filesystem::path modsPath);
-
-    private:
-        QQmlApplicationEngine mQmlEngine;
-        QNetworkAccessManager mNetworkManager;
+    struct ModEntry {
+        QString name;
+        QString version;
+        QString author;
+        QString modid;
+        QString filename;
+        QString updateVersion;
+        QUrl latestVersionUrl;
+        QStringList tags;
     };
-} // vsmodchecker
+}

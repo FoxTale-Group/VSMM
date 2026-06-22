@@ -20,37 +20,38 @@
 
 #include "ModEntry.hpp"
 
-#include <filesystem>
-#include <QNetworkAccessManager>
+#include <QAbstractListModel>
 #include <qqmlintegration.h>
 
 namespace vsmodchecker {
-    class ModManager : public QObject {
+    class ModListModel : public QAbstractListModel {
         Q_OBJECT
         QML_ELEMENT
         QML_SINGLETON
+        Q_PROPERTY(int count READ count NOTIFY countChanged)
 
     public:
-        ModManager() = default;
-        void setModsPath(std::filesystem::path modsPath);
-        bool initModsList();
-        [[nodiscard]] const QList<ModEntry>& getModsList() const;
-        void setNetworkManager(QNetworkAccessManager *networkManager);
+        enum Roles {
+            NameRole = Qt::UserRole + 1,
+            AuthorRole,
+            VersionRole,
+            UpdateVersionRole,
+            TagsRole
+        };
+
+        explicit ModListModel(QObject *parent = nullptr);
+        [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
+        [[nodiscard]] int count() const;
+        [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
+        [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
+        void addMod(const ModEntry &mod);
+
+        void clear();
+
+    signals:
+        void countChanged();
 
     private:
         QList<ModEntry> mModsList;
-        QNetworkAccessManager *mNetworkManager{nullptr};
-        std::filesystem::path mModsPath;
-
-    signals:
-        void modAdded(const ModEntry& mod);
-        void modsCleared();
-
-    public slots:
-        void checkNewVersions();
-        void reloadMods();
-
-    private slots:
-        void requestInfoFinished();
     };
 } // vsmodchecker

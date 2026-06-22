@@ -32,9 +32,6 @@ namespace {
 }
 
 namespace vsmodchecker {
-    ModManager::ModManager(QNetworkAccessManager &networkManager, QObject *parent) : QObject{parent}, mNetworkManager{networkManager} {
-    }
-
     void ModManager::setModsPath(std::filesystem::path modsPath) {
         if (!std::filesystem::exists(modsPath)) {
             throw std::runtime_error("Mods path does not exist");
@@ -56,7 +53,6 @@ namespace vsmodchecker {
 
             ZipArchive zipArchive(entry.path());
             ZipArchive::FileIndex zipFileId = zipArchive.getFileIndex("modinfo.json");
-
             if (zipFileId == -1) {
                 qWarning() << QString("Failed to locate modinfo.json in zip file: %1").arg(QString::fromStdString(entry.path().string()));
                 continue;
@@ -98,16 +94,31 @@ namespace vsmodchecker {
     }
 
     void ModManager::checkNewVersions() {
+        if (!mNetworkManager) {
+            qCritical() << "Network manager is not set";
+            return;
+        }
+
         for (auto& mod : mModsList) {
             QNetworkRequest request(GetModUrl(mod.modid));
-            QNetworkReply *reply = mNetworkManager.get(request);
+            QNetworkReply *reply = mNetworkManager->get(request);
             reply->setProperty("modid", mod.modid);
             connect(reply, &QNetworkReply::finished, this, &ModManager::requestInfoFinished);
         }
     }
 
-    const QList<ModManager::ModEntry> &ModManager::getModsList() const {
+    void ModManager::reloadMods() {
+        mModsList.clear();
+        emit modsCleared();
+        initModsList();
+    }
+
+    const QList<ModEntry> &ModManager::getModsList() const {
         return mModsList;
+    }
+
+    void ModManager::setNetworkManager(QNetworkAccessManager *networkManager) {
+        mNetworkManager = networkManager;
     }
 
     void ModManager::requestInfoFinished() {
@@ -145,16 +156,21 @@ namespace vsmodchecker {
         auto lastestReleaseJsonObj = responseJsonObj["releases"].toArray().first();
 
         mod.name = std::move(modName);
-        mod.latestVersion = lastestReleaseJsonObj["modversion"].toString();
+        mod.updateVersion = lastestReleaseJsonObj["modversion"].toString();
         mod.author = responseJsonObj["author"].toString();
 
+        mod.tags.clear();
+        for (const auto& tag : responseJsonObj["tags"].toArray()) {
+            mod.tags.append(tag.toString());
+        }
+
         qDebug() << QString("Retrieved mod info for %1").arg(mod.name);
-        auto latestReleaseVersion = semver::version::parse( mod.latestVersion.toStdString());
+        auto latestReleaseVersion = semver::version::parse( mod.updateVersion.toStdString());
         auto currentVersion = semver::version::parse(mod.version.toStdString());
         if (latestReleaseVersion > currentVersion) {
-            qInfo() << QString("New version available for %1: %2").arg(mod.name).arg(mod.latestVersion);
+            qInfo() << QString("New version available for %1: %2").arg(mod.name).arg(mod.updateVersion);
         } else {
-            mod.latestVersion = "latest";
+            mod.updateVersion = "latest";
             qInfo() << QString("No new version available for %1").arg(mod.name);
         }
 
