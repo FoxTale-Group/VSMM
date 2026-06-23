@@ -1,0 +1,44 @@
+import QtQml
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import main
+
+ColumnLayout
+{
+    id: appContent
+    anchors.fill: parent
+    anchors.topMargin: 7
+    anchors.leftMargin: 20
+    anchors.rightMargin: 20
+    anchors.bottomMargin: 20
+    spacing: 16
+
+    RowLayout
+    {
+        Layout.fillWidth: true
+        spacing: 12
+
+        ActionButton {
+            text: "Launch Game"
+            icon.source: "qrc:/qt/qml/main/icons/launch.svg"
+
+            display: AbstractButton.TextBesideIcon
+            Layout.preferredHeight: 60
+
+            tooltipText: "Launch Game"
+
+            defaultColor: "#33914e"
+            hoverColor: "#2a7840"
+            pressColor: "#1e572e"
+
+            onClicked: console.log("Launching game...")
+        }
+
+        ModsStatCards{}
+    }
+
+    GlobalModlistActionButtons{}
+    ModSearchBar{}
+    ModList{}
+}
