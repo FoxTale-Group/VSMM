@@ -10,6 +10,13 @@ RowLayout
     Layout.fillWidth: true
     spacing: 12
 
+    property int updatesAvailable: {
+        let c = 0;
+        for (let i = 0; i < ModListModel.count; i++)
+            if (ModListModel.get(i).updateVersion !== "latest") c++
+        return c
+    }
+
     Repeater
     {
         model:
@@ -19,7 +26,7 @@ RowLayout
                 color: "#2a2a2a", textColor: "#e0e0e0"
             }, {
                 label: "Updates available",
-                value: windowMain.updatesAvailable,
+                value: updatesAvailable,
                 color: "#3a2f12", textColor: "#e0a23a"
             }]
 

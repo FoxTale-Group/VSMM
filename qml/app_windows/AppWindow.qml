@@ -8,7 +8,6 @@ ApplicationWindow
 {
     id: windowMain
 
-    //region WINDOW SIZE & STYLE
     width: 800
     height: 640
     minimumWidth: 750
@@ -28,15 +27,6 @@ ApplicationWindow
     }
 
     WindowResizers{}
-    //endregion
-
-
-    property int updatesAvailable: {
-        let c = 0;
-        for (let i = 0; i < ModListModel.count; i++)
-            if (ModListModel.get(i).updateVersion !== "latest") c++
-        return c
-    }
 
     AppWindowContent{}
 }
