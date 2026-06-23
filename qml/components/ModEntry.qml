@@ -105,7 +105,7 @@ Rectangle {
                 }
 
                 Rectangle {
-                    visible: updateVersion !== "latest"
+                    visible: hasUpdate
                     radius: 6
                     color: "#3a2f12"
                     implicitWidth: updateLabel.width + 16
@@ -120,7 +120,7 @@ Rectangle {
                     }
                 }
                 Rectangle {
-                    visible: updateVersion === "latest"
+                    visible: !hasUpdate
                     radius: 6
                     color: "#05552f"
                     implicitWidth: latestLabel.width + 16
@@ -178,8 +178,8 @@ Rectangle {
         Button {
             id: updateModButton
             text: "Download update"
-            visible: updateVersion !== "latest"
-            highlighted: updateVersion !== "latest"
+            visible: hasUpdate
+            highlighted: hasUpdate
             onClicked: console.log("Open add mod dialog")
         }
 

@@ -89,6 +89,16 @@ namespace vsmodchecker {
         mNetworkManager = networkManager;
     }
 
+    int ModManager::updatesAvailable() const {
+        int updatesAvailable{0};
+        for (const auto& mod : mModsList) {
+            if (mod.hasUpdate()) {
+                updatesAvailable++;
+            }
+        }
+        return updatesAvailable;
+    }
+
     void ModManager::retrieveInfoForMod(ModInfoZip info) {
         if (!mNetworkManager) {
             qCritical() << "Network manager is not set";

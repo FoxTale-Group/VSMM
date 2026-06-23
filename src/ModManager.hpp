@@ -36,6 +36,7 @@ namespace vsmodchecker {
         bool initModsList();
         [[nodiscard]] const QHash<QString, ModEntry>& getModsList() const;
         void setNetworkManager(QNetworkAccessManager *networkManager);
+        Q_INVOKABLE [[nodiscard]] int updatesAvailable() const;
 
     private:
         struct ModInfoZip {
