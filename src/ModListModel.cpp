@@ -81,7 +81,7 @@ namespace vsmodchecker {
     }
 
     void ModListModel::modEntryAdded(const ModEntry &mod) {
-        if (mModsMap.contains(mod.getId().toString())) {
+        if (mModsMap.contains(mod.getName().toString())) {
             return;
         }
 
@@ -98,11 +98,22 @@ namespace vsmodchecker {
     }
 
     void ModListModel::modEntryUpdated(const ModEntry &mod) {
-        if (!mModsMap.contains(mod.getId().toString())) {
+        if (!mModsMap.contains(mod.getName().toString())) {
             return;
         }
 
-        mModsMap.insert(mod.getName().toString(), mod);
+        int row = 0;
+        for (auto it = mModsMap.begin(); it != mModsMap.end(); ++it, ++row) {
+            if (it.key() == mod.getName()) {
+                *it = mod;
+
+                QModelIndex idx = index(row);
+                if (idx.isValid()) {
+                    emit dataChanged(idx, idx);
+                }
+                break;
+            }
+        }
     }
 
     void ModListModel::modsCleared() {
