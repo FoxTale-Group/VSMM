@@ -2,7 +2,7 @@ import QtQml
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import main
+import vsmodchecker
 
 RowLayout
 {
@@ -12,7 +12,7 @@ RowLayout
 
     ActionButton {
         text: "Add mod"
-        icon.source: "qrc:/qt/qml/main/icons/add_box.svg"
+        icon.source: "qrc:/qt/qml/vsmodchecker/icons/add_box.svg"
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
@@ -29,7 +29,7 @@ RowLayout
     Item { Layout.fillWidth: true } // Spring
 
     ActionButton {
-        icon.source: "qrc:/qt/qml/main/icons/sync.svg"
+        icon.source: "qrc:/qt/qml/vsmodchecker/icons/sync.svg"
         display: AbstractButton.IconOnly
         Layout.preferredHeight: 40
 
@@ -42,7 +42,7 @@ RowLayout
 
     ActionButton {
         text: "Check updates"
-        icon.source: "qrc:/qt/qml/main/icons/check_update.svg"
+        icon.source: "qrc:/qt/qml/vsmodchecker/icons/check_update.svg"
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
@@ -58,7 +58,7 @@ RowLayout
 
     ActionButton {
         text: "Update selected"
-        icon.source: "qrc:/qt/qml/main/icons/download.svg"
+        icon.source: "qrc:/qt/qml/vsmodchecker/icons/download.svg"
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
@@ -74,7 +74,7 @@ RowLayout
 
     ActionButton {
         text: "Update all"
-        icon.source: "qrc:/qt/qml/main/icons/download_all.svg"
+        icon.source: "qrc:/qt/qml/vsmodchecker/icons/download_all.svg"
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40

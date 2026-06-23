@@ -2,7 +2,7 @@ import QtQml
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import main
+import vsmodchecker
 
 ColumnLayout
 {
@@ -21,7 +21,7 @@ ColumnLayout
 
         ActionButton {
             text: "Launch Game"
-            icon.source: "qrc:/qt/qml/main/icons/launch.svg"
+            icon.source: "qrc:/qt/qml/vsmodchecker/icons/launch.svg"
 
             display: AbstractButton.TextBesideIcon
             Layout.preferredHeight: 60

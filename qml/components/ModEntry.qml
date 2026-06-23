@@ -3,7 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.impl
-import main
+import vsmodchecker
 
 Rectangle {
     id: modEntry
@@ -73,7 +73,7 @@ Rectangle {
             color: "#1D9E75"
 
             IconImage {
-                source: "qrc:/qt/qml/main/icons/extension.svg"
+                source: "qrc:/qt/qml/vsmodchecker/icons/extension.svg"
                 color: "white"
                 anchors.centerIn: parent
                 sourceSize.width: 24

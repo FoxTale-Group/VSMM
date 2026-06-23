@@ -2,7 +2,7 @@ import QtQml
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import main
+import vsmodchecker
 
 Rectangle {
     Layout.fillWidth: true
