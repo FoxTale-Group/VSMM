@@ -22,7 +22,7 @@ foreach(qml_file ${QML_FILES})
 endforeach()
 
 qt_add_qml_module(${PROJECT_NAME}
-        URI main
+        URI vsmodchecker
         VERSION 1.0
         QML_FILES ${QML_FILES}
         RESOURCES ${ICON_FILES}

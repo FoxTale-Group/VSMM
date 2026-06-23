@@ -56,13 +56,13 @@ namespace vsmodchecker {
     }
 
     void App::initQmlEngine(std::filesystem::path modsPath) {
-        mQmlEngine.loadFromModule("main", "Main");
+        mQmlEngine.loadFromModule("vsmodchecker", "Main");
         if (mQmlEngine.rootObjects().isEmpty()) {
             throw std::runtime_error("Failed to load QML");
         }
 
-        auto modList = mQmlEngine.singletonInstance<ModListModel *>("main", "ModListModel");
-        auto modManager = mQmlEngine.singletonInstance<ModManager *>("main", "ModManager");
+        auto modList = mQmlEngine.singletonInstance<ModListModel *>("vsmodchecker", "ModListModel");
+        auto modManager = mQmlEngine.singletonInstance<ModManager *>("vsmodchecker", "ModManager");
         modManager->setNetworkManager(&mNetworkManager);
         connect(modManager, &ModManager::modAdded, [modList](const ModEntry& mod) {
             modList->addMod(mod);
