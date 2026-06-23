@@ -30,8 +30,8 @@ namespace vsmodchecker {
         QGuiApplication{argc, argv},
         mQmlEngine{this}, mNetworkManager{this}
     {
-        setApplicationDisplayName(APP_NAME);
-        setApplicationName(APP_NAME);
+        setApplicationDisplayName(APP_DISPLAY_NAME);
+        setApplicationName(APP_DISPLAY_NAME);
         setApplicationVersion(APP_VERSION);
 
         QCommandLineParser parser;

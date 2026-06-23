@@ -2,6 +2,7 @@
 qt_policy(SET QTP0001 NEW)
 qt_policy(SET QTP0004 NEW)
 
+set(APP_DISPLAY_NAME "Vintage Story Mod Manager")
 configure_file(config.hpp.in config.hpp)
 
 qt_add_executable(${PROJECT_NAME}
