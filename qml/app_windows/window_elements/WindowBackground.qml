@@ -19,7 +19,7 @@ Rectangle {
         if (Window.window.visibility === Window.Maximized) {
             return 0
         } else {
-            return 1 // If window_styles is not maximized, display border
+            return 1 // If window_elements is not maximized, display border
         }
     }
 }

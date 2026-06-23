@@ -26,6 +26,11 @@ ApplicationWindow
         cornerRadius: windowMain.windowCornerRadius
     }
 
+    MouseArea {
+        anchors.fill: parent
+        onPressed: Window.window.startSystemMove()
+    }
+
     WindowResizers{}
 
     SettingsWindow {

@@ -26,6 +26,7 @@ RowLayout
         delegate: Rectangle
         {
             Layout.fillWidth: true
+            Layout.maximumWidth: 150
             Layout.preferredHeight: 64
             radius: 8
             color: modelData.color

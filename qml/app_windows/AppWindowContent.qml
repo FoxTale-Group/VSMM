@@ -52,6 +52,8 @@ ColumnLayout
             }
         }
 
+        Item { Layout.fillWidth: true }
+
         ModsStatCards{}
     }
 
