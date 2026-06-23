@@ -103,7 +103,7 @@ namespace vsmodchecker {
     }
 
     void ModEntry::initName(const QJsonObject &json) {
-        mName = json["name"].toString();
+        mName = json["name"].toString().trimmed();
     }
 
     void ModEntry::initUpdateVersion(const QJsonObject &json) {
@@ -125,9 +125,8 @@ namespace vsmodchecker {
 
         if (latestReleaseVersion > currentVersion) {
             mUpdateVersion = latestReleaseObj["modversion"].toString();
+            mHasUpdate = true;
         }
-
-        mHasUpdate = true;
     }
 
     void ModEntry::initAuthor(const QJsonObject &json) {
