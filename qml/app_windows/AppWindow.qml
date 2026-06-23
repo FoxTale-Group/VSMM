@@ -28,5 +28,25 @@ ApplicationWindow
 
     WindowResizers{}
 
-    AppWindowContent{}
+    SettingsWindow {
+        id: settingsWindow
+    }
+
+    AddModWindow {
+        id: addModWindow
+    }
+
+    AppWindowContent{
+        onOpenSettingsClicked: {
+            settingsWindow.show()
+            settingsWindow.raise()
+            settingsWindow.requestActivate()
+        }
+
+        onRelayOpenAddModDialog: {
+            addModWindow.show()
+            addModWindow.raise()
+            addModWindow.requestActivate()
+        }
+    }
 }

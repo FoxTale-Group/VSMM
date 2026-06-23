@@ -14,6 +14,10 @@ ColumnLayout
     anchors.bottomMargin: 20
     spacing: 16
 
+    signal openSettingsClicked()
+
+    signal relayOpenAddModDialog()
+
     RowLayout
     {
         Layout.fillWidth: true
@@ -32,13 +36,30 @@ ColumnLayout
             hoverColor: "#2a7840"
             pressColor: "#1e572e"
 
-            onClicked: console.log("Launching game...")
+            onClicked: {console.log("Launching game...")}
+        }
+
+        ActionButton {
+            icon.source: "qrc:/qt/qml/vsmodchecker/icons/settings.svg"
+
+            display: AbstractButton.IconOnly
+
+            tooltipText: "App settings"
+
+            onClicked: {
+                console.log("Open Settings clicked")
+                openSettingsClicked()
+            }
         }
 
         ModsStatCards{}
     }
 
-    GlobalModlistActionButtons{}
+    GlobalModlistActionButtons {
+        onOpenAddModDialog: {
+            relayOpenAddModDialog()
+        }
+    }
     ModSearchBar{}
     ModList{}
 }

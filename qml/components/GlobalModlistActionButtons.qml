@@ -10,6 +10,8 @@ RowLayout
     Layout.fillWidth: true
     spacing: 16
 
+    signal openAddModDialog()
+
     ActionButton {
         text: "Add mod"
         icon.source: "qrc:/qt/qml/vsmodchecker/icons/add_box.svg"
@@ -19,11 +21,14 @@ RowLayout
 
         tooltipText: "Add a new mod from file"
 
-        defaultColor: "#33914e"
-        hoverColor: "#2d7140"
-        pressColor: "#234e19"
+        defaultColor: "#1D9E75"
+        hoverColor: "#188160"
+        pressColor: "#0d5e44"
 
-        onClicked: console.log("Open add mod dialog")
+        onClicked: {
+            console.log("Add mod button clicked.")
+            openAddModDialog()
+        }
     }
 
     Item { Layout.fillWidth: true } // Spring
@@ -34,8 +39,6 @@ RowLayout
         Layout.preferredHeight: 40
 
         tooltipText: "Refresh mod list"
-
-
 
         onClicked: ModManager.reloadMods()
     }
