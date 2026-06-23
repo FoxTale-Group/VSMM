@@ -19,17 +19,46 @@
 
 #pragma once
 
-#include <QUrl>
+#include <QJsonObject>
 
 namespace vsmodchecker {
-    struct ModEntry {
-        QString name;
-        QString version;
-        QString author;
-        QString modid;
-        QString filename;
-        QString updateVersion;
-        QUrl latestVersionUrl;
-        QStringList tags;
+    class ModEntry {
+    public:
+        ModEntry(const QJsonObject& json, QString version, QString modId, QString filename);
+        ModEntry(QString name, QString version, QString author, QString modId, QString filename);
+
+        [[nodiscard]] QAnyStringView getId() const;
+        [[nodiscard]] QAnyStringView getName() const;
+        [[nodiscard]] QAnyStringView getAuthor() const;
+        [[nodiscard]] QAnyStringView getVersion() const;
+        [[nodiscard]] const QUrl& getUrl() const;
+        [[nodiscard]] QAnyStringView getUpdateVersion() const;
+        [[nodiscard]] const QStringList& getTags() const;
+        [[nodiscard]] const QUrl& getLatestVersionUrl() const;
+        [[nodiscard]] QAnyStringView getType() const;
+        [[nodiscard]] bool hasUpdate() const;
+        [[nodiscard]] bool hasInfoReceived() const;
+
+    private:
+        void initName(const QJsonObject& json);
+        void initUpdateVersion(const QJsonObject& json);
+        void initAuthor(const QJsonObject& json);
+        void initTags(const QJsonObject& json);
+        void initModUrl(const QJsonObject& json);
+        void initType(const QJsonObject& json);
+
+        QString mName;
+        QString mVersion;
+        QString mAuthor;
+        QString mModId;
+        QString mFilename;
+        QString mUpdateVersion;
+        QUrl mLatestVersionUrl;
+        QStringList mTags;
+        QUrl mUrl;
+        QString mType;
+
+        bool mHasInfoReceived{false};
+        bool mHasUpdate{false};
     };
 }

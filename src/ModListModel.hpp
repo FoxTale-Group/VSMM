@@ -36,7 +36,11 @@ namespace vsmodchecker {
             AuthorRole,
             VersionRole,
             UpdateVersionRole,
-            TagsRole
+            TagsRole,
+            UrlRole,
+            InfoReceivedRole,
+            TypeRole,
+            HasUpdateRole
         };
 
         explicit ModListModel(QObject *parent = nullptr);
@@ -52,6 +56,6 @@ namespace vsmodchecker {
         void countChanged();
 
     private:
-        QList<ModEntry> mModsList;
+        QMap<QString, ModEntry> mModsMap;
     };
 } // vsmodchecker

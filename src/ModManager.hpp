@@ -34,20 +34,27 @@ namespace vsmodchecker {
         ModManager() = default;
         void setModsPath(std::filesystem::path modsPath);
         bool initModsList();
-        [[nodiscard]] const QList<ModEntry>& getModsList() const;
+        [[nodiscard]] const QHash<QString, ModEntry>& getModsList() const;
         void setNetworkManager(QNetworkAccessManager *networkManager);
 
     private:
-        QList<ModEntry> mModsList;
+        struct ModInfoZip {
+            QString name, version, id, author, filename;
+        };
+        void retrieveInfoForMod(ModInfoZip info);
+
+        static ModInfoZip parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename);
+
+        QHash<QString, ModEntry> mModsList;
         QNetworkAccessManager *mNetworkManager{nullptr};
         std::filesystem::path mModsPath;
+        qint64 mRequestCount{0};
 
     signals:
         void modAdded(const ModEntry& mod);
         void modsCleared();
 
     public slots:
-        void checkNewVersions();
         void reloadMods();
 
     private slots:

@@ -27,30 +27,38 @@ namespace vsmodchecker {
         if (parent.isValid()) {
             return 0;
         }
-        return static_cast<int>(mModsList.size());
+        return static_cast<int>(mModsMap.size());
     }
 
     int ModListModel::count() const {
-        return static_cast<int>(mModsList.size());
+        return static_cast<int>(mModsMap.size());
     }
 
     QVariant ModListModel::data(const QModelIndex &index, int role) const {
-        if (!index.isValid() || index.row() > mModsList.size()) {
+        if (!index.isValid() || index.row() >= mModsMap.size()) {
             return {};
         }
 
-        const auto& mod = mModsList.at(index.row());
+        const ModEntry& mod = *std::next(mModsMap.begin(), index.row());
         switch (role) {
             case NameRole:
-                return mod.name;
+                return mod.getName().toString();
             case VersionRole:
-                return mod.version;
+                return mod.getVersion().toString();
             case AuthorRole:
-                return mod.author;
+                return mod.getAuthor().toString();
             case UpdateVersionRole:
-                return mod.updateVersion;
+                return mod.getUpdateVersion().toString();
             case TagsRole:
-                return mod.tags;
+                return mod.getTags();
+            case UrlRole:
+                return mod.getUrl();
+            case InfoReceivedRole:
+                return mod.hasInfoReceived();
+            case TypeRole:
+                return mod.getType().toString();
+            case HasUpdateRole:
+                return mod.hasUpdate();
             default:
                 return {};
         }
@@ -64,25 +72,39 @@ namespace vsmodchecker {
             {VersionRole, "version"},
             {AuthorRole, "author"},
             {UpdateVersionRole, "updateVersion"},
-            {TagsRole, "tags"}
+            {TagsRole, "tags"},
+            {UrlRole, "url"},
+            {InfoReceivedRole, "infoReceived"},
+            {TypeRole, "type"},
+            {HasUpdateRole, "hasUpdate"}
         };
     }
 
     void ModListModel::addMod(const ModEntry &mod) {
-        beginInsertRows(QModelIndex(), static_cast<int>(mModsList.size()), static_cast<int>(mModsList.size()));
-        mModsList.append(mod);
+        if (mModsMap.contains(mod.getId().toString())) {
+            return;
+        }
+
+        int row = 0;
+        for (auto it = mModsMap.constBegin(); it != mModsMap.constEnd(); ++it, ++row) {
+            if (it.key() > mod.getName())
+                break;
+        }
+
+        beginInsertRows(QModelIndex(), row, row);
+        mModsMap.insert(mod.getName().toString(), mod);
         endInsertRows();
         emit countChanged();
     }
 
     void ModListModel::clear() {
-        if (mModsList.isEmpty()) {
+        if (mModsMap.isEmpty()) {
             return;
         }
-
-        beginRemoveRows(QModelIndex(), 0, static_cast<int>(mModsList.size() - 1));
-        mModsList.clear();
+        beginRemoveRows(QModelIndex(), 0, static_cast<int>(mModsMap.size() - 1));
+        mModsMap.clear();
         endRemoveRows();
+
         emit countChanged();
     }
 } // vsmodchecker
