@@ -51,7 +51,8 @@ namespace vsmodchecker {
         qint64 mRequestCount{0};
 
     signals:
-        void modAdded(const ModEntry& mod);
+        void modEntryAdded(const ModEntry& mod);
+        void modEntryUpdated(const ModEntry& mod);
         void modsCleared();
 
     public slots:

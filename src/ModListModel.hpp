@@ -48,12 +48,14 @@ namespace vsmodchecker {
         [[nodiscard]] int count() const;
         [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
         [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-        void addMod(const ModEntry &mod);
-
-        void clear();
 
     signals:
         void countChanged();
+
+    public slots:
+        void modEntryAdded(const ModEntry& mod);
+        void modEntryUpdated(const ModEntry& mod);
+        void modsCleared();
 
     private:
         QMap<QString, ModEntry> mModsMap;

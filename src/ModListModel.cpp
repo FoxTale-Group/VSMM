@@ -80,7 +80,7 @@ namespace vsmodchecker {
         };
     }
 
-    void ModListModel::addMod(const ModEntry &mod) {
+    void ModListModel::modEntryAdded(const ModEntry &mod) {
         if (mModsMap.contains(mod.getId().toString())) {
             return;
         }
@@ -97,7 +97,15 @@ namespace vsmodchecker {
         emit countChanged();
     }
 
-    void ModListModel::clear() {
+    void ModListModel::modEntryUpdated(const ModEntry &mod) {
+        if (!mModsMap.contains(mod.getId().toString())) {
+            return;
+        }
+
+        mModsMap.insert(mod.getName().toString(), mod);
+    }
+
+    void ModListModel::modsCleared() {
         if (mModsMap.isEmpty()) {
             return;
         }

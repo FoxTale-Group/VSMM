@@ -23,6 +23,8 @@
 #include <QNetworkReply>
 #include <QJsonArray>
 
+#include <semver/semver.hpp>
+
 namespace {
     QUrl GetModUrlApi(QAnyStringView modId) {
         return QString("https://mods.vintagestory.at/api/mod/%1").arg(modId);
@@ -148,9 +150,21 @@ namespace vsmodchecker {
         response->deleteLater();
 
         auto responseJsonObj = QJsonDocument::fromJson(responseData).object()["mod"].toObject();
-        const auto it = mModsList.emplace(info.id, responseJsonObj, info.version, info.id, info.filename);
+
+        if (auto [it, added] = mModsList.tryEmplace(info.id, responseJsonObj, info.version, info.id, info.filename); !added) {
+            qWarning() << QString("Detected doubled mod %1. Checking version...").arg(info.name);
+
+            if (semver::version::parse(it->getVersion().toString().toStdString()) <
+                semver::version::parse(info.version.toStdString())) {
+                it = mModsList.emplace(info.id, responseJsonObj, info.version, info.id, info.filename);
+                emit modEntryUpdated(*it);
+
+                qInfo() << QString("Found newer version of %1. Overwriting...").arg(info.name);
+            }
+        } else {
+            emit modEntryAdded(*it);
+        }
 
         --mRequestCount;
-        emit modAdded(*it);
     }
 } // vsmodchecker
