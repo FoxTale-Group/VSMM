@@ -60,10 +60,10 @@ namespace vsmodchecker {
         auto modList = mQmlEngine.singletonInstance<ModListModel *>("main", "ModListModel");
         auto modManager = mQmlEngine.singletonInstance<ModManager *>("main", "ModManager");
         modManager->setNetworkManager(&mNetworkManager);
-        connect(modManager, &ModManager::modAdded, this, [modList](const ModEntry& mod) {
+        connect(modManager, &ModManager::modAdded, [modList](const ModEntry& mod) {
             modList->addMod(mod);
         });
-        connect(modManager, &ModManager::modsCleared, this, [modList]() {
+        connect(modManager, &ModManager::modsCleared, [modList] {
             modList->clear();
         });
 
