@@ -48,6 +48,10 @@ namespace vsmodchecker {
             modsDir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/VintagestoryData/Mods";
         }
 
+        connect(&mQmlEngine, &QQmlApplicationEngine::objectCreationFailed, [](const QUrl &url) {
+            qFatal() << QString("QML object creation failed %1").arg(url.toString());
+        });
+
         initQmlEngine(modsDir.toStdString());
     }
 
