@@ -62,8 +62,7 @@ namespace vsmodchecker {
         void modsCleared();
 
     private:
-        QMap<QString, ModEntry> mModsMap; // For displaying
-        QMap<QString, std::reference_wrapper<ModEntry>> mModsIdMap;
-        ModImageProvider *mImageProvider;
+        QMap<QString, ModEntry> mModsMap;
+        ModImageProvider *mImageProvider{nullptr};
     };
 } // vsmodchecker

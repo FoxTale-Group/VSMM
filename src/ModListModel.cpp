@@ -20,7 +20,6 @@
 
 namespace vsmodchecker {
     ModListModel::ModListModel(QObject *parent) : QAbstractListModel(parent) {
-
     }
 
     int ModListModel::rowCount(const QModelIndex &parent) const {
@@ -92,33 +91,31 @@ namespace vsmodchecker {
     }
 
     void ModListModel::modEntryAdded(const ModEntry &mod) {
-        if (mModsMap.contains(mod.getName().toString())) {
+        if (mModsMap.contains(mod.getId().toString())) {
             return;
         }
 
         int row = 0;
         for (auto it = mModsMap.constBegin(); it != mModsMap.constEnd(); ++it, ++row) {
-            if (it.key() > mod.getName())
+            if (it.key() > mod.getId())
                 break;
         }
 
         beginInsertRows(QModelIndex(), row, row);
-        const auto it = mModsMap.insert(mod.getName().toString(), mod);
-        mModsIdMap.insert(mod.getId().toString(), std::ref(*it));
+        mModsMap.insert(mod.getId().toString(), mod);
         endInsertRows();
         emit countChanged();
     }
 
     void ModListModel::modEntryUpdated(const ModEntry &mod) {
-        if (!mModsMap.contains(mod.getName().toString())) {
+        if (!mModsMap.contains(mod.getId().toString())) {
             return;
         }
 
         int row = 0;
         for (auto it = mModsMap.begin(); it != mModsMap.end(); ++it, ++row) {
-            if (it.key() == mod.getName()) {
+            if (it.key() == mod.getId()) {
                 *it = mod;
-                mModsIdMap.insert(mod.getId().toString(), std::ref(*it));
 
                 QModelIndex idx = index(row);
                 if (idx.isValid()) {
@@ -148,8 +145,6 @@ namespace vsmodchecker {
         beginRemoveRows(QModelIndex(), 0, static_cast<int>(mModsMap.size() - 1));
         mModsMap.clear();
         endRemoveRows();
-
-        mModsIdMap.clear();
 
         emit countChanged();
     }
