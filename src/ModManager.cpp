@@ -196,25 +196,23 @@ namespace vsmodchecker {
         if (!response) {
             return;
         }
+        response->deleteLater();
 
         auto info = response->property("modInfo").value<ModInfoZip>();
         if (response->error() != QNetworkReply::NoError) {
             qWarning() << QString("Failed to retrieve mod info for %1: %2").arg(info.id, response->errorString());
             QString id = info.id;
-            mModsList.emplace(std::move(id), std::move(info.name), std::move(info.version), std::move(info.author), std::move(info.id), std::move(info.filename));
-            response->deleteLater();
+            const auto it = mModsList.emplace(std::move(id), std::move(info.name), std::move(info.version), std::move(info.author), std::move(info.id), std::move(info.filename));
+            emit modEntryAdded(*it);
             return;
         }
 
         if (auto value = response->header(QNetworkRequest::ContentTypeHeader).toString(); value != "application/json") {
             qWarning() << QString("Invalid response format for %1: %2").arg(info.id, value);
-            response->deleteLater();
             return;
         }
 
         const QByteArray responseData = response->readAll();
-        response->deleteLater();
-
         auto responseJsonObj = QJsonDocument::fromJson(responseData).object()["mod"].toObject();
 
         if (auto [it, added] = mModsList.tryEmplace(info.id, responseJsonObj, info.version, info.id, info.filename); !added) {

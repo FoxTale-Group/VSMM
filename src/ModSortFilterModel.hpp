@@ -38,8 +38,8 @@ namespace vsmodchecker {
         void filterTextChanged();
 
     protected:
-        bool lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const override;
-        bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
+        [[nodiscard]] bool lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const override;
+        [[nodiscard]] bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
 
     private:
         QString mFilterText;
