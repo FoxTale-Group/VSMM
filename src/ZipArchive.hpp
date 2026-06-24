@@ -48,6 +48,6 @@ namespace vsmodchecker {
         ~ZipArchive();
 
     private:
-        zip_t *mZipFile = nullptr;
+        zip_t *mZipFile{nullptr};
     };
 } // vsmodchecker

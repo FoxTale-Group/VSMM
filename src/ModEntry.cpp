@@ -120,12 +120,16 @@ namespace vsmodchecker {
         }
 
         auto latestReleaseObj = jsonReleaseArr.first().toObject();
-        semver::version latestReleaseVersion = semver::version::parse(latestReleaseObj["modversion"].toString().toStdString());
-        semver::version currentVersion = semver::version::parse(mVersion.toStdString());
+        try {
+            semver::version latestReleaseVersion = semver::version::parse(latestReleaseObj["modversion"].toString().toStdString());
+            semver::version currentVersion = semver::version::parse(mVersion.toStdString());
 
-        if (latestReleaseVersion > currentVersion) {
-            mUpdateVersion = latestReleaseObj["modversion"].toString();
-            mHasUpdate = true;
+            if (latestReleaseVersion > currentVersion) {
+                mUpdateVersion = latestReleaseObj["modversion"].toString();
+                mHasUpdate = true;
+            }
+        } catch (const semver::semver_exception &e) {
+            qCritical() << QString("%1: Cannot parse version: %2").arg(mName).arg(e.what());
         }
     }
 

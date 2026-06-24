@@ -34,7 +34,7 @@ namespace vsmodchecker {
 
     public:
         ModManager() = default;
-        void setModsPath(std::filesystem::path modsPath);
+        [[nodiscard]] bool setModsPath(std::filesystem::path modsPath);
         bool initModsList();
         [[nodiscard]] const QHash<QString, ModEntry>& getModsList() const;
         void setNetworkManager(QNetworkAccessManager *networkManager);

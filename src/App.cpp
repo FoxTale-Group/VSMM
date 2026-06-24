@@ -78,9 +78,10 @@ namespace vsmodchecker {
         connect(modManager, &ModManager::modEntryUpdated, modList, &ModListModel::modEntryUpdated);
         connect(modManager, &ModManager::thumbnailReady, modList, &ModListModel::modEntryIconUpdated);
 
-        modManager->setModsPath(std::move(modsPath));
-        if (!modManager->initModsList()) {
-            qFatal() << "Failed to initialize mods list";
+        if (!modManager->setModsPath(std::move(modsPath))) {
+            qWarning() << "Mods directory not found; starting with an empty mod list";
+        } else if (!modManager->initModsList()) {
+            qWarning() << "Failed to initialize mods list";
         }
     }
 } // vsmodchecker

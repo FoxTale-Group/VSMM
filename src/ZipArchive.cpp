@@ -28,11 +28,19 @@ namespace vsmodchecker {
     }
 
     ZipArchive::ZipArchive(ZipArchive &&other) noexcept {
+        if (mZipFile) {
+            zip_close(mZipFile);
+        }
+
         mZipFile = other.mZipFile;
         other.mZipFile = nullptr;
     }
 
     ZipArchive& ZipArchive::operator=(ZipArchive&& other) noexcept {
+        if (mZipFile) {
+            zip_close(mZipFile);
+        }
+
         mZipFile = other.mZipFile;
         other.mZipFile = nullptr;
         return *this;

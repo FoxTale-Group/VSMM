@@ -9,29 +9,29 @@ namespace vsmodchecker {
 
     QImage ModImageProvider::requestImage(const QString &id, QSize *size, const QSize &requestedSize)
     {
-        QMutexLocker locker(&mMutex);
-        QString key = id.section('?', 0, 0);
-        QImage image = mImages.value(key).image;
+        QImage image;
+        {
+            QMutexLocker locker(&mMutex);
+            QString key = id.section('?', 0, 0);
+            image = mImages.value(key).image;
+        }
         if (size)
             *size = image.size();
         if (requestedSize.isValid() && !image.isNull())
             image = image.scaled(requestedSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-        qDebug() << "Requested image for " << id << " with size " << requestedSize << " and diff " << mImages.value(key).diff;
 
         return image;
     }
 
     void ModImageProvider::addImage(const QString &id, const QImage &image)
     {
-        if (hasImage(id)) {
-            QMutexLocker locker(&mMutex);
-            ImageEntry& entry = mImages[id];
-            entry.image = image;
-            entry.diff++;
+        QMutexLocker locker(&mMutex);
+        if (const auto it = mImages.find(id); it != mImages.end()) {
+            it->image = image;
+            it->diff++;
             return;
         }
-        QMutexLocker locker(&mMutex);
+
         mImages.insert(id, {.image = image});
     }
 
@@ -40,8 +40,7 @@ namespace vsmodchecker {
         return mImages.value(id).diff;
     }
 
-    bool ModImageProvider::hasImage(const QString &id) const
-    {
+    bool ModImageProvider::hasImage(const QString &id) const {
         QMutexLocker locker(&mMutex);
         return mImages.contains(id);
     }

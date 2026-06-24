@@ -33,12 +33,14 @@ namespace {
 }
 
 namespace vsmodchecker {
-    void ModManager::setModsPath(std::filesystem::path modsPath) {
+    bool ModManager::setModsPath(std::filesystem::path modsPath) {
         if (!std::filesystem::exists(modsPath)) {
-            throw std::runtime_error("Mods path does not exist");
+            qWarning() << QString("Mods path does not exist: %1").arg(QString::fromStdString(modsPath.string()));
+            return false;
         }
 
         mModsPath = std::move(modsPath);
+        return true;
     }
 
     bool ModManager::initModsList() {
@@ -185,6 +187,7 @@ namespace vsmodchecker {
     }
 
     void ModManager::requestInfoFinished() {
+        --mRequestCount;
         auto response = qobject_cast<QNetworkReply *>(sender());
         if (!response) {
             return;
@@ -193,7 +196,8 @@ namespace vsmodchecker {
         auto info = response->property("modInfo").value<ModInfoZip>();
         if (response->error() != QNetworkReply::NoError) {
             qWarning() << QString("Failed to retrieve mod info for %1: %2").arg(info.id, response->errorString());
-            mModsList.emplace(info.id, std::move(info.name), std::move(info.version), std::move(info.author), std::move(info.id), std::move(info.filename));
+            QString id = info.id;
+            mModsList.emplace(std::move(id), std::move(info.name), std::move(info.version), std::move(info.author), std::move(info.id), std::move(info.filename));
             response->deleteLater();
             return;
         }
@@ -212,18 +216,20 @@ namespace vsmodchecker {
         if (auto [it, added] = mModsList.tryEmplace(info.id, responseJsonObj, info.version, info.id, info.filename); !added) {
             qWarning() << QString("Detected doubled mod %1. Checking version...").arg(info.name);
 
-            if (semver::version::parse(it->getVersion().toString().toStdString()) <
+            try {
+                if (semver::version::parse(it->getVersion().toString().toStdString()) <
                 semver::version::parse(info.version.toStdString())) {
-                it = mModsList.emplace(info.id, responseJsonObj, info.version, info.id, info.filename);
-                emit modEntryUpdated(*it);
+                    it = mModsList.emplace(info.id, responseJsonObj, info.version, info.id, info.filename);
+                    emit modEntryUpdated(*it);
 
-                qInfo() << QString("Found newer version of %1. Overwriting...").arg(info.name);
+                    qInfo() << QString("Found newer version of %1. Overwriting...").arg(info.name);
+                }
+            } catch (const semver::semver_exception& e) {
+                qWarning() << QString("Failed to parse other version for mod %1: %2").arg(info.name, e.what());
             }
         } else {
             retrieveModIcon(info.id, responseJsonObj["logofile"].toString());
             emit modEntryAdded(*it);
         }
-
-        --mRequestCount;
     }
 } // vsmodchecker
