@@ -15,11 +15,11 @@ RowLayout
         model:
             [{
                 label: "Installed",
-                value: ModListModel.count,
+                value: ModManager.installedModsCount,
                 color: "#2a2a2a", textColor: "#e0e0e0"
             }, {
                 label: "Updates available",
-                value: ModManager.updatesAvailable(),
+                value: ModManager.updatesAvailable,
                 color: "#3a2f12", textColor: "#e0a23a"
             }]
 

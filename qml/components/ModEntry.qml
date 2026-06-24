@@ -33,7 +33,7 @@ Rectangle {
         anchors.rightMargin: 16
         height: 1
         color: "#333333"
-        visible: index !== ModListModel.count - 1
+        visible: index !== modListView.count - 1
     }
 
     RowLayout {

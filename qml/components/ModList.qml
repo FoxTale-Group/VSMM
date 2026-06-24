@@ -17,7 +17,7 @@ Rectangle {
         id: modListView
         anchors.fill: parent
         Layout.margins: 1
-        model: ModListModel
+        model: ModSortFilterModel
         spacing: 0
         clip: true
 

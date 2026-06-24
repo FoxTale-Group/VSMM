@@ -25,12 +25,13 @@
 #include <QIcon>
 
 #include "ModListModel.hpp"
+#include "ModSortFilterModel.hpp"
 #include "ModManager.hpp"
 
 namespace vsmodchecker {
     App::App(int &argc, char *argv[]) :
         QGuiApplication{argc, argv},
-        mQmlEngine{this}, mNetworkManager{this}, mNetworkDiskCache{this}
+        mModListModel{this}, mNetworkManager{this}, mNetworkDiskCache{this}, mQmlEngine{this}
     {
         setApplicationDisplayName(APP_DISPLAY_NAME);
         setApplicationName(APP_DISPLAY_NAME);
@@ -66,17 +67,19 @@ namespace vsmodchecker {
         mModImageProvider = new ModImageProvider();
         mQmlEngine.addImageProvider("modicon", mModImageProvider);
 
-        auto modList = mQmlEngine.singletonInstance<ModListModel *>("vsmodchecker", "ModListModel");
         auto modManager = mQmlEngine.singletonInstance<ModManager *>("vsmodchecker", "ModManager");
+        auto modSortFilterModel = mQmlEngine.singletonInstance<ModSortFilterModel *>("vsmodchecker", "ModSortFilterModel");
+        modSortFilterModel->setSourceModel(&mModListModel);
+
         modManager->setNetworkManager(&mNetworkManager);
         modManager->setModImageProvider(mModImageProvider);
-        modList->setModImageProvider(mModImageProvider);
+        mModListModel.setModImageProvider(mModImageProvider);
 
-        connect(modManager, &ModManager::modEntryAdded, modList, &ModListModel::modEntryAdded);
-        connect(modManager, &ModManager::modsCleared, modList, &ModListModel::modsCleared);
+        connect(modManager, &ModManager::modEntryAdded, &mModListModel, &ModListModel::modEntryAdded);
+        connect(modManager, &ModManager::modsCleared, &mModListModel, &ModListModel::modsCleared);
         connect(modManager, &ModManager::modsCleared, mModImageProvider, &ModImageProvider::modsCleared);
-        connect(modManager, &ModManager::modEntryUpdated, modList, &ModListModel::modEntryUpdated);
-        connect(modManager, &ModManager::thumbnailReady, modList, &ModListModel::modEntryIconUpdated);
+        connect(modManager, &ModManager::modEntryUpdated, &mModListModel, &ModListModel::modEntryUpdated);
+        connect(modManager, &ModManager::thumbnailReady, &mModListModel, &ModListModel::modEntryIconUpdated);
 
         if (!modManager->setModsPath(std::move(modsPath))) {
             qWarning() << "Mods directory not found; starting with an empty mod list";

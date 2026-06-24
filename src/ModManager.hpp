@@ -31,6 +31,8 @@ namespace vsmodchecker {
         Q_OBJECT
         QML_ELEMENT
         QML_SINGLETON
+        Q_PROPERTY(int installedModsCount READ installedModsCount NOTIFY modEntryAdded)
+        Q_PROPERTY(int updatesAvailable   READ updatesAvailable   NOTIFY modEntryAdded)
 
     public:
         ModManager() = default;
@@ -39,7 +41,8 @@ namespace vsmodchecker {
         [[nodiscard]] const QHash<QString, ModEntry>& getModsList() const;
         void setNetworkManager(QNetworkAccessManager *networkManager);
         void setModImageProvider(ModImageProvider* modImageProvider);
-        Q_INVOKABLE [[nodiscard]] int updatesAvailable() const;
+        [[nodiscard]] int updatesAvailable() const;
+        [[nodiscard]] quint64 installedModsCount() const;
 
     private:
         struct ModInfoZip {

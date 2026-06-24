@@ -17,30 +17,32 @@
  */
 
 #pragma once
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QNetworkDiskCache>
-#include <QNetworkAccessManager>
 
-#include <filesystem>
-
-#include "ModImageProvider.hpp"
-#include "ModListModel.hpp"
+#include <qqmlintegration.h>
+#include <QSortFilterProxyModel>
 
 namespace vsmodchecker {
-    class App final : public QGuiApplication {
+    class ModSortFilterModel : public QSortFilterProxyModel {
+        Q_OBJECT
+        QML_ELEMENT
+        QML_SINGLETON
+        Q_PROPERTY(QString filterText READ getFilterText WRITE setFilterText NOTIFY filterTextChanged)
+
     public:
-        App(int& argc, char *argv[]);
-        ~App() override = default;
+        explicit ModSortFilterModel(QObject *parent = nullptr);
+
+        [[nodiscard]] QString getFilterText() const;
+        void setFilterText(const QString &filterText);
+
+    signals:
+        void filterTextChanged();
+
+    protected:
+        bool lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const override;
+        bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
 
     private:
-        void initQmlEngine(std::filesystem::path modsPath);
-
-    private:
-        ModListModel mModListModel;
-        QNetworkAccessManager mNetworkManager;
-        QNetworkDiskCache mNetworkDiskCache;
-        ModImageProvider* mModImageProvider{nullptr}; // ownership passed to QML engine
-        QQmlApplicationEngine mQmlEngine;
+        QString mFilterText;
     };
 } // vsmodchecker
+

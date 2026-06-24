@@ -57,8 +57,7 @@ Rectangle {
             }
 
             onTextChanged: {
-                //modModel.searchQuery = searchInput.text
-                console.log("Search Query: " + searchInput.text);
+                ModSortFilterModel.filterText = searchInput.text
             }
         }
     }

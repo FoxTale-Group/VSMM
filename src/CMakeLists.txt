@@ -34,4 +34,6 @@ qt_add_qml_module(${PROJECT_NAME}
             ModListModel.hpp
             ModManager.cpp
             ModManager.hpp
+            ModSortFilterModel.cpp
+            ModSortFilterModel.hpp
 )

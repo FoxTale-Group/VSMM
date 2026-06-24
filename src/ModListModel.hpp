@@ -27,9 +27,6 @@
 namespace vsmodchecker {
     class ModListModel : public QAbstractListModel {
         Q_OBJECT
-        QML_ELEMENT
-        QML_SINGLETON
-        Q_PROPERTY(int count READ count NOTIFY countChanged)
 
     public:
         enum Roles {
@@ -47,13 +44,9 @@ namespace vsmodchecker {
 
         explicit ModListModel(QObject *parent = nullptr);
         [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
-        [[nodiscard]] int count() const;
         [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
         [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
         void setModImageProvider(ModImageProvider *provider);
-
-    signals:
-        void countChanged();
 
     public slots:
         void modEntryAdded(const ModEntry& mod);
@@ -62,7 +55,8 @@ namespace vsmodchecker {
         void modsCleared();
 
     private:
-        QMap<QString, ModEntry> mModsMap;
+        QList<ModEntry> mMods;
+        QMap<QString, int> mIdToRow;
         ModImageProvider *mImageProvider{nullptr};
     };
 } // vsmodchecker

@@ -26,19 +26,15 @@ namespace vsmodchecker {
         if (parent.isValid()) {
             return 0;
         }
-        return static_cast<int>(mModsMap.size());
-    }
-
-    int ModListModel::count() const {
-        return static_cast<int>(mModsMap.size());
+        return static_cast<int>(mMods.size());
     }
 
     QVariant ModListModel::data(const QModelIndex &index, int role) const {
-        if (!index.isValid() || index.row() >= mModsMap.size()) {
+        if (!index.isValid() || index.row() >= mMods.size()) {
             return {};
         }
 
-        const ModEntry& mod = *std::next(mModsMap.begin(), index.row());
+        const ModEntry& mod = *std::next(mMods.begin(), index.row());
         switch (role) {
             case NameRole:
                 return mod.getName().toString();
@@ -91,61 +87,52 @@ namespace vsmodchecker {
     }
 
     void ModListModel::modEntryAdded(const ModEntry &mod) {
-        if (mModsMap.contains(mod.getId().toString())) {
+        const QString modId = mod.getId().toString();
+
+        if (mIdToRow.contains(modId)) {
             return;
         }
 
-        int row = 0;
-        for (auto it = mModsMap.constBegin(); it != mModsMap.constEnd(); ++it, ++row) {
-            if (it.key() > mod.getId())
-                break;
-        }
-
-        beginInsertRows(QModelIndex(), row, row);
-        mModsMap.insert(mod.getId().toString(), mod);
+        const int row = static_cast<int>(mMods.size());
+        beginInsertRows({}, row, row);
+        mMods.emplace_back(mod);
+        mIdToRow.insert(modId, row);
         endInsertRows();
-        emit countChanged();
     }
 
     void ModListModel::modEntryUpdated(const ModEntry &mod) {
-        if (!mModsMap.contains(mod.getId().toString())) {
+        const QString modId = mod.getId().toString();
+        auto it = mIdToRow.find(modId);
+        if (it == mIdToRow.end()) {
             return;
         }
 
-        int row = 0;
-        for (auto it = mModsMap.begin(); it != mModsMap.end(); ++it, ++row) {
-            if (it.key() == mod.getId()) {
-                *it = mod;
-
-                QModelIndex idx = index(row);
-                if (idx.isValid()) {
-                    emit dataChanged(idx, idx);
-                }
-                break;
-            }
+        const int row = *it;
+        mMods[row] = mod;
+        if (const QModelIndex idx = index(row); idx.isValid()) {
+            emit dataChanged(idx, idx);
         }
     }
 
     void ModListModel::modEntryIconUpdated(const QString &modId) {
-        int row = 0;
-        for (auto it = mModsMap.begin(); it != mModsMap.end(); ++it, ++row) {
-            if (it.value().getId() == modId) {
-                if (QModelIndex idx = index(row); idx.isValid()) {
-                    emit dataChanged(idx, idx, {IconRole});
-                }
-                break;
-            }
+        auto it = mIdToRow.find(modId);
+        if (it == mIdToRow.end()) {
+            return;
+        }
+
+        const int row = *it;
+        if (const QModelIndex idx = index(row); idx.isValid()) {
+            emit dataChanged(idx, idx, {IconRole});
         }
     }
 
     void ModListModel::modsCleared() {
-        if (mModsMap.isEmpty()) {
+        if (mMods.isEmpty()) {
             return;
         }
-        beginRemoveRows(QModelIndex(), 0, static_cast<int>(mModsMap.size() - 1));
-        mModsMap.clear();
+        beginRemoveRows(QModelIndex(), 0, static_cast<int>(mMods.size() - 1));
+        mMods.clear();
+        mIdToRow.clear();
         endRemoveRows();
-
-        emit countChanged();
     }
 } // vsmodchecker

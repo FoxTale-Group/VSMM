@@ -109,6 +109,10 @@ namespace vsmodchecker {
         return updatesAvailable;
     }
 
+    quint64 ModManager::installedModsCount() const {
+        return mModsList.size();
+    }
+
     void ModManager::retrieveInfoForMod(ModInfoZip info) {
         if (!mNetworkManager) {
             qCritical() << "Network manager is not set";
