@@ -10,7 +10,8 @@ qt_add_executable(${PROJECT_NAME}
         App.cpp
         ZipArchive.cpp
         ZipArchive.hpp
-        ModEntry.cpp)
+        ModEntry.cpp
+        ModImageProvider.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE zip semver Qt6::Core Qt6::Quick Qt6::Qml)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 

@@ -89,6 +89,10 @@ namespace vsmodchecker {
         mNetworkManager = networkManager;
     }
 
+    void ModManager::setModImageProvider(ModImageProvider *modImageProvider) {
+        mModImageProvider = modImageProvider;
+    }
+
     int ModManager::updatesAvailable() const {
         int updatesAvailable{0};
         for (const auto& mod : mModsList) {
@@ -109,6 +113,45 @@ namespace vsmodchecker {
         QNetworkReply *reply = mNetworkManager->get(request);
         reply->setProperty("modInfo", QVariant::fromValue(std::move(info)));
         connect(reply, &QNetworkReply::finished, this, &ModManager::requestInfoFinished);
+    }
+
+    void ModManager::retrieveModIcon(const QString &id, const QUrl &url) {
+        if (!mNetworkManager) {
+            qCritical() << "Network manager is not set";
+            return;
+        }
+
+        if (mModImageProvider->hasImage(id)) {
+            return;
+        }
+
+        QNetworkRequest request(url);
+        request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+
+        QNetworkReply *reply = mNetworkManager->get(request);
+        connect(reply, &QNetworkReply::finished, this, [this, id] {
+            auto *reply_ = qobject_cast<QNetworkReply *>(sender());
+
+            reply_->deleteLater();
+            if (reply_->error() != QNetworkReply::NoError) {
+                qWarning() << QString("Failed to retrieve mod %1 icon: %2").arg(id).arg(reply_->errorString());
+                return;
+            }
+
+            QByteArray imageData = reply_->readAll();
+
+            QThreadPool::globalInstance()->start([this, id, imageData] {
+                QImage image;
+                if (!image.loadFromData(imageData)) {
+                    return;
+                }
+
+                QMetaObject::invokeMethod(this, [this, id, image]() {
+                    mModImageProvider->addImage(id, image);
+                    emit thumbnailReady(id);
+                }, Qt::QueuedConnection);
+            });
+        });
     }
 
     ModManager::ModInfoZip ModManager::parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename) {
@@ -172,6 +215,7 @@ namespace vsmodchecker {
                 qInfo() << QString("Found newer version of %1. Overwriting...").arg(info.name);
             }
         } else {
+            retrieveModIcon(info.id, responseJsonObj["logofile"].toString());
             emit modEntryAdded(*it);
         }
 

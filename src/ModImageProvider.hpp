@@ -17,28 +17,32 @@
  */
 
 #pragma once
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QNetworkDiskCache>
-#include <QNetworkAccessManager>
 
-#include <filesystem>
-
-#include "ModImageProvider.hpp"
+#include <QQuickImageProvider>
+#include <QHash>
+#include <QMutex>
 
 namespace vsmodchecker {
-    class App final : public QGuiApplication {
+    class ModImageProvider : public QQuickImageProvider
+    {
     public:
-        App(int& argc, char *argv[]);
-        ~App() override = default;
+        struct ImageEntry {
+            QImage image;
+            qint64 diff{0};
+        };
+
+        ModImageProvider();
+
+        QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
+        void addImage(const QString &id, const QImage &image);
+        qint64 getDiff(const QString &id) const;
+        bool hasImage(const QString &id) const;
+
+    public slots:
+        void modsCleared();
 
     private:
-        void initQmlEngine(std::filesystem::path modsPath);
-
-    private:
-        QQmlApplicationEngine mQmlEngine;
-        QNetworkAccessManager mNetworkManager;
-        QNetworkDiskCache mNetworkDiskCache;
-        ModImageProvider* mModImageProvider{nullptr}; // ownership passed to QML engine
+        QHash<QString, ImageEntry> mImages;
+        mutable QMutex mMutex;
     };
-} // vsmodchecker
+}

@@ -19,6 +19,7 @@
 #pragma once
 
 #include "ModEntry.hpp"
+#include "ModImageProvider.hpp"
 
 #include <QAbstractListModel>
 #include <qqmlintegration.h>
@@ -40,7 +41,8 @@ namespace vsmodchecker {
             UrlRole,
             InfoReceivedRole,
             TypeRole,
-            HasUpdateRole
+            HasUpdateRole,
+            IconRole
         };
 
         explicit ModListModel(QObject *parent = nullptr);
@@ -48,6 +50,7 @@ namespace vsmodchecker {
         [[nodiscard]] int count() const;
         [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
         [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
+        void setModImageProvider(ModImageProvider *provider);
 
     signals:
         void countChanged();
@@ -55,9 +58,12 @@ namespace vsmodchecker {
     public slots:
         void modEntryAdded(const ModEntry& mod);
         void modEntryUpdated(const ModEntry& mod);
+        void modEntryIconUpdated(const QString &modId);
         void modsCleared();
 
     private:
-        QMap<QString, ModEntry> mModsMap;
+        QMap<QString, ModEntry> mModsMap; // For displaying
+        QMap<QString, std::reference_wrapper<ModEntry>> mModsIdMap;
+        ModImageProvider *mImageProvider;
     };
 } // vsmodchecker

@@ -19,6 +19,7 @@
 #pragma once
 
 #include "ModEntry.hpp"
+#include "ModImageProvider.hpp"
 
 #include <filesystem>
 #include <QNetworkAccessManager>
@@ -36,6 +37,7 @@ namespace vsmodchecker {
         bool initModsList();
         [[nodiscard]] const QHash<QString, ModEntry>& getModsList() const;
         void setNetworkManager(QNetworkAccessManager *networkManager);
+        void setModImageProvider(ModImageProvider* modImageProvider);
         Q_INVOKABLE [[nodiscard]] int updatesAvailable() const;
 
     private:
@@ -43,6 +45,7 @@ namespace vsmodchecker {
             QString name, version, id, author, filename;
         };
         void retrieveInfoForMod(ModInfoZip info);
+        void retrieveModIcon(const QString& id, const QUrl& url);
 
         static ModInfoZip parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename);
 
@@ -50,11 +53,13 @@ namespace vsmodchecker {
         QNetworkAccessManager *mNetworkManager{nullptr};
         std::filesystem::path mModsPath;
         qint64 mRequestCount{0};
+        ModImageProvider* mModImageProvider{nullptr};
 
     signals:
         void modEntryAdded(const ModEntry& mod);
         void modEntryUpdated(const ModEntry& mod);
         void modsCleared();
+        void thumbnailReady(const QString& mod);
 
     public slots:
         void reloadMods();

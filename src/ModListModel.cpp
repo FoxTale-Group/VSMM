@@ -59,6 +59,12 @@ namespace vsmodchecker {
                 return mod.getType().toString();
             case HasUpdateRole:
                 return mod.hasUpdate();
+            case IconRole: {
+                if (!mImageProvider || !mImageProvider->hasImage(mod.getId().toString())) {
+                    return QString();
+                }
+                return QStringLiteral("image://modicon/%1?diff=%2").arg(mod.getId().toString()).arg(mImageProvider->getDiff(mod.getId().toString()));
+            }
             default:
                 return {};
         }
@@ -76,8 +82,13 @@ namespace vsmodchecker {
             {UrlRole, "url"},
             {InfoReceivedRole, "infoReceived"},
             {TypeRole, "type"},
-            {HasUpdateRole, "hasUpdate"}
+            {HasUpdateRole, "hasUpdate"},
+            {IconRole, "modicon"},
         };
+    }
+
+    void ModListModel::setModImageProvider(ModImageProvider *provider) {
+        mImageProvider = provider;
     }
 
     void ModListModel::modEntryAdded(const ModEntry &mod) {
@@ -92,7 +103,8 @@ namespace vsmodchecker {
         }
 
         beginInsertRows(QModelIndex(), row, row);
-        mModsMap.insert(mod.getName().toString(), mod);
+        const auto it = mModsMap.insert(mod.getName().toString(), mod);
+        mModsIdMap.insert(mod.getId().toString(), std::ref(*it));
         endInsertRows();
         emit countChanged();
     }
@@ -106,10 +118,23 @@ namespace vsmodchecker {
         for (auto it = mModsMap.begin(); it != mModsMap.end(); ++it, ++row) {
             if (it.key() == mod.getName()) {
                 *it = mod;
+                mModsIdMap.insert(mod.getId().toString(), std::ref(*it));
 
                 QModelIndex idx = index(row);
                 if (idx.isValid()) {
                     emit dataChanged(idx, idx);
+                }
+                break;
+            }
+        }
+    }
+
+    void ModListModel::modEntryIconUpdated(const QString &modId) {
+        int row = 0;
+        for (auto it = mModsMap.begin(); it != mModsMap.end(); ++it, ++row) {
+            if (it.value().getId() == modId) {
+                if (QModelIndex idx = index(row); idx.isValid()) {
+                    emit dataChanged(idx, idx, {IconRole});
                 }
                 break;
             }
@@ -123,6 +148,8 @@ namespace vsmodchecker {
         beginRemoveRows(QModelIndex(), 0, static_cast<int>(mModsMap.size() - 1));
         mModsMap.clear();
         endRemoveRows();
+
+        mModsIdMap.clear();
 
         emit countChanged();
     }

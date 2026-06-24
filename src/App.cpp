@@ -25,11 +25,12 @@
 #include <QIcon>
 
 #include "ModListModel.hpp"
+#include "ModManager.hpp"
 
 namespace vsmodchecker {
     App::App(int &argc, char *argv[]) :
         QGuiApplication{argc, argv},
-        mQmlEngine{this}, mNetworkManager{this}
+        mQmlEngine{this}, mNetworkManager{this}, mNetworkDiskCache{this}
     {
         setApplicationDisplayName(APP_DISPLAY_NAME);
         setApplicationName(APP_DISPLAY_NAME);
@@ -54,25 +55,32 @@ namespace vsmodchecker {
             qFatal() << QString("QML object creation failed %1").arg(url.toString());
         });
 
+        mNetworkDiskCache.setCacheDirectory(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+        mNetworkManager.setCache(&mNetworkDiskCache);
+
         initQmlEngine(modsDir.toStdString());
     }
 
     void App::initQmlEngine(std::filesystem::path modsPath) {
         mQmlEngine.loadFromModule("vsmodchecker", "Main");
-        if (mQmlEngine.rootObjects().isEmpty()) {
-            throw std::runtime_error("Failed to load QML");
-        }
+        mModImageProvider = new ModImageProvider();
+        mQmlEngine.addImageProvider("modicon", mModImageProvider);
 
         auto modList = mQmlEngine.singletonInstance<ModListModel *>("vsmodchecker", "ModListModel");
         auto modManager = mQmlEngine.singletonInstance<ModManager *>("vsmodchecker", "ModManager");
         modManager->setNetworkManager(&mNetworkManager);
+        modManager->setModImageProvider(mModImageProvider);
+        modList->setModImageProvider(mModImageProvider);
+
         connect(modManager, &ModManager::modEntryAdded, modList, &ModListModel::modEntryAdded);
         connect(modManager, &ModManager::modsCleared, modList, &ModListModel::modsCleared);
+        connect(modManager, &ModManager::modsCleared, mModImageProvider, &ModImageProvider::modsCleared);
         connect(modManager, &ModManager::modEntryUpdated, modList, &ModListModel::modEntryUpdated);
+        connect(modManager, &ModManager::thumbnailReady, modList, &ModListModel::modEntryIconUpdated);
 
         modManager->setModsPath(std::move(modsPath));
         if (!modManager->initModsList()) {
-            throw std::runtime_error("Failed to initialize mods list");
+            qFatal() << "Failed to initialize mods list";
         }
     }
 } // vsmodchecker
