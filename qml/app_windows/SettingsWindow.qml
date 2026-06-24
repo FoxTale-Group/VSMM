@@ -12,7 +12,9 @@ ApplicationWindow
     minimumWidth: 600
     minimumHeight: 400
 
-    flags: Qt.Window | Qt.FramelessWindowHint
+    flags: Qt.Dialog | Qt.FramelessWindowHint
+    modality: Qt.ApplicationModal
+
     visible: false
     color: "transparent"
 
@@ -23,6 +25,9 @@ ApplicationWindow
     header: WindowTitleBar {
         windowTitleText: "Settings"
         cornerRadius: window.windowCornerRadius
+
+        showMinimize: false
+        showMaximize: false
     }
 
     WindowResizers{}

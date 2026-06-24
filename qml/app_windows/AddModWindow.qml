@@ -1,26 +1,30 @@
 import QtQml
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 
 ApplicationWindow
 {
-    id: window
+    id: addModWindow
 
     width: 400
     height: 250
 
-    flags: Qt.Window | Qt.FramelessWindowHint
+    flags: Qt.Dialog | Qt.FramelessWindowHint
+    modality: Qt.ApplicationModal
+
     visible: false
     color: "transparent"
 
     property int windowCornerRadius: 10 // Window corner radius
 
-    background: WindowBackground { cornerRadius: window.windowCornerRadius }
+    background: WindowBackground { cornerRadius: addModWindow.windowCornerRadius }
 
     header: WindowTitleBar {
         windowTitleText: "Install mod"
-        cornerRadius: window.windowCornerRadius
+        cornerRadius: addModWindow.windowCornerRadius
+        showMinimize: false
+        showMaximize: false
     }
 
+    AddModWindowContent{}
 }

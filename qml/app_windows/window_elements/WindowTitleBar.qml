@@ -9,6 +9,9 @@ Item {
     property string windowTitleText: "Default Title"
     property int cornerRadius: 0
 
+    property bool showMaximize: true
+    property bool showMinimize: true
+
     height: 30
 
     // Title bar background rectangle with rounded corners
@@ -58,6 +61,7 @@ Item {
             Layout.preferredWidth: 30
             Layout.preferredHeight: 30
 
+            visible: _TitleBar.showMinimize
 
             background: Rectangle {
                 color: parent.hovered ? "#444444" : "transparent"
@@ -75,6 +79,8 @@ Item {
             display: AbstractButton.IconOnly
             Layout.preferredWidth: 30
             Layout.preferredHeight: 30
+
+            visible: _TitleBar.showMaximize
 
             background: Rectangle {
                 color: parent.hovered ? "#444444" : "transparent"

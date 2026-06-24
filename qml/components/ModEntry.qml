@@ -231,7 +231,7 @@ Rectangle {
             clip: true
 
             ModActionButton {
-                icon.source: "qrc:/qt/qml/vsmodchecker/icons/download.svg"
+                icon.source: "qrc:/qt/qml/vsmodchecker/icons/download_one.svg"
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
