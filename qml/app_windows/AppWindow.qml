@@ -28,7 +28,11 @@ ApplicationWindow
 
     MouseArea {
         anchors.fill: parent
-        onPressed: Window.window.startSystemMove()
+        onPressed: (mouse) => {
+            appContent.forceActiveFocus()
+            windowMain.startSystemMove()
+            mouse.accepted = true
+        }
     }
 
     WindowResizers{}
@@ -42,6 +46,8 @@ ApplicationWindow
     }
 
     AppWindowContent{
+        id: appContent
+        
         onOpenSettingsClicked: {
             settingsWindow.show()
             settingsWindow.raise()
