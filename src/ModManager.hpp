@@ -23,6 +23,7 @@
 
 #include <filesystem>
 #include <QNetworkAccessManager>
+#include <QThreadPool>
 #include <qqmlintegration.h>
 
 namespace vsmodchecker {
@@ -54,6 +55,7 @@ namespace vsmodchecker {
         std::filesystem::path mModsPath;
         qint64 mRequestCount{0};
         ModImageProvider* mModImageProvider{nullptr};
+        QThreadPool mThreadPoolExtractZips;
 
     signals:
         void modEntryAdded(const ModEntry& mod);

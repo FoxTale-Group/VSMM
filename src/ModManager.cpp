@@ -22,6 +22,7 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QJsonArray>
+#include <QThreadPool>
 
 #include <semver/semver.hpp>
 
@@ -51,22 +52,25 @@ namespace vsmodchecker {
                 continue;
             }
 
-            ZipArchive zipArchive(entry.path());
-            ZipArchive::FileIndex zipFileId = zipArchive.getFileIndex("modinfo.json");
-            if (zipFileId == -1) {
-                qWarning() << QString("Failed to locate modinfo.json in zip file: %1").arg(QString::fromStdString(entry.path().string()));
-                continue;
-            }
+            mThreadPoolExtractZips.start([this, entry] {
+                ZipArchive zipArchive(entry.path());
+                ZipArchive::FileIndex zipFileId = zipArchive.getFileIndex("modinfo.json");
+                if (zipFileId == -1) {
+                    qWarning() << QString("Failed to locate modinfo.json in zip file: %1").arg(QString::fromStdString(entry.path().string()));
+                    return;
+                }
 
-            const auto& [fileBuffer, fileSize] = zipArchive.getFileContent(zipFileId);
-            auto modInfo = parseModInfoJson(QByteArray{fileBuffer.get(), fileSize}, QString::fromStdString(entry.path().string()));
+                const auto& [fileBuffer, fileSize] = zipArchive.getFileContent(zipFileId);
+                auto modInfo = parseModInfoJson(QByteArray{fileBuffer.get(), fileSize}, QString::fromStdString(entry.path().string()));
 
-            if (modInfo.id.isEmpty()) {
-                continue;
-            }
+                if (modInfo.id.isEmpty()) {
+                    return;
+                }
 
-            ++mRequestCount;
-            retrieveInfoForMod(std::move(modInfo));
+                QMetaObject::invokeMethod(this, [this, modInfo_ = std::move(modInfo)] mutable {
+                    retrieveInfoForMod(std::move(modInfo_));
+                }, Qt::QueuedConnection);
+            });
         }
         return true;
     }
@@ -109,6 +113,7 @@ namespace vsmodchecker {
             return;
         }
 
+        ++mRequestCount;
         QNetworkRequest request(GetModUrlApi(info.id));
         QNetworkReply *reply = mNetworkManager->get(request);
         reply->setProperty("modInfo", QVariant::fromValue(std::move(info)));
