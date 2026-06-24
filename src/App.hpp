@@ -37,7 +37,6 @@ namespace vsmodchecker {
         void initQmlEngine(std::filesystem::path modsPath);
 
     private:
-        ModListModel mModListModel;
         QNetworkAccessManager mNetworkManager;
         QNetworkDiskCache mNetworkDiskCache;
         ModImageProvider* mModImageProvider{nullptr}; // ownership passed to QML engine

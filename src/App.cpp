@@ -31,7 +31,7 @@
 namespace vsmodchecker {
     App::App(int &argc, char *argv[]) :
         QGuiApplication{argc, argv},
-        mModListModel{this}, mNetworkManager{this}, mNetworkDiskCache{this}, mQmlEngine{this}
+        mNetworkManager{this}, mNetworkDiskCache{this}, mQmlEngine{this}
     {
         setApplicationDisplayName(APP_DISPLAY_NAME);
         setApplicationName(APP_DISPLAY_NAME);
@@ -69,17 +69,18 @@ namespace vsmodchecker {
 
         auto modManager = mQmlEngine.singletonInstance<ModManager *>("vsmodchecker", "ModManager");
         auto modSortFilterModel = mQmlEngine.singletonInstance<ModSortFilterModel *>("vsmodchecker", "ModSortFilterModel");
-        modSortFilterModel->setSourceModel(&mModListModel);
+        auto modStore = mQmlEngine.singletonInstance<ModStore *>("vsmodchecker", "ModStore");
+        auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmodchecker", "ModListModel");
+        modSortFilterModel->setSourceModel(modListModel);
 
         modManager->setNetworkManager(&mNetworkManager);
         modManager->setModImageProvider(mModImageProvider);
-        mModListModel.setModImageProvider(mModImageProvider);
+        modManager->setStore(modStore);
 
-        connect(modManager, &ModManager::modEntryAdded, &mModListModel, &ModListModel::modEntryAdded);
-        connect(modManager, &ModManager::modsCleared, &mModListModel, &ModListModel::modsCleared);
-        connect(modManager, &ModManager::modsCleared, mModImageProvider, &ModImageProvider::modsCleared);
-        connect(modManager, &ModManager::modEntryUpdated, &mModListModel, &ModListModel::modEntryUpdated);
-        connect(modManager, &ModManager::thumbnailReady, &mModListModel, &ModListModel::modEntryIconUpdated);
+        modListModel->setStore(modStore);
+        modListModel->setModImageProvider(mModImageProvider);
+
+        connect(modManager, &ModManager::thumbnailReady, modListModel, &ModListModel::iconUpdate);
 
         if (!modManager->setModsPath(std::move(modsPath))) {
             qWarning() << "Mods directory not found; starting with an empty mod list";

@@ -20,13 +20,17 @@
 
 #include "ModEntry.hpp"
 #include "ModImageProvider.hpp"
+#include "ModStore.hpp"
 
 #include <QAbstractListModel>
-#include <qqmlintegration.h>
+#include <QHash>
+#include <QList>
 
 namespace vsmodchecker {
     class ModListModel : public QAbstractListModel {
         Q_OBJECT
+        QML_ELEMENT
+        QML_SINGLETON
 
     public:
         enum Roles {
@@ -46,17 +50,22 @@ namespace vsmodchecker {
         [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
         [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
         [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
+
         void setModImageProvider(ModImageProvider *provider);
+        void setStore(ModStore *store);
 
     public slots:
-        void modEntryAdded(const ModEntry& mod);
-        void modEntryUpdated(const ModEntry& mod);
-        void modEntryIconUpdated(const QString &modId);
-        void modsCleared();
+        void iconUpdate(const QString &modId);
+
+    private slots:
+        void onModAdded(const ModEntry &mod);
+        void onModUpdated(const ModEntry &mod);
+        void onCleared();
 
     private:
-        QList<ModEntry> mMods;
-        QMap<QString, int> mIdToRow;
+        ModStore *mStore{nullptr};
+        QList<QString> mOrder;          // row order -> mod id
+        QHash<QString, int> mIdToRow;   // mod id -> row index
         ModImageProvider *mImageProvider{nullptr};
     };
 } // vsmodchecker

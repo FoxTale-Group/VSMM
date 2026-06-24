@@ -20,6 +20,7 @@
 
 #include "ModEntry.hpp"
 #include "ModImageProvider.hpp"
+#include "ModStore.hpp"
 
 #include <filesystem>
 #include <QNetworkAccessManager>
@@ -31,18 +32,18 @@ namespace vsmodchecker {
         Q_OBJECT
         QML_ELEMENT
         QML_SINGLETON
-        Q_PROPERTY(int installedModsCount READ installedModsCount NOTIFY modEntryAdded)
-        Q_PROPERTY(int updatesAvailable   READ updatesAvailable   NOTIFY modEntryAdded)
 
     public:
         ModManager() = default;
         [[nodiscard]] bool setModsPath(std::filesystem::path modsPath);
         bool initModsList();
-        [[nodiscard]] const QHash<QString, ModEntry>& getModsList() const;
         void setNetworkManager(QNetworkAccessManager *networkManager);
         void setModImageProvider(ModImageProvider* modImageProvider);
-        [[nodiscard]] int updatesAvailable() const;
-        [[nodiscard]] quint64 installedModsCount() const;
+        void setStore(ModStore *store);
+        Q_INVOKABLE void reloadMods();
+
+    signals:
+        void thumbnailReady(const QString &modId);
 
     private:
         struct ModInfoZip {
@@ -53,21 +54,12 @@ namespace vsmodchecker {
 
         static ModInfoZip parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename);
 
-        QHash<QString, ModEntry> mModsList;
+        ModStore *mStore{nullptr};
         QNetworkAccessManager *mNetworkManager{nullptr};
         std::filesystem::path mModsPath;
         qint64 mRequestCount{0};
         ModImageProvider* mModImageProvider{nullptr};
         QThreadPool mThreadPoolExtractZips;
-
-    signals:
-        void modEntryAdded(const ModEntry& mod);
-        void modEntryUpdated(const ModEntry& mod);
-        void modsCleared();
-        void thumbnailReady(const QString& mod);
-
-    public slots:
-        void reloadMods();
 
     private slots:
         void requestInfoFinished();

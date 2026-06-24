@@ -18,29 +18,39 @@
 
 #pragma once
 
-#include <QQuickImageProvider>
+#include "ModEntry.hpp"
+
+#include <QObject>
 #include <QHash>
-#include <QMutex>
+#include <qqmlintegration.h>
 
 namespace vsmodchecker {
-    class ModImageProvider : public QQuickImageProvider
-    {
+    class ModStore : public QObject {
+        Q_OBJECT
+        QML_ELEMENT
+        QML_SINGLETON
+        Q_PROPERTY(int count READ count NOTIFY modsModified)
+        Q_PROPERTY(int updates READ updates NOTIFY modsModified)
+
     public:
-        struct ImageEntry {
-            QImage image;
-            qint64 diff{0};
-        };
+        explicit ModStore(QObject *parent = nullptr);
 
-        ModImageProvider();
-
-        QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
-        void addImage(const QString &id, const QImage &image);
-        qint64 getDiff(const QString &id) const;
-        bool hasImage(const QString &id) const;
+        const ModEntry& add(ModEntry mod);
+        const ModEntry& replace(ModEntry mod);
         void clear();
 
+        [[nodiscard]] bool contains(const QString &id) const;
+        [[nodiscard]] const ModEntry* find(const QString &id) const;
+        [[nodiscard]] int count() const;
+        [[nodiscard]] int updates() const;
+
+    signals:
+        void modsModified();
+        void modAdded(const ModEntry &mod);
+        void modUpdated(const ModEntry &mod);
+        void cleared();
+
     private:
-        QHash<QString, ImageEntry> mImages;
-        mutable QMutex mMutex;
+        QHash<QString, ModEntry> mMods;
     };
-}
+} // vsmodchecker

@@ -45,7 +45,7 @@ namespace vsmodchecker {
         return mImages.contains(id);
     }
 
-    void ModImageProvider::modsCleared() {
+    void ModImageProvider::clear() {
         QMutexLocker locker(&mMutex);
         mImages.clear();
     }

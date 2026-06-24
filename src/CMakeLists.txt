@@ -11,7 +11,8 @@ qt_add_executable(${PROJECT_NAME}
         ZipArchive.cpp
         ZipArchive.hpp
         ModEntry.cpp
-        ModImageProvider.cpp)
+        ModImageProvider.cpp
+        ModListModel.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE zip semver Qt6::Core Qt6::Quick Qt6::Qml)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -30,10 +31,10 @@ qt_add_qml_module(${PROJECT_NAME}
         QML_FILES ${QML_FILES}
         RESOURCES ${ICON_FILES} ../icons/VSMM_Icon.png
         SOURCES
-            ModListModel.cpp
-            ModListModel.hpp
             ModManager.cpp
             ModManager.hpp
             ModSortFilterModel.cpp
             ModSortFilterModel.hpp
+            ModStore.cpp
+            ModStore.hpp
 )

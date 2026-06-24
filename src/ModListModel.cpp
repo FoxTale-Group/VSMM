@@ -26,15 +26,19 @@ namespace vsmodchecker {
         if (parent.isValid()) {
             return 0;
         }
-        return static_cast<int>(mMods.size());
+        return static_cast<int>(mOrder.size());
     }
 
     QVariant ModListModel::data(const QModelIndex &index, int role) const {
-        if (!index.isValid() || index.row() >= mMods.size()) {
+        if (!mStore || !index.isValid() || index.row() < 0 || index.row() >= mOrder.size()) {
             return {};
         }
 
-        const ModEntry& mod = *std::next(mMods.begin(), index.row());
+        const ModEntry* modPtr = mStore->find(mOrder.at(index.row()));
+        if (!modPtr) {
+            return {};
+        }
+        const ModEntry& mod = *modPtr;
         switch (role) {
             case NameRole:
                 return mod.getName().toString();
@@ -86,52 +90,52 @@ namespace vsmodchecker {
         mImageProvider = provider;
     }
 
-    void ModListModel::modEntryAdded(const ModEntry &mod) {
-        const QString modId = mod.getId().toString();
+    void ModListModel::setStore(ModStore *store) {
+        mStore = store;
+        connect(store, &ModStore::modAdded, this, &ModListModel::onModAdded);
+        connect(store, &ModStore::modUpdated, this, &ModListModel::onModUpdated);
+        connect(store, &ModStore::cleared, this, &ModListModel::onCleared);
+    }
 
+    void ModListModel::onModAdded(const ModEntry &mod) {
+        const QString modId = mod.getId().toString();
         if (mIdToRow.contains(modId)) {
             return;
         }
 
-        const int row = static_cast<int>(mMods.size());
+        const int row = static_cast<int>(mOrder.size());
         beginInsertRows({}, row, row);
-        mMods.emplace_back(mod);
+        mOrder.append(modId);
         mIdToRow.insert(modId, row);
         endInsertRows();
     }
 
-    void ModListModel::modEntryUpdated(const ModEntry &mod) {
-        const QString modId = mod.getId().toString();
-        auto it = mIdToRow.find(modId);
-        if (it == mIdToRow.end()) {
+    void ModListModel::onModUpdated(const ModEntry &mod) {
+        const auto it = mIdToRow.constFind(mod.getId().toString());
+        if (it == mIdToRow.constEnd()) {
             return;
         }
-
-        const int row = *it;
-        mMods[row] = mod;
-        if (const QModelIndex idx = index(row); idx.isValid()) {
+        if (const QModelIndex idx = index(*it); idx.isValid()) {
             emit dataChanged(idx, idx);
         }
     }
 
-    void ModListModel::modEntryIconUpdated(const QString &modId) {
-        auto it = mIdToRow.find(modId);
-        if (it == mIdToRow.end()) {
+    void ModListModel::iconUpdate(const QString &modId) {
+        const auto it = mIdToRow.constFind(modId);
+        if (it == mIdToRow.constEnd()) {
             return;
         }
-
-        const int row = *it;
-        if (const QModelIndex idx = index(row); idx.isValid()) {
+        if (const QModelIndex idx = index(*it); idx.isValid()) {
             emit dataChanged(idx, idx, {IconRole});
         }
     }
 
-    void ModListModel::modsCleared() {
-        if (mMods.isEmpty()) {
+    void ModListModel::onCleared() {
+        if (mOrder.isEmpty()) {
             return;
         }
-        beginRemoveRows(QModelIndex(), 0, static_cast<int>(mMods.size() - 1));
-        mMods.clear();
+        beginRemoveRows(QModelIndex(), 0, static_cast<int>(mOrder.size() - 1));
+        mOrder.clear();
         mIdToRow.clear();
         endRemoveRows();
     }

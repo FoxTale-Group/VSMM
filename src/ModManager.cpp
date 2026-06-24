@@ -82,13 +82,9 @@ namespace vsmodchecker {
             qWarning() << "Cannot reload mods while requests are in progress";
             return;
         }
-        mModsList.clear();
-        emit modsCleared();
+        mStore->clear();
+        mModImageProvider->clear();
         initModsList();
-    }
-
-    const QHash<QString, ModEntry> &ModManager::getModsList() const {
-        return mModsList;
     }
 
     void ModManager::setNetworkManager(QNetworkAccessManager *networkManager) {
@@ -99,18 +95,8 @@ namespace vsmodchecker {
         mModImageProvider = modImageProvider;
     }
 
-    int ModManager::updatesAvailable() const {
-        int updatesAvailable{0};
-        for (const auto& mod : mModsList) {
-            if (mod.hasUpdate()) {
-                updatesAvailable++;
-            }
-        }
-        return updatesAvailable;
-    }
-
-    quint64 ModManager::installedModsCount() const {
-        return mModsList.size();
+    void ModManager::setStore(ModStore *store) {
+        mStore = store;
     }
 
     void ModManager::retrieveInfoForMod(ModInfoZip info) {
@@ -201,9 +187,9 @@ namespace vsmodchecker {
         auto info = response->property("modInfo").value<ModInfoZip>();
         if (response->error() != QNetworkReply::NoError) {
             qWarning() << QString("Failed to retrieve mod info for %1: %2").arg(info.id, response->errorString());
-            QString id = info.id;
-            const auto it = mModsList.emplace(std::move(id), std::move(info.name), std::move(info.version), std::move(info.author), std::move(info.id), std::move(info.filename));
-            emit modEntryAdded(*it);
+            if (!mStore->contains(info.id)) {
+                mStore->add(ModEntry{info.name, info.version, info.author, info.id, info.filename});
+            }
             return;
         }
 
@@ -215,15 +201,13 @@ namespace vsmodchecker {
         const QByteArray responseData = response->readAll();
         auto responseJsonObj = QJsonDocument::fromJson(responseData).object()["mod"].toObject();
 
-        if (auto [it, added] = mModsList.tryEmplace(info.id, responseJsonObj, info.version, info.id, info.filename); !added) {
+        if (const ModEntry* existing = mStore->find(info.id)) {
             qWarning() << QString("Detected doubled mod %1. Checking version...").arg(info.name);
 
             try {
-                if (semver::version::parse(it->getVersion().toString().toStdString()) <
-                semver::version::parse(info.version.toStdString())) {
-                    it = mModsList.emplace(info.id, responseJsonObj, info.version, info.id, info.filename);
-                    emit modEntryUpdated(*it);
-
+                if (semver::version::parse(existing->getVersion().toString().toStdString()) <
+                    semver::version::parse(info.version.toStdString())) {
+                    mStore->replace(ModEntry{responseJsonObj, info.version, info.id, info.filename});
                     qInfo() << QString("Found newer version of %1. Overwriting...").arg(info.name);
                 }
             } catch (const semver::semver_exception& e) {
@@ -231,7 +215,7 @@ namespace vsmodchecker {
             }
         } else {
             retrieveModIcon(info.id, responseJsonObj["logofile"].toString());
-            emit modEntryAdded(*it);
+            mStore->add(ModEntry{responseJsonObj, info.version, info.id, info.filename});
         }
     }
 } // vsmodchecker
