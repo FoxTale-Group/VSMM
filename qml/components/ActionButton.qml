@@ -26,6 +26,15 @@ Button
     ToolTip.visible: hovered && tooltipText !== ""
     ToolTip.delay: 500
 
+    scale: rootButton.down ? 0.95 : 1.0
+
+    Behavior on scale {
+        NumberAnimation {
+            duration: 100
+            easing.type: Easing.OutQuad
+        }
+    }
+
     background: Rectangle {
 
         radius: rootButton.radius
@@ -37,6 +46,13 @@ Button
                 return rootButton.hoverColor
             } else {
                 return rootButton.defaultColor
+            }
+        }
+
+        Behavior on color {
+            ColorAnimation {
+                duration: 150
+                easing.type: Easing.OutCubic
             }
         }
     }

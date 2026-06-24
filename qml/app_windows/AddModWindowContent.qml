@@ -49,6 +49,7 @@ Rectangle {
                 }
 
                 Label {
+                    id: dragAndDropLabel
                     text: "Drag & Drop .zip file here\n...or click to browse"
                     color: dropArea.containsDrag ? "white" : "#aaaaaa"
                     horizontalAlignment: Text.AlignHCenter
@@ -63,11 +64,20 @@ Rectangle {
                 onDropped: (drop) => {
                     if (drop.hasUrls) {
                         // Only get first file
-                        let fileUrl = drop.urls[0].toString()
+                        let rawUrl = drop.urls[0].toString()
 
-                        if (fileUrl.endsWith(".zip")) {
-                            addModWindowContent.processFile(fileUrl)
+                        if (rawUrl.endsWith(".zip")) {
+                            let cleanFilePath = addModWindowContent.getCleanPath(rawUrl)
+                            let fileName = addModWindowContent.getFileName(cleanFilePath)
+
+                            console.log("Sending to C++: " + cleanFilePath)
+                            console.log("Showing in UI: " + fileName)
+
+                            // Fire your signal
+                            addModWindowContent.modFileReceived(cleanFilePath)
                             drop.accept()
+                            Window.window.close()
+
                         } else {
                             console.log("Error: Only .zip files are allowed!")
                         }
@@ -94,21 +104,20 @@ Rectangle {
         }
     }
 
-    function processFile(rawUrl) {
+    function getCleanPath(rawUrl) {
         // Format paths for C++ friendly paths
-
-        // Remove path prefix for Linux
         let cleanPath = rawUrl.replace(/^(file:\/{2})/, "");
 
-        // Remove path prefix for Windows
+        // Windows drive letter fix (e.g., /C:/Users/... -> C:/Users/...)
         if (cleanPath.startsWith("/") && cleanPath.charAt(2) === ":") {
             cleanPath = cleanPath.substring(1);
         }
 
-        console.log("Valid mod file ready for C++: " + cleanPath)
-
-        // Fire the signal and close window
-        addModWindowContent.modFileReceived(cleanPath)
-        Window.window.close()
+        return cleanPath;
+    }
+    function getFileName(path) {
+        // A regular expression that splits the string at either a
+        // forward slash (Linux) or backward slash (Windows) just to be safe!
+        return path.split(/[/\\]/).pop();
     }
 }

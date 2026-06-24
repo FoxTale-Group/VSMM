@@ -5,31 +5,62 @@ import QtQuick.Layouts
 import QtQuick.Controls.impl
 
 Rectangle {
-    id: searchBarBackground
+    id: searchBar
     Layout.fillWidth: true
-    /*Layout.leftMargin: 10
-    Layout.rightMargin: 10
-    Layout.topMargin: 0
-    Layout.bottomMargin: -5*/
-    //Layout.maximumWidth: parent.width * 0.5
     Layout.preferredHeight: 40
     radius: 8
 
-    property bool searchBarFocused: false
+    property bool searchBarFocused: searchInput.activeFocus
 
-    color: searchBarFocused ? "#3e3e3e" : "#2b2b2b"
-    //color: "transparent"
+    color: "transparent"
 
-    RowLayout
-    {
+
+    AnimRadialReveal {
+        id: revealEffect
+        anchors.fill: parent
+        isRevealed: searchBar.searchBarFocused
+
+        animationDuration: 200
+
+        // This rectangle gets perfectly cut out by the mask
+        Rectangle {
+            anchors.fill: parent
+            radius: searchBar.radius
+            color: "#3e3e3e"
+        }
+    }
+
+    AnimRadialReveal {
+        anchors.fill: parent
+        isRevealed: !searchBar.searchBarFocused
+
+        animationDuration: 200
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: 6
+            anchors.rightMargin: 16
+            anchors.bottomMargin: 2
+            height: 1
+
+            color: "#888888"
+        }
+    }
+
+    RowLayout {
         anchors.fill: parent
         anchors.leftMargin: 10
         spacing: 5
 
         IconImage {
             source: "qrc:/qt/qml/vsmodchecker/icons/search.svg"
-            color: "#888888"
-            //sourceSize: Qt.size(20, 20)
+            color: searchBar.searchBarFocused ? "#ffffff" : "#888888"
+
+            Behavior on color {
+                ColorAnimation { duration: 250 }
+            }
         }
 
         TextField
@@ -40,21 +71,7 @@ Rectangle {
             color: "white"
             font.pixelSize: 14
 
-            /*background: Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: 6
-                anchors.rightMargin: 16
-                height: 1
-                color: "#888888"
-                visible: true
-            }*/
             background: Item{}
-
-            onFocusChanged: {
-                searchBarBackground.searchBarFocused = !searchBarBackground.searchBarFocused
-            }
 
             onTextChanged: {
                 ModSortFilterModel.filterText = searchInput.text

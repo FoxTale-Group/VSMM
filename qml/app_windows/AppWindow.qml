@@ -8,7 +8,7 @@ ApplicationWindow
 {
     id: windowMain
 
-    width: 800
+    width: 860
     height: 640
     minimumWidth: 750
     minimumHeight: 450

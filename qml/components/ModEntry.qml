@@ -50,10 +50,10 @@ Rectangle {
             checked: false
             Layout.topMargin: 16
             Layout.bottomMargin: 16
-            Layout.leftMargin: -10
-            Layout.rightMargin: 5
-            implicitWidth: 15
-            implicitHeight: 15
+            Layout.leftMargin: 0
+            Layout.rightMargin: 0
+            padding: 0
+
             onCheckedChanged: {
                 if (checked) {
                     console.log(name + " is selected for update")
