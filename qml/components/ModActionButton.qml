@@ -17,14 +17,14 @@ Button
     property string iconColor: "#ffffff"
 
     font.bold: true
-    palette.buttonText: "white"
     icon.width: 30
     icon.height: 30
-    icon.color: iconColor
 
     ToolTip.text: tooltipText
     ToolTip.visible: hovered && tooltipText !== ""
     ToolTip.delay: 500
+
+    display: AbstractButton.IconOnly
 
     background: Rectangle {
 
@@ -39,5 +39,18 @@ Button
                 return rootButton.defaultColor
             }
         }
+    }
+
+    contentItem: IconImage {
+        source: rootButton.icon.source
+        color: rootButton.iconColor
+
+        width: rootButton.icon.width
+        height: rootButton.icon.height
+
+        sourceSize.width: rootButton.icon.width
+        sourceSize.height: rootButton.icon.height
+
+        anchors.centerIn: parent
     }
 }

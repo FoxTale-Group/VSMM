@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.impl
+import QtQuick.Effects
 import vsmodchecker
 
 Rectangle {
@@ -28,6 +29,8 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
+        anchors.leftMargin: 6
+        anchors.rightMargin: 16
         height: 1
         color: "#333333"
         visible: index !== ModListModel.count - 1
@@ -62,7 +65,7 @@ Rectangle {
 
         // Mod Icon
         Rectangle {
-            id: icon
+            id: modIcon
             Layout.topMargin: 12
             Layout.bottomMargin: 12
             Layout.leftMargin: 0
@@ -71,13 +74,47 @@ Rectangle {
             height: 40
             radius: 8
             color: "#1D9E75"
+            //clip: true
+
+            property string coverUrl: ""
+
+            Rectangle {
+                id: maskTemplate
+                anchors.fill: parent
+                radius: modIcon.radius
+                visible: false
+                layer.enabled: true
+            }
 
             IconImage {
+                id: fallbackIcon
                 source: "qrc:/qt/qml/vsmodchecker/icons/extension.svg"
                 color: "white"
-                anchors.centerIn: parent
-                sourceSize.width: 24
-                sourceSize.height: 24
+                anchors.fill: parent
+                anchors.margins: 4
+                sourceSize.width: modIcon.width
+                sourceSize.height: modIcon.height
+            }
+
+            Image {
+                id: mainImage
+                source: modIcon.coverUrl
+
+                anchors.fill: parent
+                fillMode: Image.PreserveAspectCrop
+
+                asynchronous: true
+
+                sourceSize.width: modIcon.width
+                sourceSize.height: modIcon.height
+
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskSource: maskTemplate
+                }
+
+                visible: status === Image.Ready
             }
         }
 
@@ -87,7 +124,7 @@ Rectangle {
 
             // Mod name, version layout
             RowLayout {
-                spacing: 8
+                spacing: 6
 
                 Label {
                     text: name
@@ -96,6 +133,18 @@ Rectangle {
                     color: "#e0e0e0"
                     Layout.maximumWidth: 200
                     elide: Text.ElideRight
+                }
+
+                Label {
+                    text: "by " + author
+                    font.pixelSize: 12
+                    color: "#999999"
+                }
+
+                Label {
+                    text: "·"
+                    font.pixelSize: 12
+                    color: "#999999"
                 }
 
                 Label {
@@ -129,7 +178,7 @@ Rectangle {
                     Label {
                         id: latestLabel
                         anchors.centerIn: parent
-                        text: "Latest version"
+                        text: "Latest"
                         font.pixelSize: 11
                         color: "#00ff00"
                     }
@@ -138,21 +187,9 @@ Rectangle {
 
             // Mod author, category layout
             RowLayout {
-                Layout.maximumWidth: modEntry.width * 0.5
+                Layout.maximumWidth: modEntry.width * 0.7
                 spacing: 8
                 clip: true
-
-                Label {
-                    text: "by " + author
-                    font.pixelSize: 12
-                    color: "#999999"
-                }
-
-                Label {
-                    text: " · "
-                    font.pixelSize: 12
-                    color: "#999999"
-                }
 
                 Repeater {
                     model: tags
@@ -174,20 +211,79 @@ Rectangle {
         Item { Layout.fillWidth: true }
 
 
+        RowLayout {
+            spacing: 2
+            clip: true
 
-        Button {
-            id: updateModButton
-            text: "Download update"
-            visible: hasUpdate
-            highlighted: hasUpdate
-            onClicked: console.log("Open add mod dialog")
+            ModActionButton {
+                icon.source: "qrc:/qt/qml/vsmodchecker/icons/download.svg"
+
+                Layout.preferredHeight: 35
+                Layout.preferredWidth: 35
+
+                tooltipText: hasUpdate ? "Download update for '" + name + "'" : ""
+
+                defaultColor: "transparent"
+                hoverColor: hasUpdate ? "#423710" : "transparent"
+                pressColor: hasUpdate ? "#231c07" : "transparent"
+
+                iconColor: hasUpdate ? "#b5951c" : "#444444"
+
+                onClicked: {
+                    if (hasUpdate) {
+                        console.log("Updating mod" + name)
+                    }
+                }
+            }
+
+            ModActionButton {
+                icon.source: "qrc:/qt/qml/vsmodchecker/icons/check_update.svg"
+
+                Layout.preferredHeight: 35
+                Layout.preferredWidth: 35
+
+                tooltipText: "Check update for '" + name + "'"
+
+                defaultColor: "transparent"
+                hoverColor: "#444444"
+                pressColor: "#333333"
+
+                onClicked: {console.log("Checking update for " + name)}
+            }
+
+            ModActionButton {
+                icon.source: "qrc:/qt/qml/vsmodchecker/icons/open_link.svg"
+
+                Layout.preferredHeight: 35
+                Layout.preferredWidth: 35
+
+                tooltipText: "Open '" + name + "' mod page"
+
+                defaultColor: "transparent"
+                hoverColor: "#444444"
+                pressColor: "#333333"
+
+                onClicked: {
+                    console.log("Opening " + url + " modpage")
+                    Qt.openUrlExternally(url)
+                }
+            }
+
+            ModActionButton {
+                icon.source: "qrc:/qt/qml/vsmodchecker/icons/delete.svg"
+
+                Layout.preferredHeight: 35
+                Layout.preferredWidth: 35
+
+                tooltipText: "Delete mod  '" + name +"'"
+
+                defaultColor: "transparent"
+                hoverColor: "#572525"
+                pressColor: "#291313"
+                iconColor: "#dd1919"
+
+                onClicked: {console.log("Deleting " + name)}
+            }
         }
-
-        ToolButton {
-            id: menuButton
-            text: "\u22EE"
-            onClicked: console.log("Mod options for " + name)
-        }
-
     }
 }
