@@ -28,22 +28,24 @@
 #include <qqmlintegration.h>
 
 namespace vsmodchecker {
-    class ModManager : public QObject {
+    class ModLoader : public QObject {
         Q_OBJECT
         QML_ELEMENT
         QML_SINGLETON
 
     public:
-        ModManager() = default;
+        ModLoader() = default;
         [[nodiscard]] bool setModsPath(std::filesystem::path modsPath);
         bool initModsList();
         void setNetworkManager(QNetworkAccessManager *networkManager);
         void setModImageProvider(ModImageProvider* modImageProvider);
         void setStore(ModStore *store);
-        Q_INVOKABLE void reloadMods();
 
     signals:
         void thumbnailReady(const QString &modId);
+
+    public slots:
+        void onModsReloaded();
 
     private:
         struct ModInfoZip {

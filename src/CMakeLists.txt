@@ -31,8 +31,8 @@ qt_add_qml_module(${PROJECT_NAME}
         QML_FILES ${QML_FILES}
         RESOURCES ${ICON_FILES} ../icons/VSMM_Icon.png
         SOURCES
-            ModManager.cpp
-            ModManager.hpp
+            ModLoader.cpp
+            ModLoader.hpp
             ModSortFilterModel.cpp
             ModSortFilterModel.hpp
             ModStore.cpp

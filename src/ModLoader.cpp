@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ModManager.hpp"
+#include "ModLoader.hpp"
 #include "ZipArchive.hpp"
 
 #include <QJsonObject>
@@ -33,7 +33,7 @@ namespace {
 }
 
 namespace vsmodchecker {
-    bool ModManager::setModsPath(std::filesystem::path modsPath) {
+    bool ModLoader::setModsPath(std::filesystem::path modsPath) {
         if (!std::filesystem::exists(modsPath)) {
             qWarning() << QString("Mods path does not exist: %1").arg(QString::fromStdString(modsPath.string()));
             return false;
@@ -43,7 +43,7 @@ namespace vsmodchecker {
         return true;
     }
 
-    bool ModManager::initModsList() {
+    bool ModLoader::initModsList() {
         if (mModsPath.empty()) {
             qCritical("Mods path is not set");
             return false;
@@ -83,29 +83,24 @@ namespace vsmodchecker {
         return true;
     }
 
-    void ModManager::reloadMods() {
-        if (mRequestCount > 0) {
-            qWarning() << "Cannot reload mods while requests are in progress";
-            return;
-        }
-        mStore->clear();
-        mModImageProvider->clear();
-        initModsList();
-    }
-
-    void ModManager::setNetworkManager(QNetworkAccessManager *networkManager) {
+    void ModLoader::setNetworkManager(QNetworkAccessManager *networkManager) {
         mNetworkManager = networkManager;
     }
 
-    void ModManager::setModImageProvider(ModImageProvider *modImageProvider) {
+    void ModLoader::setModImageProvider(ModImageProvider *modImageProvider) {
         mModImageProvider = modImageProvider;
     }
 
-    void ModManager::setStore(ModStore *store) {
+    void ModLoader::setStore(ModStore *store) {
         mStore = store;
+        connect(mStore, &ModStore::modsReloaded, this, &ModLoader::onModsReloaded);
     }
 
-    void ModManager::retrieveInfoForMod(ModInfoZip info) {
+    void ModLoader::onModsReloaded() {
+        initModsList();
+    }
+
+    void ModLoader::retrieveInfoForMod(ModInfoZip info) {
         if (!mNetworkManager) {
             qCritical() << "Network manager is not set";
             return;
@@ -115,10 +110,10 @@ namespace vsmodchecker {
         QNetworkRequest request(GetModUrlApi(info.id));
         QNetworkReply *reply = mNetworkManager->get(request);
         reply->setProperty("modInfo", QVariant::fromValue(std::move(info)));
-        connect(reply, &QNetworkReply::finished, this, &ModManager::requestInfoFinished);
+        connect(reply, &QNetworkReply::finished, this, &ModLoader::requestInfoFinished);
     }
 
-    void ModManager::retrieveModIcon(const QString &id, const QUrl &url) {
+    void ModLoader::retrieveModIcon(const QString &id, const QUrl &url) {
         if (!mNetworkManager) {
             qCritical() << "Network manager is not set";
             return;
@@ -157,7 +152,7 @@ namespace vsmodchecker {
         });
     }
 
-    ModManager::ModInfoZip ModManager::parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename) {
+    ModLoader::ModInfoZip ModLoader::parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename) {
         ModInfoZip info;
         QJsonParseError errorCode{.error = QJsonParseError::NoError};
         QJsonObject json = QJsonDocument::fromJson(jsonByteArray.toByteArray(), &errorCode).object();
@@ -182,7 +177,7 @@ namespace vsmodchecker {
         return info;
     }
 
-    void ModManager::requestInfoFinished() {
+    void ModLoader::requestInfoFinished() {
         --mRequestCount;
         auto response = qobject_cast<QNetworkReply *>(sender());
         if (!response) {

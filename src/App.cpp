@@ -26,7 +26,7 @@
 
 #include "ModListModel.hpp"
 #include "ModSortFilterModel.hpp"
-#include "ModManager.hpp"
+#include "ModLoader.hpp"
 
 namespace vsmodchecker {
     App::App(int &argc, char *argv[]) :
@@ -67,7 +67,7 @@ namespace vsmodchecker {
         mModImageProvider = new ModImageProvider();
         mQmlEngine.addImageProvider("modicon", mModImageProvider);
 
-        auto modManager = mQmlEngine.singletonInstance<ModManager *>("vsmodchecker", "ModManager");
+        auto modManager = mQmlEngine.singletonInstance<ModLoader *>("vsmodchecker", "ModLoader");
         auto modSortFilterModel = mQmlEngine.singletonInstance<ModSortFilterModel *>("vsmodchecker", "ModSortFilterModel");
         auto modStore = mQmlEngine.singletonInstance<ModStore *>("vsmodchecker", "ModStore");
         auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmodchecker", "ModListModel");
@@ -80,7 +80,7 @@ namespace vsmodchecker {
         modListModel->setStore(modStore);
         modListModel->setModImageProvider(mModImageProvider);
 
-        connect(modManager, &ModManager::thumbnailReady, modListModel, &ModListModel::iconUpdate);
+        connect(modManager, &ModLoader::thumbnailReady, modListModel, &ModListModel::iconUpdate);
 
         if (!modManager->setModsPath(std::move(modsPath))) {
             qWarning() << "Mods directory not found; starting with an empty mod list";

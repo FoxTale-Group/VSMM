@@ -38,12 +38,12 @@ namespace vsmodchecker {
         return *it;
     }
 
-    void ModStore::clear() {
+    void ModStore::reload() {
         if (mMods.isEmpty()) {
             return;
         }
         mMods.clear();
-        emit cleared();
+        emit modsReloaded();
         emit modsModified();
     }
 

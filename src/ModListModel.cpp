@@ -94,7 +94,7 @@ namespace vsmodchecker {
         mStore = store;
         connect(store, &ModStore::modAdded, this, &ModListModel::onModAdded);
         connect(store, &ModStore::modUpdated, this, &ModListModel::onModUpdated);
-        connect(store, &ModStore::cleared, this, &ModListModel::onCleared);
+        connect(store, &ModStore::modsReloaded, this, &ModListModel::onModsReloaded);
     }
 
     void ModListModel::onModAdded(const ModEntry &mod) {
@@ -130,7 +130,7 @@ namespace vsmodchecker {
         }
     }
 
-    void ModListModel::onCleared() {
+    void ModListModel::onModsReloaded() {
         if (mOrder.isEmpty()) {
             return;
         }

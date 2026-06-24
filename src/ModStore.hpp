@@ -37,7 +37,7 @@ namespace vsmodchecker {
 
         const ModEntry& add(ModEntry mod);
         const ModEntry& replace(ModEntry mod);
-        void clear();
+        Q_INVOKABLE void reload();
 
         [[nodiscard]] bool contains(const QString &id) const;
         [[nodiscard]] const ModEntry* find(const QString &id) const;
@@ -48,9 +48,15 @@ namespace vsmodchecker {
         void modsModified();
         void modAdded(const ModEntry &mod);
         void modUpdated(const ModEntry &mod);
-        void cleared();
+        void modsReloaded();
 
     private:
+        template<typename Signal, typename... Args>
+        void emitSignal(Signal&& signal, Args&&... args) {
+            emit signal(std::forward<Args>(args)...);
+            emit modsModified();
+        }
+
         QHash<QString, ModEntry> mMods;
     };
 } // vsmodchecker

@@ -42,7 +42,7 @@ RowLayout
 
         tooltipText: "Refresh mod list"
 
-        onClicked: ModManager.reloadMods()
+        onClicked: ModStore.reload()
     }
 
     ActionButton {
