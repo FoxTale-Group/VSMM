@@ -27,7 +27,7 @@ qt_add_qml_module(${PROJECT_NAME}
         URI vsmodchecker
         VERSION 1.0
         QML_FILES ${QML_FILES}
-        RESOURCES ${ICON_FILES}
+        RESOURCES ${ICON_FILES} ../icons/VSMM_Icon.png
         SOURCES
             ModListModel.cpp
             ModListModel.hpp

@@ -22,6 +22,7 @@
 #include <QCommandLineOption>
 #include <qqmlcontext.h>
 #include <QStandardPaths>
+#include <QIcon>
 
 #include "ModListModel.hpp"
 
@@ -33,6 +34,7 @@ namespace vsmodchecker {
         setApplicationDisplayName(APP_DISPLAY_NAME);
         setApplicationName(APP_DISPLAY_NAME);
         setApplicationVersion(APP_VERSION);
+        setWindowIcon(QIcon(":/qt/qml/vsmodchecker/icons/VSMM_Icon.png"));
 
         QCommandLineParser parser;
         parser.addHelpOption();

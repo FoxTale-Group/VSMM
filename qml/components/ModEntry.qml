@@ -51,9 +51,9 @@ Rectangle {
             Layout.topMargin: 16
             Layout.bottomMargin: 16
             Layout.leftMargin: -10
-            Layout.rightMargin: -10
-            width: 15
-            height: 15
+            Layout.rightMargin: 5
+            implicitWidth: 15
+            implicitHeight: 15
             onCheckedChanged: {
                 if (checked) {
                     console.log(name + " is selected for update")
@@ -70,13 +70,26 @@ Rectangle {
             Layout.bottomMargin: 12
             Layout.leftMargin: 0
             Layout.rightMargin: 0
-            width: 40
-            height: 40
+            implicitWidth: 40
+            implicitHeight: 40
             radius: 8
-            color: "#1D9E75"
-            //clip: true
+            border.width: 1
+            border.color: "#000000"
 
             property string coverUrl: ""
+
+            Rectangle {
+                id: background
+                anchors.fill: parent
+                radius: modIcon.radius
+                visible: true
+                layer.enabled: true
+                color: {
+                    if (mainImage.status === Image.Ready) {
+                        return "#ffffff"
+                    } else {return "#1D9E75"}
+                }
+            }
 
             Rectangle {
                 id: maskTemplate
@@ -94,6 +107,8 @@ Rectangle {
                 anchors.margins: 4
                 sourceSize.width: modIcon.width
                 sourceSize.height: modIcon.height
+
+                visible: mainImage.status !== Image.Ready
             }
 
             Image {
