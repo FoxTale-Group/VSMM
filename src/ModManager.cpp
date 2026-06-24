@@ -62,16 +62,22 @@ namespace vsmodchecker {
                     return;
                 }
 
-                const auto& [fileBuffer, fileSize] = zipArchive.getFileContent(zipFileId);
-                auto modInfo = parseModInfoJson(QByteArray{fileBuffer.get(), fileSize}, QString::fromStdString(entry.path().string()));
+                try {
+                    const auto& [fileBuffer, fileSize] = zipArchive.getFileContent(zipFileId);
+                    auto modInfo = parseModInfoJson(QByteArray{fileBuffer.get(), fileSize}, QString::fromStdString(entry.path().string()));
 
-                if (modInfo.id.isEmpty()) {
-                    return;
+                    if (modInfo.id.isEmpty()) {
+                        return;
+                    }
+
+                    QMetaObject::invokeMethod(this, [this, modInfo_ = std::move(modInfo)] mutable {
+                        retrieveInfoForMod(std::move(modInfo_));
+                    }, Qt::QueuedConnection);
+                } catch (const ZipArchive::Exception& e) {
+                    qWarning() << QString("Failed to retrieve modinfo.json from zip file: %1 {%2}")
+                    .arg(QString::fromStdString(entry.path().string())).arg(e.errCode());
                 }
 
-                QMetaObject::invokeMethod(this, [this, modInfo_ = std::move(modInfo)] mutable {
-                    retrieveInfoForMod(std::move(modInfo_));
-                }, Qt::QueuedConnection);
             });
         }
         return true;

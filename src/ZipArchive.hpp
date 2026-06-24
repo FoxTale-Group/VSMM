@@ -29,6 +29,8 @@ namespace vsmodchecker {
             explicit Exception(const std::string& message) : std::runtime_error(message) {}
             Exception(const std::string& message, int errCode) : std::runtime_error(message), mErrCode(errCode) {}
 
+            [[nodiscard]] int errCode() const { return mErrCode; }
+
         private:
             int mErrCode = -1;
         };
