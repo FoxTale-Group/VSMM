@@ -62,6 +62,6 @@ ColumnLayout
             relayOpenAddModDialog()
         }
     }
-    ModSearchBar{}
+    //ModSearchBar{}
     ModList{}
 }

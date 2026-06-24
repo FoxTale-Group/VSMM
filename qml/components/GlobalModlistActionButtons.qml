@@ -31,7 +31,9 @@ RowLayout
         }
     }
 
-    Item { Layout.fillWidth: true } // Spring
+    //Item { Layout.fillWidth: true } // Spring
+
+    ModSearchBar{}
 
     ActionButton {
         icon.source: "qrc:/qt/qml/vsmodchecker/icons/sync.svg"
@@ -47,7 +49,7 @@ RowLayout
         text: "Check updates"
         icon.source: "qrc:/qt/qml/vsmodchecker/icons/check_update.svg"
 
-        display: AbstractButton.TextBesideIcon
+        display: AbstractButton.IconOnly
         Layout.preferredHeight: 40
 
         tooltipText: "Check for mod updates"

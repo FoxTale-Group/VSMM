@@ -76,7 +76,7 @@ Rectangle {
             border.width: 1
             border.color: "#000000"
 
-            property string coverUrl: ""
+            property string coverUrl: modicon
 
             Rectangle {
                 id: background
