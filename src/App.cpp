@@ -82,7 +82,7 @@ namespace vsmodchecker {
         connect(modManager, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
         connect(modManager, &ModLoader::allModsReloaded, modStore, &ModStore::onModsReloaded);
         connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
-        connect(modStore, &ModStore::modsReloaded, mModImageProvider, &ModImageProvider::onModsReloaded);
+        connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
 
         if (!modManager->setModsPath(std::move(modsPath))) {
             qWarning() << "Mods directory not found; starting with an empty mod list";

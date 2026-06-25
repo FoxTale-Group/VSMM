@@ -45,7 +45,7 @@ namespace vsmodchecker {
         void allModsReloaded();
 
     public slots:
-        void onModsReloaded();
+        void onModsReloading();
 
     private:
         struct ModInfoZip {

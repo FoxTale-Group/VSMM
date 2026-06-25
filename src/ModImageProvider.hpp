@@ -44,7 +44,7 @@ namespace vsmodchecker {
 
     public slots:
         void onImageReceived(const QString &id, QImage image);
-        void onModsReloaded();
+        void onModsReloading();
 
     private:
         QHash<QString, ImageEntry> mImages;

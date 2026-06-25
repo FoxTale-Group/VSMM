@@ -31,6 +31,7 @@ namespace vsmodchecker {
         QML_SINGLETON
         Q_PROPERTY(int count READ count NOTIFY modsModified)
         Q_PROPERTY(int updates READ updates NOTIFY modsModified)
+        Q_PROPERTY(bool reloading READ reloading NOTIFY modsModified)
 
     public:
         explicit ModStore(QObject *parent = nullptr);
@@ -43,12 +44,13 @@ namespace vsmodchecker {
         [[nodiscard]] const ModEntry* find(const QString &id) const;
         [[nodiscard]] int count() const;
         [[nodiscard]] int updates() const;
+        [[nodiscard]] int reloading() const;
 
     signals:
         void modsModified();
         void modAdded(const ModEntry &mod);
         void modUpdated(const ModEntry &mod);
-        void modsReloaded();
+        void modsReloading();
 
     public slots:
         void onModsReloaded();

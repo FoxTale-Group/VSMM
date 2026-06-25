@@ -97,10 +97,10 @@ namespace vsmodchecker {
 
     void ModLoader::setStore(ModStore *store) {
         mStore = store;
-        connect(mStore, &ModStore::modsReloaded, this, &ModLoader::onModsReloaded);
+        connect(mStore, &ModStore::modsReloading, this, &ModLoader::onModsReloading);
     }
 
-    void ModLoader::onModsReloaded() {
+    void ModLoader::onModsReloading() {
         initModsList();
     }
 

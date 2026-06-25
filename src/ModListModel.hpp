@@ -60,7 +60,7 @@ namespace vsmodchecker {
     private slots:
         void onModAdded(const ModEntry &mod);
         void onModUpdated(const ModEntry &mod);
-        void onModsReloaded();
+        void onModsReloading();
 
     private:
         ModStore *mStore{nullptr};

@@ -46,7 +46,7 @@ namespace vsmodchecker {
         emit imageAdded(id);
     }
 
-    void ModImageProvider::onModsReloaded() {
+    void ModImageProvider::onModsReloading() {
         QMutexLocker locker(&mMutex);
         mImages.clear();
     }

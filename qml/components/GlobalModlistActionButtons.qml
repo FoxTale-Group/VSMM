@@ -41,7 +41,7 @@ RowLayout
         Layout.preferredHeight: 40
 
         tooltipText: "Refresh mod list"
-
+        enabled: ModStore.reloading === false
         onClicked: ModStore.reload()
     }
 

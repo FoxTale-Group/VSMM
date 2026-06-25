@@ -48,7 +48,7 @@ namespace vsmodchecker {
         }
         mModsBeingReloaded = true;
         mMods.clear();
-        emit modsReloaded();
+        emit modsReloading();
         emit modsModified();
     }
 
@@ -75,8 +75,13 @@ namespace vsmodchecker {
         return updates;
     }
 
+    int ModStore::reloading() const {
+        return mModsBeingReloaded;
+    }
+
     void ModStore::onModsReloaded() {
         mModsBeingReloaded = false;
+        emit modsModified();
         qDebug() << "Mods reloaded";
     }
 } // vsmodchecker
