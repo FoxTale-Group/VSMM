@@ -17,6 +17,8 @@
  */
 
 #include "ModStore.hpp"
+#include <QTimer>
+#include <chrono>
 
 namespace vsmodchecker {
     ModStore::ModStore(QObject *parent) : QObject{parent} {
@@ -80,8 +82,11 @@ namespace vsmodchecker {
     }
 
     void ModStore::onModsReloaded() {
-        mModsBeingReloaded = false;
-        emit modsModified();
+        constexpr std::chrono::milliseconds delay{500};
+        QTimer::singleShot(delay, this, [this] {
+            mModsBeingReloaded = false;
+            emit modsModified();
+        });
         qDebug() << "Mods reloaded";
     }
 } // vsmodchecker
