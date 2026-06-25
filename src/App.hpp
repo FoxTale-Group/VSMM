@@ -22,10 +22,7 @@
 #include <QNetworkDiskCache>
 #include <QNetworkAccessManager>
 
-#include <filesystem>
-
 #include "ModImageProvider.hpp"
-#include "ModListModel.hpp"
 
 namespace vsmodchecker {
     class App final : public QGuiApplication {
@@ -34,7 +31,7 @@ namespace vsmodchecker {
         ~App() override = default;
 
     private:
-        void initQmlEngine(std::filesystem::path modsPath);
+        void initQmlEngine(const QString &modsPath);
 
     private:
         QNetworkAccessManager mNetworkManager;

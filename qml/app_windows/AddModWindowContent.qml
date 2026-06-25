@@ -74,7 +74,8 @@ Rectangle {
                             console.log("Showing in UI: " + fileName)
 
                             // Fire your signal
-                            addModWindowContent.modFileReceived(cleanFilePath)
+                            ModStore.load(cleanFilePath)
+                            //addModWindowContent.modFileReceived(cleanFilePath)
                             drop.accept()
                             Window.window.close()
 

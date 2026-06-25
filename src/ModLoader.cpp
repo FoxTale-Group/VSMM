@@ -33,56 +33,26 @@ namespace {
 }
 
 namespace vsmodchecker {
-    bool ModLoader::setModsPath(std::filesystem::path modsPath) {
-        if (!std::filesystem::exists(modsPath)) {
-            qWarning() << QString("Mods path does not exist: %1").arg(QString::fromStdString(modsPath.string()));
+    bool ModLoader::setModsPath(const QString& modsPath) {
+        QDir modsDir = modsPath;
+        if (!modsDir.exists()) {
+            qWarning() << QString("Mods path does not exist: %1").arg(modsPath);
             return false;
         }
 
-        mModsPath = std::move(modsPath);
+        mModsPath = std::move(modsDir);
         return true;
     }
 
     bool ModLoader::initModsList() {
-        if (mModsPath.empty()) {
+        if (mModsPath.path().isEmpty()) {
             qCritical("Mods path is not set");
             return false;
         }
 
-        for (const auto& entry : std::filesystem::directory_iterator(mModsPath)) {
-            if (!entry.is_regular_file() || entry.path().extension() != ".zip") {
-                continue;
-            }
-
-            ++mRequestCount;
-            mThreadPoolExtractZips.start([this, entry] {
-                ZipArchive zipArchive(entry.path());
-                ZipArchive::FileIndex zipFileId = zipArchive.getFileIndex("modinfo.json");
-                if (zipFileId == -1) {
-                    qWarning() << QString("Failed to locate modinfo.json in zip file: %1").arg(QString::fromStdString(entry.path().string()));
-                    QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
-                    return;
-                }
-
-                try {
-                    const auto& [fileBuffer, fileSize] = zipArchive.getFileContent(zipFileId);
-                    auto modInfo = parseModInfoJson(QByteArray{fileBuffer.get(), fileSize}, QString::fromStdString(entry.path().string()));
-
-                    if (modInfo.id.isEmpty()) {
-                        QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
-                        return;
-                    }
-
-                    QMetaObject::invokeMethod(this, [this, modInfo_ = std::move(modInfo)] mutable {
-                        retrieveInfoForMod(std::move(modInfo_));
-                    }, Qt::QueuedConnection);
-                } catch (const ZipArchive::Exception& e) {
-                    qWarning() << QString("Failed to retrieve modinfo.json from zip file: %1 {%2}")
-                    .arg(QString::fromStdString(entry.path().string())).arg(e.errCode());
-                    QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
-                }
-
-            });
+        const auto entryList = mModsPath.entryInfoList(QStringList{"*.zip"}, QDir::Files | QDir::Readable | QDir::NoDotAndDotDot);
+        for (const auto& entry : entryList) {
+            load(entry);
         }
 
         if (mRequestCount == 0) {
@@ -98,6 +68,14 @@ namespace vsmodchecker {
     void ModLoader::setStore(ModStore *store) {
         mStore = store;
         connect(mStore, &ModStore::modsReloading, this, &ModLoader::onModsReloading);
+    }
+
+    void ModLoader::load(const QFileInfo &fileInfo) {
+        load(fileInfo.absoluteFilePath(), false);
+    }
+
+    void ModLoader::onLoadFromGUI(const QString &filePath) {
+        load(filePath, true);
     }
 
     void ModLoader::onModsReloading() {
@@ -154,6 +132,39 @@ namespace vsmodchecker {
                     emit modIconDownloaded(id, std::move(image_));
                 }, Qt::QueuedConnection);
             });
+        });
+    }
+
+    void ModLoader::load(const QString& filePath, bool moveToModsDir) {
+        ++mRequestCount;
+        mThreadPoolExtractZips.start([this, filePath, moveToModsDir] mutable {
+            ZipArchive zipArchive(filePath.toStdString());
+            ZipArchive::FileIndex zipFileId = zipArchive.getFileIndex("modinfo.json");
+            if (zipFileId == -1) {
+                qWarning() << QString("Failed to locate modinfo.json in zip file: %1").arg(filePath);
+                QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
+                return;
+            }
+
+            try {
+                const auto& [fileBuffer, fileSize] = zipArchive.getFileContent(zipFileId);
+                auto modInfo = parseModInfoJson(QByteArray{fileBuffer.get(), fileSize}, filePath);
+
+                if (modInfo.id.isEmpty()) {
+                    QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
+                    return;
+                }
+
+                QMetaObject::invokeMethod(this, [this, modInfo_ = std::move(modInfo), moveToModsDir, filePath] mutable {
+                    if (moveToModsDir) {
+                        QFile::copy(filePath, mModsPath.absolutePath() + QDir::separator() + QFileInfo{filePath}.fileName());
+                    }
+                    retrieveInfoForMod(std::move(modInfo_));
+                }, Qt::QueuedConnection);
+            } catch (const ZipArchive::Exception& e) {
+                qWarning() << QString("Failed to retrieve modinfo.json from zip file: %1 {%2}").arg(filePath).arg(e.errCode());
+                QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
+            }
         });
     }
 

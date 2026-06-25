@@ -49,7 +49,8 @@ namespace vsmodchecker {
 
         QString modsDir = parser.value(modsDirOption);
         if (modsDir.isEmpty()) {
-            modsDir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/VintagestoryData/Mods";
+            modsDir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) +
+                QDir::separator() + "VintagestoryData" + QDir::separator() + "Mods";
         }
 
         connect(&mQmlEngine, &QQmlApplicationEngine::objectCreationFailed, [](const QUrl &url) {
@@ -59,10 +60,10 @@ namespace vsmodchecker {
         mNetworkDiskCache.setCacheDirectory(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
         mNetworkManager.setCache(&mNetworkDiskCache);
 
-        initQmlEngine(modsDir.toStdString());
+        initQmlEngine(modsDir);
     }
 
-    void App::initQmlEngine(std::filesystem::path modsPath) {
+    void App::initQmlEngine(const QString &modsPath) {
         mQmlEngine.loadFromModule("vsmodchecker", "Main");
         mModImageProvider = new ModImageProvider();
         mQmlEngine.addImageProvider("modicon", mModImageProvider);
@@ -81,10 +82,12 @@ namespace vsmodchecker {
 
         connect(modManager, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
         connect(modManager, &ModLoader::allModsReloaded, modStore, &ModStore::onModsReloaded);
+        connect(modManager, &ModLoader::allModsReloaded, modStore, &ModStore::onModsReloaded);
         connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
         connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
+        connect(modStore, &ModStore::modAddedFromGUI, modManager, &ModLoader::onLoadFromGUI);
 
-        if (!modManager->setModsPath(std::move(modsPath))) {
+        if (!modManager->setModsPath(modsPath)) {
             qWarning() << "Mods directory not found; starting with an empty mod list";
         } else if (!modManager->initModsList()) {
             qWarning() << "Failed to initialize mods list";

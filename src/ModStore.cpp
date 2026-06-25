@@ -54,6 +54,10 @@ namespace vsmodchecker {
         emit modsModified();
     }
 
+    void ModStore::load(const QString &filePath) {
+        emit modAddedFromGUI(filePath);
+    }
+
     bool ModStore::contains(const QString &id) const {
         return mMods.contains(id);
     }

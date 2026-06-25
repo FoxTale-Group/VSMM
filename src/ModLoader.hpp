@@ -22,9 +22,9 @@
 #include "ModImageProvider.hpp"
 #include "ModStore.hpp"
 
-#include <filesystem>
 #include <QNetworkAccessManager>
 #include <QThreadPool>
+#include <QDir>
 #include <qqmlintegration.h>
 
 namespace vsmodchecker {
@@ -35,10 +35,11 @@ namespace vsmodchecker {
 
     public:
         ModLoader() = default;
-        [[nodiscard]] bool setModsPath(std::filesystem::path modsPath);
+        [[nodiscard]] bool setModsPath(const QString& modsPath);
         bool initModsList();
         void setNetworkManager(QNetworkAccessManager *networkManager);
         void setStore(ModStore *store);
+        void load(const QFileInfo& fileInfo);
 
     signals:
         void modIconDownloaded(const QString &modId, QImage image);
@@ -46,6 +47,10 @@ namespace vsmodchecker {
 
     public slots:
         void onModsReloading();
+        void onLoadFromGUI(const QString& filePath);
+
+    private slots:
+        void notifyModProcessed();
 
     private:
         struct ModInfoZip {
@@ -53,13 +58,13 @@ namespace vsmodchecker {
         };
         void retrieveInfoForMod(ModInfoZip info);
         void retrieveModIcon(const QString& id, const QUrl& url);
-        void notifyModProcessed();
+        void load(const QString& filePath, bool moveToModsDir);
 
         static ModInfoZip parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename);
 
         ModStore *mStore{nullptr};
         QNetworkAccessManager *mNetworkManager{nullptr};
-        std::filesystem::path mModsPath;
+        QDir mModsPath;
         qint64 mRequestCount{0};
         QThreadPool mThreadPoolExtractZips;
 

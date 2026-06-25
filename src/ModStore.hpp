@@ -39,6 +39,7 @@ namespace vsmodchecker {
         const ModEntry& add(ModEntry mod);
         const ModEntry& replace(ModEntry mod);
         Q_INVOKABLE void reload();
+        Q_INVOKABLE void load(const QString& filePath);
 
         [[nodiscard]] bool contains(const QString &id) const;
         [[nodiscard]] const ModEntry* find(const QString &id) const;
@@ -51,6 +52,7 @@ namespace vsmodchecker {
         void modAdded(const ModEntry &mod);
         void modUpdated(const ModEntry &mod);
         void modsReloading();
+        void modAddedFromGUI(const QString& filePath);
 
     public slots:
         void onModsReloaded();
