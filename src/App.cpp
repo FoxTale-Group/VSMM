@@ -82,7 +82,6 @@ namespace vsmodchecker {
 
         connect(modManager, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
         connect(modManager, &ModLoader::allModsReloaded, modStore, &ModStore::onModsReloaded);
-        connect(modManager, &ModLoader::allModsReloaded, modStore, &ModStore::onModsReloaded);
         connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
         connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
         connect(modStore, &ModStore::modAddedFromGUI, modManager, &ModLoader::onLoadFromGUI);
