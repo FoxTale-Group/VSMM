@@ -23,18 +23,6 @@ namespace vsmodchecker {
         return image;
     }
 
-    void ModImageProvider::addImage(const QString &id, const QImage &image)
-    {
-        QMutexLocker locker(&mMutex);
-        if (const auto it = mImages.find(id); it != mImages.end()) {
-            it->image = image;
-            it->diff++;
-            return;
-        }
-
-        mImages.insert(id, {.image = image});
-    }
-
     qint64 ModImageProvider::getDiff(const QString &id) const {
         QMutexLocker locker(&mMutex);
         return mImages.value(id).diff;
@@ -45,7 +33,20 @@ namespace vsmodchecker {
         return mImages.contains(id);
     }
 
-    void ModImageProvider::clear() {
+    void ModImageProvider::onImageReceived(const QString &id, QImage image) {
+        {
+            QMutexLocker locker(&mMutex);
+            if (const auto it = mImages.find(id); it != mImages.end()) {
+                it->image = std::move(image);
+                it->diff++;
+            } else {
+                mImages.insert(id, {.image = std::move(image)});
+            }
+        }
+        emit imageAdded(id);
+    }
+
+    void ModImageProvider::onModsReloaded() {
         QMutexLocker locker(&mMutex);
         mImages.clear();
     }

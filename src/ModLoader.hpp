@@ -38,11 +38,11 @@ namespace vsmodchecker {
         [[nodiscard]] bool setModsPath(std::filesystem::path modsPath);
         bool initModsList();
         void setNetworkManager(QNetworkAccessManager *networkManager);
-        void setModImageProvider(ModImageProvider* modImageProvider);
         void setStore(ModStore *store);
 
     signals:
-        void thumbnailReady(const QString &modId);
+        void modIconDownloaded(const QString &modId, QImage image);
+        void allModsReloaded();
 
     public slots:
         void onModsReloaded();
@@ -53,6 +53,7 @@ namespace vsmodchecker {
         };
         void retrieveInfoForMod(ModInfoZip info);
         void retrieveModIcon(const QString& id, const QUrl& url);
+        void notifyModProcessed();
 
         static ModInfoZip parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename);
 
@@ -60,7 +61,6 @@ namespace vsmodchecker {
         QNetworkAccessManager *mNetworkManager{nullptr};
         std::filesystem::path mModsPath;
         qint64 mRequestCount{0};
-        ModImageProvider* mModImageProvider{nullptr};
         QThreadPool mThreadPoolExtractZips;
 
     private slots:

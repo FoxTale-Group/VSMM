@@ -39,9 +39,14 @@ namespace vsmodchecker {
     }
 
     void ModStore::reload() {
+        if (mModsBeingReloaded) {
+            qWarning() << "Mods reload already in progress";
+            return;
+        }
         if (mMods.isEmpty()) {
             return;
         }
+        mModsBeingReloaded = true;
         mMods.clear();
         emit modsReloaded();
         emit modsModified();
@@ -68,5 +73,10 @@ namespace vsmodchecker {
             }
         }
         return updates;
+    }
+
+    void ModStore::onModsReloaded() {
+        mModsBeingReloaded = false;
+        qDebug() << "Mods reloaded";
     }
 } // vsmodchecker

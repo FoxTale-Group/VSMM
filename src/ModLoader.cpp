@@ -54,11 +54,13 @@ namespace vsmodchecker {
                 continue;
             }
 
+            ++mRequestCount;
             mThreadPoolExtractZips.start([this, entry] {
                 ZipArchive zipArchive(entry.path());
                 ZipArchive::FileIndex zipFileId = zipArchive.getFileIndex("modinfo.json");
                 if (zipFileId == -1) {
                     qWarning() << QString("Failed to locate modinfo.json in zip file: %1").arg(QString::fromStdString(entry.path().string()));
+                    QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
                     return;
                 }
 
@@ -67,6 +69,7 @@ namespace vsmodchecker {
                     auto modInfo = parseModInfoJson(QByteArray{fileBuffer.get(), fileSize}, QString::fromStdString(entry.path().string()));
 
                     if (modInfo.id.isEmpty()) {
+                        QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
                         return;
                     }
 
@@ -76,19 +79,20 @@ namespace vsmodchecker {
                 } catch (const ZipArchive::Exception& e) {
                     qWarning() << QString("Failed to retrieve modinfo.json from zip file: %1 {%2}")
                     .arg(QString::fromStdString(entry.path().string())).arg(e.errCode());
+                    QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
                 }
 
             });
+        }
+
+        if (mRequestCount == 0) {
+            emit allModsReloaded();
         }
         return true;
     }
 
     void ModLoader::setNetworkManager(QNetworkAccessManager *networkManager) {
         mNetworkManager = networkManager;
-    }
-
-    void ModLoader::setModImageProvider(ModImageProvider *modImageProvider) {
-        mModImageProvider = modImageProvider;
     }
 
     void ModLoader::setStore(ModStore *store) {
@@ -100,13 +104,19 @@ namespace vsmodchecker {
         initModsList();
     }
 
+    void ModLoader::notifyModProcessed() {
+        if (--mRequestCount <= 0) {
+            emit allModsReloaded();
+        }
+    }
+
     void ModLoader::retrieveInfoForMod(ModInfoZip info) {
         if (!mNetworkManager) {
             qCritical() << "Network manager is not set";
+            notifyModProcessed();
             return;
         }
 
-        ++mRequestCount;
         QNetworkRequest request(GetModUrlApi(info.id));
         QNetworkReply *reply = mNetworkManager->get(request);
         reply->setProperty("modInfo", QVariant::fromValue(std::move(info)));
@@ -116,10 +126,6 @@ namespace vsmodchecker {
     void ModLoader::retrieveModIcon(const QString &id, const QUrl &url) {
         if (!mNetworkManager) {
             qCritical() << "Network manager is not set";
-            return;
-        }
-
-        if (mModImageProvider->hasImage(id)) {
             return;
         }
 
@@ -144,9 +150,8 @@ namespace vsmodchecker {
                     return;
                 }
 
-                QMetaObject::invokeMethod(this, [this, id, image]() {
-                    mModImageProvider->addImage(id, image);
-                    emit thumbnailReady(id);
+                QMetaObject::invokeMethod(this, [this, id, image_ = std::move(image)] mutable {
+                    emit modIconDownloaded(id, std::move(image_));
                 }, Qt::QueuedConnection);
             });
         });
@@ -178,7 +183,7 @@ namespace vsmodchecker {
     }
 
     void ModLoader::requestInfoFinished() {
-        --mRequestCount;
+        notifyModProcessed();
         auto response = qobject_cast<QNetworkReply *>(sender());
         if (!response) {
             return;

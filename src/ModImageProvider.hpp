@@ -25,6 +25,8 @@
 namespace vsmodchecker {
     class ModImageProvider : public QQuickImageProvider
     {
+        Q_OBJECT
+
     public:
         struct ImageEntry {
             QImage image;
@@ -34,10 +36,15 @@ namespace vsmodchecker {
         ModImageProvider();
 
         QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
-        void addImage(const QString &id, const QImage &image);
         qint64 getDiff(const QString &id) const;
         bool hasImage(const QString &id) const;
-        void clear();
+
+    signals:
+        void imageAdded(const QString &id);
+
+    public slots:
+        void onImageReceived(const QString &id, QImage image);
+        void onModsReloaded();
 
     private:
         QHash<QString, ImageEntry> mImages;

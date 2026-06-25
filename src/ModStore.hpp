@@ -50,6 +50,9 @@ namespace vsmodchecker {
         void modUpdated(const ModEntry &mod);
         void modsReloaded();
 
+    public slots:
+        void onModsReloaded();
+
     private:
         template<typename Signal, typename... Args>
         void emitSignal(Signal&& signal, Args&&... args) {
@@ -58,5 +61,6 @@ namespace vsmodchecker {
         }
 
         QHash<QString, ModEntry> mMods;
+        bool mModsBeingReloaded{true};
     };
 } // vsmodchecker

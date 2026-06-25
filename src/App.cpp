@@ -74,13 +74,15 @@ namespace vsmodchecker {
         modSortFilterModel->setSourceModel(modListModel);
 
         modManager->setNetworkManager(&mNetworkManager);
-        modManager->setModImageProvider(mModImageProvider);
         modManager->setStore(modStore);
 
         modListModel->setStore(modStore);
         modListModel->setModImageProvider(mModImageProvider);
 
-        connect(modManager, &ModLoader::thumbnailReady, modListModel, &ModListModel::iconUpdate);
+        connect(modManager, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
+        connect(modManager, &ModLoader::allModsReloaded, modStore, &ModStore::onModsReloaded);
+        connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
+        connect(modStore, &ModStore::modsReloaded, mModImageProvider, &ModImageProvider::onModsReloaded);
 
         if (!modManager->setModsPath(std::move(modsPath))) {
             qWarning() << "Mods directory not found; starting with an empty mod list";
