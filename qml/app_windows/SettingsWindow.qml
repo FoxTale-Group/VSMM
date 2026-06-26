@@ -23,6 +23,7 @@ ApplicationWindow
     background: WindowBackground { cornerRadius: window.windowCornerRadius }
 
     header: WindowTitleBar {
+        windowIconSource: "qrc:/qt/qml/vsmodchecker/icons/settings.svg"
         windowTitleText: "Settings"
         cornerRadius: window.windowCornerRadius
 
