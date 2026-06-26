@@ -58,9 +58,9 @@ namespace vsmodchecker {
         void onModsReloaded();
 
     private:
-        template<typename Signal, typename... Args>
-        void emitSignal(Signal&& signal, Args&&... args) {
-            emit signal(std::forward<Args>(args)...);
+        template<typename Obj, typename Signal, typename... Args>
+        void emitSignal(Signal&& signal, Obj* obj, Args&&... args) {
+            emit (obj->*signal)(std::forward<Args>(args)...);
             emit modsModified();
         }
 

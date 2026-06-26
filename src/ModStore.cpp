@@ -27,16 +27,14 @@ namespace vsmodchecker {
     const ModEntry& ModStore::add(ModEntry mod) {
         const QString id = mod.getId().toString();
         const auto it = mMods.insert(id, std::move(mod));
-        emit modAdded(*it);
-        emit modsModified();
+        emitSignal(&ModStore::modAdded, this, *it);
         return *it;
     }
 
     const ModEntry& ModStore::replace(ModEntry mod) {
         const QString id = mod.getId().toString();
         const auto it = mMods.insert(id, std::move(mod));
-        emit modUpdated(*it);
-        emit modsModified();
+        emitSignal(&ModStore::modUpdated, this, *it);
         return *it;
     }
 
@@ -50,8 +48,7 @@ namespace vsmodchecker {
         }
         mModsBeingReloaded = true;
         mMods.clear();
-        emit modsReloading();
-        emit modsModified();
+        emitSignal(&ModStore::modsReloading, this);
     }
 
     void ModStore::load(const QString &filePath) {
