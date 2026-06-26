@@ -67,14 +67,13 @@ Rectangle {
                         let rawUrl = drop.urls[0].toString()
 
                         if (rawUrl.endsWith(".zip")) {
-                            let cleanFilePath = addModWindowContent.getCleanPath(rawUrl)
-                            let fileName = addModWindowContent.getFileName(cleanFilePath)
+                            let fileName = addModWindowContent.getFileName(addModWindowContent.getCleanPath(rawUrl))
 
-                            console.log("Sending to C++: " + cleanFilePath)
+                            console.log("Sending to C++: " + rawUrl)
                             console.log("Showing in UI: " + fileName)
 
                             // Fire your signal
-                            ModStore.load(cleanFilePath)
+                            ModStore.load(rawUrl)
                             //addModWindowContent.modFileReceived(cleanFilePath)
                             drop.accept()
                             Window.window.close()
@@ -103,13 +102,12 @@ Rectangle {
                 let rawUrl = systemFilePicker.selectedFile.toString()
 
                 if (rawUrl.endsWith(".zip")) {
-                    let cleanFilePath = addModWindowContent.getCleanPath(rawUrl)
-                    let fileName = addModWindowContent.getFileName(cleanFilePath)
+                    let fileName = addModWindowContent.getFileName(addModWindowContent.getCleanPath(rawUrl))
 
-                    console.log("Sending to C++: " + cleanFilePath)
+                    console.log("Sending to C++: " + rawUrl)
                     console.log("Showing in UI: " + fileName)
 
-                    ModStore.load(cleanFilePath)
+                    ModStore.load(rawUrl)
                     //addModWindowContent.modFileReceived(cleanFilePath)
                     addModWindow.close()
 
