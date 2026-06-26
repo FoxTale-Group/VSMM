@@ -1,0 +1,5 @@
+* @foxtale-group/vsmm-team
+*.qml @foxtale-group/vsmm-frontend
+icons/ @foxtale-group/vsmm-frontend
+*.cpp @foxtale-group/vsmm-backend
+*.hpp @foxtale-group/vsmm-backend
