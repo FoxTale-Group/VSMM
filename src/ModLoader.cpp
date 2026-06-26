@@ -69,6 +69,8 @@ namespace vsmodchecker {
     void ModLoader::setStore(ModStore *store) {
         mStore = store;
         connect(mStore, &ModStore::modsReloading, this, &ModLoader::onModsReloading);
+        connect(mStore, &ModStore::modAddedFromGUI, this, &ModLoader::onLoadFromGUI);
+        connect(this, &ModLoader::allModsReloaded, mStore, &ModStore::onModsReloaded);
     }
 
     void ModLoader::load(const QFileInfo &fileInfo) {

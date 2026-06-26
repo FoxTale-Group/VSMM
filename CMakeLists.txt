@@ -7,7 +7,7 @@ project(VSModChecker
 set(CMAKE_CXX_STANDARD 26)
 
 find_package(libzip REQUIRED)
-find_package(Qt6 REQUIRED COMPONENTS Core Quick Qml Network)
+find_package(Qt6 REQUIRED COMPONENTS Core Quick Qml Network QuickControls2)
 qt_standard_project_setup()
 
 include(FetchContent)

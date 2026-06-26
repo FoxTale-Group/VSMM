@@ -81,10 +81,8 @@ namespace vsmodchecker {
         modListModel->setModImageProvider(mModImageProvider);
 
         connect(modManager, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
-        connect(modManager, &ModLoader::allModsReloaded, modStore, &ModStore::onModsReloaded);
         connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
         connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
-        connect(modStore, &ModStore::modAddedFromGUI, modManager, &ModLoader::onLoadFromGUI);
 
         if (!modManager->setModsPath(modsPath)) {
             qWarning() << "Mods directory not found; starting with an empty mod list";
