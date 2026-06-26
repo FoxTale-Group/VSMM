@@ -17,32 +17,41 @@
  */
 
 #include "ZipArchive.hpp"
+#include <QDebug>
+#include <QtSwap>
+#include <utility>
 
 namespace vsmodchecker {
-    ZipArchive::ZipArchive(const std::filesystem::path &path) {
-        int errorCode{};
-        mZipFile = zip_open(path.string().c_str(), ZIP_RDONLY, &errorCode);
-        if (!mZipFile) {
-            throw Exception(std::format("Failed to open zip file: {}", path));
+    ZipArchive::ZipArchive(QString file) : mFile(std::move(file)) {}
+
+    QPair<bool, int> ZipArchive::open() {
+        if (mZipFile) {
+            return {true, ZIP_ER_OK};
         }
+
+        int errorCode{-1};
+        mZipFile = zip_open(mFile.toStdString().c_str(), ZIP_RDONLY, &errorCode);
+        if (!mZipFile) {
+            return {false, errorCode};
+        }
+        return {true, ZIP_ER_OK};
     }
 
     ZipArchive::ZipArchive(ZipArchive &&other) noexcept {
         if (mZipFile) {
             zip_close(mZipFile);
+            mZipFile = nullptr;
         }
-
-        mZipFile = other.mZipFile;
-        other.mZipFile = nullptr;
+        qSwap(mFile, other.mFile);
     }
 
-    ZipArchive& ZipArchive::operator=(ZipArchive&& other) noexcept {
+    ZipArchive & ZipArchive::operator=(ZipArchive &&other) noexcept {
         if (mZipFile) {
             zip_close(mZipFile);
+            mZipFile = nullptr;
         }
 
-        mZipFile = other.mZipFile;
-        other.mZipFile = nullptr;
+        qSwap(mFile, other.mFile);
         return *this;
     }
 
@@ -50,23 +59,24 @@ namespace vsmodchecker {
         return zip_name_locate(mZipFile, fileName.data(), ZIP_FL_ENC_UTF_8);
     }
 
-    std::pair<std::unique_ptr<char[]>, ZipArchive::FileContentSize> ZipArchive::getFileContent(FileIndex fileIndex) const {
+    QByteArray ZipArchive::getFileContent(FileIndex fileIndex) const {
         zip_stat_t fileStats;
         if (const int res = zip_stat_index(mZipFile, fileIndex, ZIP_FL_ENC_UTF_8, &fileStats); res != ZIP_ER_OK) {
-            throw Exception("Failed to get file stats in zip file", res);
+            qWarning() << QString("Failed to stat file in zip archive: %1 {%2}").arg(mFile).arg(res);
+            return {};
         }
 
         zip_file_t *modInfoFile = zip_fopen_index(mZipFile, fileIndex, ZIP_FL_ENC_UTF_8);
         if (!modInfoFile) {
-            throw Exception("Failed to open file in zip file");
+            return {};
         }
 
-        auto buffer = std::make_unique<char[]>(fileStats.size);
-        if (const zip_int64_t bytesRead = zip_fread(modInfoFile, buffer.get(), fileStats.size); bytesRead != fileStats.size) {
-            throw Exception("Failed to read file from zip file");
+        QByteArray buffer{static_cast<qsizetype>(fileStats.size), Qt::Uninitialized};
+        if (const zip_int64_t bytesRead = zip_fread(modInfoFile, buffer.data(), fileStats.size); bytesRead != fileStats.size) {
+            return {};
         }
 
-        return {std::move(buffer), fileStats.size};
+        return buffer;
     }
 
     ZipArchive::~ZipArchive() {
