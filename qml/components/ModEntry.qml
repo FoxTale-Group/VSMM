@@ -24,6 +24,10 @@ Rectangle {
         }
     }
 
+    HoverHandler {
+        id: rowHoverHandler
+    }
+
     // Divider
     Rectangle {
         anchors.left: parent.left
@@ -225,10 +229,20 @@ Rectangle {
 
         Item { Layout.fillWidth: true }
 
-
+        // Mod Action Buttons
         RowLayout {
             spacing: 2
             clip: true
+
+            opacity: rowHoverHandler.hovered ? 1.0 : 0.0
+            visible: opacity > 0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 200
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             ModActionButton {
                 icon.source: "qrc:/qt/qml/vsmodchecker/icons/download_one.svg"
