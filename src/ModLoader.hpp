@@ -56,9 +56,9 @@ namespace vsmodchecker {
         struct ModInfoZip {
             QString name, version, id, author, filename;
         };
-        void retrieveInfoForMod(ModInfoZip info);
+        void retrieveInfoForMod(ModInfoZip info, const QString& filePath);
         void retrieveModIcon(const QString& id, const QUrl& url);
-        void load(const QString& filePath, bool moveToModsDir);
+        void load(const QString& filePath, bool fromGUI);
 
         static ModInfoZip parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename);
 

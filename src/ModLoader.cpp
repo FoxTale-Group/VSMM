@@ -91,7 +91,7 @@ namespace vsmodchecker {
         }
     }
 
-    void ModLoader::retrieveInfoForMod(ModInfoZip info) {
+    void ModLoader::retrieveInfoForMod(ModInfoZip info, const QString& filePath) {
         if (!mNetworkManager) {
             qCritical() << "Network manager is not set";
             notifyModProcessed();
@@ -101,6 +101,7 @@ namespace vsmodchecker {
         QNetworkRequest request(GetModUrlApi(info.id));
         QNetworkReply *reply = mNetworkManager->get(request);
         reply->setProperty("modInfo", QVariant::fromValue(std::move(info)));
+        reply->setProperty("filePath", filePath);
         connect(reply, &QNetworkReply::finished, this, &ModLoader::requestInfoFinished);
     }
 
@@ -138,9 +139,9 @@ namespace vsmodchecker {
         });
     }
 
-    void ModLoader::load(const QString& filePath, bool moveToModsDir) {
+    void ModLoader::load(const QString& filePath, bool fromGUI) {
         ++mRequestCount;
-        mThreadPoolExtractZips.start([this, filePath, moveToModsDir] mutable {
+        mThreadPoolExtractZips.start([this, filePath, fromGUI] mutable {
             ZipArchive zipArchive(filePath);
 
             if (const auto [open, errCode] = zipArchive.open(); !open) {
@@ -169,17 +170,16 @@ namespace vsmodchecker {
                 return;
             }
 
-            QMetaObject::invokeMethod(this, [this, modInfo_ = std::move(modInfo), moveToModsDir, filePath] mutable {
-                if (moveToModsDir) {
-                    QFile::copy(filePath, mModsPath.absolutePath() + QDir::separator() + QFileInfo{filePath}.fileName());
-                }
-                retrieveInfoForMod(std::move(modInfo_));
+            QMetaObject::invokeMethod(this, [this, modInfo_ = std::move(modInfo), filePath, fromGUI] mutable {
+                retrieveInfoForMod(std::move(modInfo_), fromGUI ? filePath : QString());
             }, Qt::QueuedConnection);
         });
     }
 
     ModLoader::ModInfoZip ModLoader::parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename) {
         ModInfoZip info;
+        info.filename = QFileInfo{filename}.fileName();
+
         QJsonParseError errorCode{.error = QJsonParseError::NoError};
         QJsonObject json = QJsonDocument::fromJson(jsonByteArray.toByteArray(), &errorCode).object();
         if (errorCode.error != QJsonParseError::NoError) {
@@ -235,7 +235,12 @@ namespace vsmodchecker {
                 if (semver::version::parse(existing->getVersion().toString().toStdString()) <
                     semver::version::parse(info.version.toStdString())) {
                     mStore->replace(ModEntry{responseJsonObj, info.version, info.id, info.filename});
+                    if (auto filePath = response->property("filePath").toString(); !filePath.isEmpty()) {
+                        QFile::copy(filePath, mModsPath.absolutePath() + QDir::separator() + info.filename);
+                    }
                     qInfo() << QString("Found newer version of %1. Overwriting...").arg(info.name);
+                } else {
+                    qInfo() << QString("Mod %1 is up to date.").arg(info.name);
                 }
             } catch (const semver::semver_exception& e) {
                 qWarning() << QString("Failed to parse other version for mod %1: %2").arg(info.name, e.what());
@@ -243,6 +248,9 @@ namespace vsmodchecker {
         } else {
             retrieveModIcon(info.id, responseJsonObj["logofile"].toString());
             mStore->add(ModEntry{responseJsonObj, info.version, info.id, info.filename});
+            if (auto filePath = response->property("filePath").toString(); !filePath.isEmpty()) {
+                QFile::copy(filePath, mModsPath.absolutePath() + QDir::separator() + info.filename);
+            }
         }
     }
 } // vsmodchecker
