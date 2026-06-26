@@ -100,7 +100,22 @@ Rectangle {
             nameFilters: ["Vintage Story Mods (*.zip)", "All Files (*)"]
 
             onAccepted: {
-                addModWindowContent.processFile(systemFilePicker.selectedFile.toString())
+                let rawUrl = systemFilePicker.selectedFile.toString()
+
+                if (rawUrl.endsWith(".zip")) {
+                    let cleanFilePath = addModWindowContent.getCleanPath(rawUrl)
+                    let fileName = addModWindowContent.getFileName(cleanFilePath)
+
+                    console.log("Sending to C++: " + cleanFilePath)
+                    console.log("Showing in UI: " + fileName)
+
+                    ModStore.load(cleanFilePath)
+                    //addModWindowContent.modFileReceived(cleanFilePath)
+                    addModWindow.close()
+
+                } else {
+                    console.log("Error: Only .zip files are allowed!")
+                }
             }
         }
     }
