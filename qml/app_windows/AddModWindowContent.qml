@@ -80,7 +80,9 @@ Rectangle {
             id: systemFilePicker
             title: "Select Mod Archive"
 
-            nameFilters: ["Vintage Story Mods (*.zip)", "All Files (*)"]
+            currentFolder: StandardPaths.writableLocation(StandardPaths.DownloadsLocation)
+
+            nameFilters: ["Vintage Story Mod Archive (*.zip)", "All Files (*)"]
 
             onAccepted: {
                 let rawUrl = systemFilePicker.selectedFile.toString()
