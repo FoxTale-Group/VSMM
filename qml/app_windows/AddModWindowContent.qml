@@ -63,24 +63,8 @@ Rectangle {
 
                 onDropped: (drop) => {
                     if (drop.hasUrls) {
-                        // Only get first file
                         let rawUrl = drop.urls[0].toString()
-
-                        if (rawUrl.endsWith(".zip")) {
-                            let fileName = addModWindowContent.getFileName(addModWindowContent.getCleanPath(rawUrl))
-
-                            console.log("Sending to C++: " + rawUrl)
-                            console.log("Showing in UI: " + fileName)
-
-                            // Fire your signal
-                            ModStore.load(rawUrl)
-                            //addModWindowContent.modFileReceived(cleanFilePath)
-                            drop.accept()
-                            Window.window.close()
-
-                        } else {
-                            console.log("Error: Only .zip files are allowed!")
-                        }
+                        addModWindowContent.sendFile(rawUrl)
                     }
                 }
             }
@@ -100,38 +84,35 @@ Rectangle {
 
             onAccepted: {
                 let rawUrl = systemFilePicker.selectedFile.toString()
-
-                if (rawUrl.endsWith(".zip")) {
-                    let fileName = addModWindowContent.getFileName(addModWindowContent.getCleanPath(rawUrl))
-
-                    console.log("Sending to C++: " + rawUrl)
-                    console.log("Showing in UI: " + fileName)
-
-                    ModStore.load(rawUrl)
-                    //addModWindowContent.modFileReceived(cleanFilePath)
-                    addModWindow.close()
-
-                } else {
-                    console.log("Error: Only .zip files are allowed!")
-                }
+                addModWindowContent.sendFile(rawUrl)
             }
         }
     }
 
-    function getCleanPath(rawUrl) {
-        // Format paths for C++ friendly paths
-        let cleanPath = rawUrl.replace(/^(file:\/{2})/, "");
+    function sendFile(path) {
+        if (path.endsWith(".zip")) {
+            let fileName = addModWindowContent.getFileName(path)
 
-        // Windows drive letter fix (e.g., /C:/Users/... -> C:/Users/...)
+            console.log("Sending to C++: " + path)
+            console.log("Showing in UI: " + fileName)
+
+            ModStore.load(path)
+            addModWindow.close()
+
+        } else {
+            console.log("Error: Only .zip files are allowed!")
+        }
+    }
+
+    function getFileName(path) {
+        let cleanPath = path.replace(/^(file:\/{2})/, "");
+
         if (cleanPath.startsWith("/") && cleanPath.charAt(2) === ":") {
             cleanPath = cleanPath.substring(1);
         }
 
-        return cleanPath;
-    }
-    function getFileName(path) {
         // A regular expression that splits the string at either a
         // forward slash (Linux) or backward slash (Windows) just to be safe!
-        return path.split(/[/\\]/).pop();
+        return cleanPath.split(/[/\\]/).pop();
     }
 }

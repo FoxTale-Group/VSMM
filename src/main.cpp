@@ -68,6 +68,11 @@ namespace {
 int main(int argc, char* argv[]) {
     qSetMessagePattern("[%{time hh:mm:ss.zzz}] %{type} %{if-debug}%{file}:%{line} %{endif}- %{message}");
     qtMsgHandlerOld = qInstallMessageHandler(qtMsgHandler);
+
+#ifdef Q_OS_LINUX
+    qputenv("QT_QPA_PLATFORMTHEME", "xdgdesktopportal");
+#endif
+    
     vsmodchecker::App app(argc, argv);
 
     return vsmodchecker::App::exec();
