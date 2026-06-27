@@ -17,8 +17,8 @@ Button
     property string iconColor: "#ffffff"
 
     font.bold: true
-    icon.width: 30
-    icon.height: 30
+    icon.width: 20
+    icon.height: 20
 
     ToolTip.text: tooltipText
     ToolTip.visible: hovered && tooltipText !== ""
@@ -57,16 +57,18 @@ Button
         }
     }
 
-    contentItem: IconImage {
-        source: rootButton.icon.source
-        color: rootButton.iconColor
+    contentItem: Item {
+        implicitWidth: rootButton.icon.width
+        implicitHeight: rootButton.icon.height
 
-        width: rootButton.icon.width
-        height: rootButton.icon.height
+        IconImage {
+            anchors.centerIn: parent
 
-        sourceSize.width: rootButton.icon.width
-        sourceSize.height: rootButton.icon.height
-
-        anchors.centerIn: parent
+            source: rootButton.icon.source
+            color: rootButton.iconColor
+            
+            sourceSize: Qt.size(rootButton.icon.width, rootButton.icon.height)
+            fillMode: Image.PreserveAspectFit
+        }
     }
 }

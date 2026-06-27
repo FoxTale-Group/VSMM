@@ -281,6 +281,31 @@ Rectangle {
             }
 
             ModActionButton {
+
+                property string fav_icon: "qrc:/qt/qml/vsmodchecker/icons/favorite.svg"
+                property string fav_icon_fill: "qrc:/qt/qml/vsmodchecker/icons/favorite_filled.svg"
+
+                property bool favorited: false
+
+                icon.source: favorited ? fav_icon_fill : fav_icon
+                iconColor: favorited ? "#ca22c7" : "white"
+
+                Layout.preferredHeight: 35
+                Layout.preferredWidth: 35
+
+                tooltipText: "Add '" + name + "' to favorites"
+
+                defaultColor: "transparent"
+                hoverColor: "#444444"
+                pressColor: "#333333"
+
+                onClicked: {
+                    favorited = !favorited
+                    console.log("Added '" + name + "' to favorited")
+                }
+            }
+
+            ModActionButton {
                 icon.source: "qrc:/qt/qml/vsmodchecker/icons/open_link.svg"
 
                 Layout.preferredHeight: 35
@@ -300,6 +325,8 @@ Rectangle {
 
             ModActionButton {
                 icon.source: "qrc:/qt/qml/vsmodchecker/icons/delete.svg"
+
+                Layout.leftMargin: 5
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
