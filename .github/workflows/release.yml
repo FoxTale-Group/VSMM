@@ -47,21 +47,24 @@ jobs:
             echo "versionStrict=${{ steps.semver.outputs.nextStrict }}-rc.${rc}" >> "$GITHUB_OUTPUT"
             echo "branch=prerelease/${{ steps.semver.outputs.nextStrict }}-rc.${rc}" >> "$GITHUB_OUTPUT"
           fi
-      - name: Prepare changelog
-        if: steps.semver.outputs.bump != 'none'
-        uses: requarks/changelog-action@v1.10.3
-        with:
-          token: ${{ github.token }}
-          fromTag: ${{ steps.channel.outputs.version }}
-          toTag: ${{ steps.semver.outputs.current }}
-          writeToFile: true
-          changelogFilePath: ${{ github.workspace }}/CHANGELOG.md
-          excludeScopes: "ci,docs,style,other"
       - name: Bump project version in CMakeLists.txt
         if: steps.semver.outputs.bump != 'none'
         run: |
           version='${{ steps.semver.outputs.nextStrict }}'
           sed -i -E "s/(set\(VSMODCHECKER_VERSION )\"[^\"]*\"/\1\"${version}\"/" CMakeLists.txt
+      - name: Update CHANGELOG.md
+        if: steps.semver.outputs.bump != 'none'
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --tag ${{ steps.channel.outputs.version }} --unreleased --prepend CHANGELOG.md
+      - name: Extract release notes
+        if: steps.semver.outputs.bump != 'none'
+        id: notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --tag ${{ steps.channel.outputs.version }} --unreleased --strip header
       - name: Create release commit with tag
         if: steps.semver.outputs.bump != 'none'
         uses: stefanzweifel/git-auto-commit-action@v7
@@ -80,6 +83,7 @@ jobs:
       releaseVersion: ${{ steps.channel.outputs.version }}
       releaseBranch: ${{ steps.channel.outputs.branch }}
       isPrerelease: ${{ steps.channel.outputs.isPrerelease }}
+      releaseNotes: ${{ steps.notes.outputs.content }}
   create-package:
     needs: [prepare-release-version]
     if: needs.prepare-release-version.outputs.bumpVersion != 'none'
@@ -117,7 +121,7 @@ jobs:
         with:
           name: ${{ needs.prepare-release-version.outputs.releaseVersion }}
           artifacts: '${{ steps.configure.outputs.buildDir }}/*.tar.xz,${{ steps.configure.outputs.buildDir }}/*.tar.gz,${{ steps.configure.outputs.buildDir }}/*.rpm,${{ steps.configure.outputs.buildDir }}/*.deb'
-          bodyFile: '${{ github.workspace }}/CHANGELOG.md'
+          body: ${{ needs.prepare-release-version.outputs.releaseNotes }}
           tag: ${{ needs.prepare-release-version.outputs.releaseVersion }}
           prerelease: ${{ needs.prepare-release-version.outputs.isPrerelease }}
           makeLatest: ${{ needs.prepare-release-version.outputs.isPrerelease == 'false' }}
