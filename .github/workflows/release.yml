@@ -1,0 +1,124 @@
+name: Release
+on:
+  push:
+    branches:
+      - main
+      - next
+
+env:
+  DEFAULT_BUILD_TYPE: Release
+
+jobs:
+  prepare-release-version:
+
+    permissions:
+      contents: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Get Next Version
+        id: semver
+        uses: ietf-tools/semver-action@v1.11.0
+        with:
+          token: ${{ github.token }}
+          branch: ${{ github.ref_name }}
+          majorList: 'feat!,fix!'
+          tagFilter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
+          noNewCommitBehavior: 'current'
+          noVersionBumpBehavior: 'current'
+      - name: Determine release channel
+        id: channel
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "isPrerelease=false" >> "$GITHUB_OUTPUT"
+            echo "version=${{ steps.semver.outputs.next }}" >> "$GITHUB_OUTPUT"
+            echo "versionStrict=${{ steps.semver.outputs.nextStrict }}" >> "$GITHUB_OUTPUT"
+            echo "branch=release/${{ steps.semver.outputs.nextStrict }}" >> "$GITHUB_OUTPUT"
+          else
+            # Per-version sequential RC: find the highest existing vX.Y.Z-rc.N tag and add 1
+            lastRc=$(git tag -l "${{ steps.semver.outputs.next }}-rc.*" | sed 's/.*-rc\.//' | sort -n | tail -n1)
+            rc=$(( ${lastRc:-0} + 1 ))
+            echo "isPrerelease=true" >> "$GITHUB_OUTPUT"
+            echo "version=${{ steps.semver.outputs.next }}-rc.${rc}" >> "$GITHUB_OUTPUT"
+            echo "versionStrict=${{ steps.semver.outputs.nextStrict }}-rc.${rc}" >> "$GITHUB_OUTPUT"
+            echo "branch=prerelease/${{ steps.semver.outputs.nextStrict }}-rc.${rc}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Prepare changelog
+        if: steps.semver.outputs.bump != 'none'
+        uses: requarks/changelog-action@v1.10.3
+        with:
+          token: ${{ github.token }}
+          fromTag: ${{ steps.channel.outputs.version }}
+          toTag: ${{ steps.semver.outputs.current }}
+          writeToFile: true
+          changelogFilePath: ${{ github.workspace }}/CHANGELOG.md
+          excludeScopes: "ci,docs,style,other"
+      - name: Bump project version in CMakeLists.txt
+        if: steps.semver.outputs.bump != 'none'
+        run: |
+          version='${{ steps.semver.outputs.nextStrict }}'
+          sed -i -E "s/(set\(VSMODCHECKER_VERSION )\"[^\"]*\"/\1\"${version}\"/" CMakeLists.txt
+      - name: Create release commit with tag
+        if: steps.semver.outputs.bump != 'none'
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: 'Release ${{ steps.channel.outputs.version }}'
+          branch: ${{ steps.channel.outputs.branch }}
+          commit_options: '--no-verify --signoff'
+          file_pattern: 'CHANGELOG.md CMakeLists.txt'
+          tag_name: ${{ steps.channel.outputs.version }}
+          tagging_message: 'Release version ${{ steps.channel.outputs.versionStrict }}'
+          disable_globbing: true
+          create_branch: true
+          create_git_tag_only: false
+    outputs:
+      bumpVersion: ${{ steps.semver.outputs.bump }}
+      releaseVersion: ${{ steps.channel.outputs.version }}
+      releaseBranch: ${{ steps.channel.outputs.branch }}
+      isPrerelease: ${{ steps.channel.outputs.isPrerelease }}
+  create-package:
+    needs: [prepare-release-version]
+    if: needs.prepare-release-version.outputs.bumpVersion != 'none'
+
+    permissions:
+      contents: write
+
+    runs-on: ubuntu-26.04 # change to ubuntu-latest when it's 26.04
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y libzip-dev ninja-build
+      - name: Fetch repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare-release-version.outputs.releaseBranch }}
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4.3.1
+        with:
+          version: '6.11.1'
+      - name: Configure
+        id: configure
+        run: |
+          echo "buildDir=${{ env.BUILD_DIR }}" >> ${GITHUB_OUTPUT}
+          cmake -B ${{ env.BUILD_DIR }} -DCMAKE_BUILD_TYPE="${{ env.DEFAULT_BUILD_TYPE }}" -DCMAKE_GENERATOR=Ninja
+        env:
+          BUILD_DIR: '${{ github.workspace }}/build'
+      - name: Build & Package
+        run: |
+          cmake --build ${{ steps.configure.outputs.buildDir }}
+          cd ${{ steps.configure.outputs.buildDir }} && ninja package && cd ${{ github.workspace }}
+      - name: Create release
+        uses: ncipollo/release-action@v1.21.0
+        with:
+          name: ${{ needs.prepare-release-version.outputs.releaseVersion }}
+          artifacts: '${{ steps.configure.outputs.buildDir }}/*.tar.xz,${{ steps.configure.outputs.buildDir }}/*.tar.gz,${{ steps.configure.outputs.buildDir }}/*.rpm,${{ steps.configure.outputs.buildDir }}/*.deb'
+          bodyFile: '${{ github.workspace }}/CHANGELOG.md'
+          artifactContentType: 'application/x-xz'
+          tag: ${{ needs.prepare-release-version.outputs.releaseVersion }}
+          prerelease: ${{ needs.prepare-release-version.outputs.isPrerelease }}
+          makeLatest: ${{ needs.prepare-release-version.outputs.isPrerelease == 'false' }}
