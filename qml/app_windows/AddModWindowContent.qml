@@ -42,7 +42,7 @@ Rectangle {
                 spacing: 10
 
                 IconImage {
-                    source: "qrc:/qt/qml/vsmodchecker/icons/drop_item.svg"
+                    source: "qrc:/qt/qml/vsmodchecker/assets/icons/drop_item.svg"
                     color: dropArea.containsDrag ? "#4da6ff" : "#888888"
                     sourceSize: Qt.size(64, 64)
                     Layout.alignment: Qt.AlignHCenter

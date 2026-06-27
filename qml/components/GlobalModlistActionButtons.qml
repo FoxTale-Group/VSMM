@@ -14,7 +14,7 @@ RowLayout
 
     ActionButton {
         text: "Add mod"
-        icon.source: "qrc:/qt/qml/vsmodchecker/icons/add_box.svg"
+        icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/add_box.svg"
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
@@ -36,7 +36,7 @@ RowLayout
     ModSearchBar{}
 
     ActionButton {
-        icon.source: "qrc:/qt/qml/vsmodchecker/icons/sync.svg"
+        icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/sync.svg"
         display: AbstractButton.IconOnly
         Layout.preferredHeight: 40
 
@@ -47,7 +47,7 @@ RowLayout
 
     ActionButton {
         text: "Check updates"
-        icon.source: "qrc:/qt/qml/vsmodchecker/icons/check_update.svg"
+        icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/check_update.svg"
 
         display: AbstractButton.IconOnly
         Layout.preferredHeight: 40
@@ -63,7 +63,7 @@ RowLayout
 
     ActionButton {
         text: "Update selected"
-        icon.source: "qrc:/qt/qml/vsmodchecker/icons/download.svg"
+        icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/download.svg"
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
@@ -79,7 +79,7 @@ RowLayout
 
     ActionButton {
         text: "Update all"
-        icon.source: "qrc:/qt/qml/vsmodchecker/icons/download_all.svg"
+        icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/download_all.svg"
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
