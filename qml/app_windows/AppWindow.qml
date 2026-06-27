@@ -22,6 +22,7 @@ ApplicationWindow
     background: WindowBackground { cornerRadius: windowMain.windowCornerRadius }
 
     header: WindowTitleBar {
+        windowIconSource: "qrc:/qt/qml/vsmodchecker/icons/VSMM_Icon.png"
         windowTitleText: Qt.application.name + "  v" + Qt.application.version
         cornerRadius: windowMain.windowCornerRadius
     }

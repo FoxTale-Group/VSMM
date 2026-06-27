@@ -1,11 +1,13 @@
 import QtQml
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.impl
 import QtQuick.Layouts
 import QtQuick.Window
 
 Item {
     id: _TitleBar
+    property string windowIconSource: ""
     property string windowTitleText: "Default Title"
     property int cornerRadius: 0
 
@@ -46,6 +48,12 @@ Item {
         anchors.bottomMargin: 0
         anchors.topMargin: 3
         anchors.rightMargin: 3
+
+        IconImage {
+            source: _TitleBar.windowIconSource
+            visible: !!_TitleBar.windowIconSource
+            sourceSize: Qt.size(20, 20)
+        }
 
         Text {
             text: _TitleBar.windowTitleText
