@@ -125,3 +125,4 @@ jobs:
           tag: ${{ needs.prepare-release-version.outputs.releaseVersion }}
           prerelease: ${{ needs.prepare-release-version.outputs.isPrerelease }}
           makeLatest: ${{ needs.prepare-release-version.outputs.isPrerelease == 'false' }}
+          immutableCreate: true
