@@ -7,7 +7,6 @@ on:
         required: true
         default: "Debug"
   pull_request:
-    paths-ignore: [ '**.md', 'LICENSE', '.github/CODEOWNERS' ]
     branches:
       - main
 
@@ -18,15 +17,34 @@ jobs:
   build:
     runs-on: ubuntu-26.04
     steps:
-      - name: Fetch repository
-        uses: actions/checkout@v7
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install qt6-{base,declarative}-dev libzip-dev qml6-module-qtquick-controls qml6-module-qtquick-window qml6-module-qtqml-workerscript
+          sudo apt install -y libzip-dev ccache
+      - name: Fetch repository
+        uses: actions/checkout@v7
+      - name: Cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+      - name: Cache FetchContent
+        uses: actions/cache@v6
+        with:
+          path: ${{github.workspace}}/build/_deps
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4.3.1
+        with:
+          version: '6.11.1'
+          cache: true
       - name: Configure
         run: |
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE="${{ inputs.releaseType || env.DEFAULT_BUILD_TYPE }}"
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE="${{ inputs.releaseType || env.DEFAULT_BUILD_TYPE }}" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
       - name: Build
         run: |
           cmake --build ${{github.workspace}}/build
