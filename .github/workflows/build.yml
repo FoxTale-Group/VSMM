@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y libzip-dev ccache
+          sudo apt install -y libzip-dev ccache ninja-build
       - name: Fetch repository
         uses: actions/checkout@v7
       - name: Cache
@@ -44,7 +44,8 @@ jobs:
           cache: true
       - name: Configure
         run: |
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE="${{ inputs.releaseType || env.DEFAULT_BUILD_TYPE }}" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE="${{ inputs.releaseType || env.DEFAULT_BUILD_TYPE }}" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_GENERATOR=Ninja
       - name: Build
         run: |
           cmake --build ${{github.workspace}}/build
+      # add tests
