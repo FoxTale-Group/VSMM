@@ -1,0 +1,26 @@
+name: Build & Test
+on:
+  workflow_dispatch:
+    inputs:
+      releaseType:
+        description: "Release type"
+        required: true
+        default: "Debug"
+
+jobs:
+  build:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Fetch repository
+        uses: actions/checkout@v7
+      - name: Update packages
+        run: |
+          sudo apt update
+          sudo apt upgrade
+          sudo apt install qt6-{base,declarative}-dev libzip-dev qml6-module-*
+      - name: Configure
+        run: |
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE="${{ inputs.releaseType }}"
+      - name: Build
+        run: |
+          cmake --build ${{github.workspace}}/build
