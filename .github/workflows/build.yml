@@ -6,6 +6,9 @@ on:
         description: "Release type"
         required: true
         default: "Debug"
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -13,11 +16,10 @@ jobs:
     steps:
       - name: Fetch repository
         uses: actions/checkout@v7
-      - name: Update packages
+      - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt upgrade
-          sudo apt install qt6-{base,declarative}-dev libzip-dev qml6-module-*
+          sudo apt install qt6-{base,declarative}-dev libzip-dev qml6-module-qtquick-controls qml6-module-qtquick-window qml6-module-qtqml-workerscript
       - name: Configure
         run: |
           cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE="${{ inputs.releaseType }}"
