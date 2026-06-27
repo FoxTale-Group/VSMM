@@ -4,7 +4,7 @@ project(VSModChecker
         DESCRIPTION "Mod Checker For Vintage Story"
         HOMEPAGE_URL "https://github.com/Amaroq7/VSModChecker"
         LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_STANDARD 23)
 
 find_package(libzip REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Core Quick Qml Network QuickControls2)
