@@ -120,7 +120,7 @@ jobs:
         uses: ncipollo/release-action@v1.21.0
         with:
           name: ${{ needs.prepare-release-version.outputs.releaseVersion }}
-          artifacts: '${{ steps.configure.outputs.buildDir }}/*.tar.xz,${{ steps.configure.outputs.buildDir }}/*.tar.gz,${{ steps.configure.outputs.buildDir }}/*.rpm,${{ steps.configure.outputs.buildDir }}/*.deb'
+          artifacts: '${{ steps.configure.outputs.buildDir }}/pkg/*.tar.xz,${{ steps.configure.outputs.buildDir }}/pkg/*.tar.gz,${{ steps.configure.outputs.buildDir }}/pkg/*.rpm,${{ steps.configure.outputs.buildDir }}/pkg/*.deb'
           body: ${{ needs.prepare-release-version.outputs.releaseNotes }}
           tag: ${{ needs.prepare-release-version.outputs.releaseVersion }}
           prerelease: ${{ needs.prepare-release-version.outputs.isPrerelease }}
