@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 4.3)
-project(VSModChecker
+project(VSMM
         VERSION 0.0.1
         DESCRIPTION "Mod Checker For Vintage Story"
-        HOMEPAGE_URL "https://github.com/Amaroq7/VSModChecker"
+        HOMEPAGE_URL "https://github.com/FoxTale-Group/VSMM"
         LANGUAGES CXX)
+set(APP_DISPLAY_NAME "Vintage Story Mod Manager")
 set(CMAKE_CXX_STANDARD 23)
 
 find_package(libzip REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Core Quick Qml Network QuickControls2)
+
 qt_standard_project_setup()
 
 include(FetchContent)

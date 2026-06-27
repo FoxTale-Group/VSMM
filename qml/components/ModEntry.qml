@@ -105,7 +105,7 @@ Rectangle {
 
             IconImage {
                 id: fallbackIcon
-                source: "qrc:/qt/qml/vsmodchecker/icons/extension.svg"
+                source: "qrc:/qt/qml/vsmodchecker/assets/icons/extension.svg"
                 color: "white"
                 anchors.fill: parent
                 anchors.margins: 4
@@ -245,7 +245,7 @@ Rectangle {
             }
 
             ModActionButton {
-                icon.source: "qrc:/qt/qml/vsmodchecker/icons/download_one.svg"
+                icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/download_one.svg"
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
@@ -266,7 +266,7 @@ Rectangle {
             }
 
             ModActionButton {
-                icon.source: "qrc:/qt/qml/vsmodchecker/icons/check_update.svg"
+                icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/check_update.svg"
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
@@ -282,8 +282,8 @@ Rectangle {
 
             ModActionButton {
 
-                property string fav_icon: "qrc:/qt/qml/vsmodchecker/icons/favorite.svg"
-                property string fav_icon_fill: "qrc:/qt/qml/vsmodchecker/icons/favorite_filled.svg"
+                property string fav_icon: "qrc:/qt/qml/vsmodchecker/assets/icons/favorite.svg"
+                property string fav_icon_fill: "qrc:/qt/qml/vsmodchecker/assets/icons/favorite_filled.svg"
 
                 property bool favorited: false
 
@@ -306,7 +306,7 @@ Rectangle {
             }
 
             ModActionButton {
-                icon.source: "qrc:/qt/qml/vsmodchecker/icons/open_link.svg"
+                icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/open_link.svg"
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
@@ -324,7 +324,7 @@ Rectangle {
             }
 
             ModActionButton {
-                icon.source: "qrc:/qt/qml/vsmodchecker/icons/delete.svg"
+                icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/delete.svg"
 
                 Layout.leftMargin: 5
 

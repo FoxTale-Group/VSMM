@@ -25,7 +25,7 @@ ColumnLayout
 
         ActionButton {
             text: "Launch Game"
-            icon.source: "qrc:/qt/qml/vsmodchecker/icons/launch.svg"
+            icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/launch.svg"
 
             display: AbstractButton.TextBesideIcon
             Layout.preferredHeight: 60
@@ -40,7 +40,7 @@ ColumnLayout
         }
 
         ActionButton {
-            icon.source: "qrc:/qt/qml/vsmodchecker/icons/settings.svg"
+            icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/settings.svg"
 
             display: AbstractButton.IconOnly
 

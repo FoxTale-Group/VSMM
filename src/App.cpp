@@ -36,7 +36,7 @@ namespace vsmodchecker {
         setApplicationDisplayName(APP_DISPLAY_NAME);
         setApplicationName(APP_DISPLAY_NAME);
         setApplicationVersion(APP_VERSION);
-        setWindowIcon(QIcon(":/qt/qml/vsmodchecker/icons/VSMM_Icon.png"));
+        setWindowIcon(QIcon(":/qt/qml/vsmodchecker/assets/logo/VSMM.png"));
 
         QCommandLineParser parser;
         parser.addHelpOption();
