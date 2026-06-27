@@ -118,7 +118,6 @@ jobs:
           name: ${{ needs.prepare-release-version.outputs.releaseVersion }}
           artifacts: '${{ steps.configure.outputs.buildDir }}/*.tar.xz,${{ steps.configure.outputs.buildDir }}/*.tar.gz,${{ steps.configure.outputs.buildDir }}/*.rpm,${{ steps.configure.outputs.buildDir }}/*.deb'
           bodyFile: '${{ github.workspace }}/CHANGELOG.md'
-          artifactContentType: 'application/x-xz'
           tag: ${{ needs.prepare-release-version.outputs.releaseVersion }}
           prerelease: ${{ needs.prepare-release-version.outputs.isPrerelease }}
           makeLatest: ${{ needs.prepare-release-version.outputs.isPrerelease == 'false' }}
