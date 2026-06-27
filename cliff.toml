@@ -1,0 +1,53 @@
+# cliff.toml — git-cliff configuration for VSModChecker
+# Docs: https://git-cliff.org/docs/configuration
+
+[changelog]
+# Prepended to every generated changelog
+header = """
+# Changelog
+
+"""
+# The per-release body (Tera template)
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message | upper_first }}\
+{% endfor %}
+{% endfor %}\n
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true       # parse messages as Conventional Commits
+filter_unconventional = true      # drop commits that don't follow the spec
+split_commits = false
+protect_breaking_commits = true   # never filter out a breaking change
+filter_commits = true             # only keep commits matched by a parser below
+topo_order = false
+sort_commits = "newest"
+
+# Only consider version tags (matches stable + -rc tags)
+tag_pattern = "v[0-9]*"
+
+commit_parsers = [
+  { message = "^feat",      group = "<!-- 0 -->🚀 Features" },
+  { message = "^fix",       group = "<!-- 1 -->🐛 Bug Fixes" },
+  { message = "^perf",      group = "<!-- 2 -->⚡ Performance" },
+  { message = "^refactor",  group = "<!-- 3 -->♻️ Refactor" },
+  { message = "^test",      group = "<!-- 4 -->🧪 Testing" },
+  # everything below is dropped from the changelog:
+  { message = "^docs",      skip = true },
+  { message = "^style",     skip = true },
+  { message = "^ci",        skip = true },
+  { message = "^build",     skip = true },
+  { message = "^chore",     skip = true },
+  { message = "^Release",   skip = true },   # the auto release commit
+  { message = ".*",         skip = true },   # anything unmatched
+]
