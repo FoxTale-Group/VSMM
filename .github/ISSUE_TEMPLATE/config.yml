@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Help
+    url: https://github.com/FoxTale-Group/VSMM/discussions
+    about: Ask a question or get help here instead of opening an issue. (Requires GitHub Discussions to be enabled.)

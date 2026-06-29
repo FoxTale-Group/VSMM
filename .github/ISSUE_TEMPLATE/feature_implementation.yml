@@ -1,0 +1,84 @@
+name: Feature implementation
+description: Track an approved feature and define the scope of work needed to implement it.
+title: "feat: "
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For features that have already been **approved**. Use this to pin down the
+        scope of work before implementation starts.
+
+        > Tip: pick the **Scope** that matches the Conventional Commit scope you'll use
+        > in the PR title, e.g. `feat(ui): …`. The squash-merge title drives the release.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What was approved, in one or two sentences. Link the discussion/decision if there is one.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope(s)
+      description: Which subsystem(s) does this touch? These map to the Conventional Commit scopes.
+      multiple: true
+      options:
+        - ui
+        - loader
+        - store
+        - network
+        - search
+        - settings
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Implementation tasks
+      description: The work needed to ship this. Break it into a checklist.
+      value: |
+        - [ ]
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How we know it's done — observable, testable outcomes.
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: Explicitly list what this issue does NOT cover, to keep the work bounded.
+    validations:
+      required: false
+
+  - type: input
+    id: dependencies
+    attributes:
+      label: Dependencies / related
+      description: Blocking issues, PRs, or other work this depends on (e.g. "#42", "needs API change").
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Design pointers, gotchas, links to relevant code.
+    validations:
+      required: false
