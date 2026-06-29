@@ -54,7 +54,7 @@ jobs:
             echo "versionStrict=${{ steps.semver.outputs.nextStrict }}-rc.${rc}" >> "$GITHUB_OUTPUT"
           fi
     outputs:
-      bumpVersion: ${{ steps.semver.ohhiutputs.bump }}
+      bumpVersion: ${{ steps.semver.outputs.bump }}
       releaseVersion: ${{ steps.channel.outputs.version }} # with v prefix
       releaseVersionStrict: ${{ steps.channel.outputs.versionStrict }} # without v prefix
       isPrerelease: ${{ steps.channel.outputs.isPrerelease }}
@@ -80,7 +80,7 @@ jobs:
       - name: Bump project version in CMakeLists.txt
         run: |
           version='${{ needs.prepare-release-version.outputs.releaseVersionStrict }}'
-          sed -i -E "s/(set\(VSMM_VERSION )\"[^\"]*\"/\1\"${version}\"/" CMakeLists.txt
+          sed -i -E "s/(set\(VSMM_RELEASE_VERSION )\"[^\"]*\"/\1\"${version}\"/" CMakeLists.txt
       - name: Generate CHANGELOG.md
         id: generate-changelog
         uses: orhun/git-cliff-action@v4
