@@ -1,14 +1,9 @@
 name: Build & Test
 on:
-  workflow_dispatch:
-    inputs:
-      releaseType:
-        description: "Release type"
-        required: true
-        default: "Debug"
   pull_request:
     branches:
       - main
+      - next
 
 env:
   DEFAULT_BUILD_TYPE: Debug

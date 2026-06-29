@@ -75,6 +75,7 @@ endif ()
 
 # CPACK METADATA
 set(CPACK_PACKAGE_NAME "${CMAKE_PROJECT_NAME}")
+set(CPACK_PACKAGE_VERSION "${VSMM_RELEASE_VERSION}")
 set(CPACK_PACKAGE_VENDOR "FoxTale Group - VSMM Team")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A custom mod manager for Vintage Story")
 set(CPACK_PACKAGE_CONTACT "https://github.com/FoxTale-Group/VSMM")
@@ -101,6 +102,9 @@ if (UNIX AND NOT APPLE)
     # Rell the DEB/RPM packagers to automatically find library dependencies
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
     set(CPACK_RPM_PACKAGE_AUTOREQPROV "yes")
+    string(REPLACE "-" "~" DISTRO_VER "${VSMM_RELEASE_VERSION}")
+    set(CPACK_DEBIAN_PACKAGE_VERSION "${DISTRO_VER}")
+    set(CPACK_RPM_PACKAGE_VERSION "${DISTRO_VER}")
 
     # Get absolute path to logo and set package icon
     get_filename_component(ABS_ICON_PATH "${CMAKE_SOURCE_DIR}/assets/logo/VSMM.png" ABSOLUTE)
