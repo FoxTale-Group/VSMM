@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 4.3)
-set(VSMODCHECKER_VERSION "0.0.1" CACHE STRING "Project version")
+set(VSMM_RELEASE_VERSION "0.0.1" CACHE STRING "Project version")
 project(VSMM
-        VERSION ${VSMODCHECKER_VERSION}
         DESCRIPTION "Mod Checker For Vintage Story"
         HOMEPAGE_URL "https://github.com/FoxTale-Group/VSMM"
         LANGUAGES CXX)

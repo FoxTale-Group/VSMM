@@ -1,18 +1,23 @@
 name: Release
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-      - next
 
 env:
   DEFAULT_BUILD_TYPE: Release
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }},
+  cancel-in-progress: false
+
 jobs:
   prepare-release-version:
-
+    if: github.ref_name == 'main' || github.ref_name == 'next'
     permissions:
       contents: write
+      pull-requests: read
 
     runs-on: ubuntu-latest
     steps:
@@ -30,6 +35,9 @@ jobs:
           tagFilter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
           noNewCommitBehavior: 'current'
           noVersionBumpBehavior: 'current'
+          skipInvalidTags: true
+          maxTagsToFetch: '30'
+          scopeList: 'ui,loader,store,network,search,settings'
       - name: Determine release channel
         id: channel
         run: |
@@ -37,7 +45,6 @@ jobs:
             echo "isPrerelease=false" >> "$GITHUB_OUTPUT"
             echo "version=${{ steps.semver.outputs.next }}" >> "$GITHUB_OUTPUT"
             echo "versionStrict=${{ steps.semver.outputs.nextStrict }}" >> "$GITHUB_OUTPUT"
-            echo "branch=release/${{ steps.semver.outputs.nextStrict }}" >> "$GITHUB_OUTPUT"
           else
             # Per-version sequential RC: find the highest existing vX.Y.Z-rc.N tag and add 1
             lastRc=$(git tag -l "${{ steps.semver.outputs.next }}-rc.*" | sed 's/.*-rc\.//' | sort -n | tail -n1)
@@ -45,51 +52,19 @@ jobs:
             echo "isPrerelease=true" >> "$GITHUB_OUTPUT"
             echo "version=${{ steps.semver.outputs.next }}-rc.${rc}" >> "$GITHUB_OUTPUT"
             echo "versionStrict=${{ steps.semver.outputs.nextStrict }}-rc.${rc}" >> "$GITHUB_OUTPUT"
-            echo "branch=prerelease/${{ steps.semver.outputs.nextStrict }}-rc.${rc}" >> "$GITHUB_OUTPUT"
           fi
-      - name: Bump project version in CMakeLists.txt
-        if: steps.semver.outputs.bump != 'none'
-        run: |
-          version='${{ steps.semver.outputs.nextStrict }}'
-          sed -i -E "s/(set\(VSMODCHECKER_VERSION )\"[^\"]*\"/\1\"${version}\"/" CMakeLists.txt
-      - name: Update CHANGELOG.md
-        if: steps.semver.outputs.bump != 'none'
-        uses: orhun/git-cliff-action@v4
-        with:
-          config: cliff.toml
-          args: --tag ${{ steps.channel.outputs.version }} --unreleased --prepend CHANGELOG.md
-      - name: Extract release notes
-        if: steps.semver.outputs.bump != 'none'
-        id: notes
-        uses: orhun/git-cliff-action@v4
-        with:
-          config: cliff.toml
-          args: --tag ${{ steps.channel.outputs.version }} --unreleased --strip header
-      - name: Create release commit with tag
-        if: steps.semver.outputs.bump != 'none'
-        uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          commit_message: 'Release ${{ steps.channel.outputs.version }}'
-          branch: ${{ steps.channel.outputs.branch }}
-          commit_options: '--no-verify --signoff'
-          file_pattern: 'CHANGELOG.md CMakeLists.txt'
-          tag_name: ${{ steps.channel.outputs.version }}
-          tagging_message: 'Release version ${{ steps.channel.outputs.versionStrict }}'
-          disable_globbing: true
-          create_branch: true
-          create_git_tag_only: false
     outputs:
-      bumpVersion: ${{ steps.semver.outputs.bump }}
-      releaseVersion: ${{ steps.channel.outputs.version }}
-      releaseBranch: ${{ steps.channel.outputs.branch }}
+      bumpVersion: ${{ steps.semver.ohhiutputs.bump }}
+      releaseVersion: ${{ steps.channel.outputs.version }} # with v prefix
+      releaseVersionStrict: ${{ steps.channel.outputs.versionStrict }} # without v prefix
       isPrerelease: ${{ steps.channel.outputs.isPrerelease }}
-      releaseNotes: ${{ steps.notes.outputs.content }}
   create-package:
     needs: [prepare-release-version]
-    if: needs.prepare-release-version.outputs.bumpVersion != 'none'
+    if: (github.ref_name == 'main' || github.ref_name == 'next') && needs.prepare-release-version.outputs.bumpVersion != 'none'
 
     permissions:
       contents: write
+      pull-requests: read   # git-cliff GitHub integration resolves PR numbers/authors
 
     runs-on: ubuntu-26.04 # change to ubuntu-latest when it's 26.04
     steps:
@@ -100,7 +75,31 @@ jobs:
       - name: Fetch repository
         uses: actions/checkout@v7
         with:
-          ref: ${{ needs.prepare-release-version.outputs.releaseBranch }}
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - name: Bump project version in CMakeLists.txt
+        run: |
+          version='${{ needs.prepare-release-version.outputs.releaseVersionStrict }}'
+          sed -i -E "s/(set\(VSMM_VERSION )\"[^\"]*\"/\1\"${version}\"/" CMakeLists.txt
+      - name: Generate CHANGELOG.md
+        id: generate-changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --tag ${{ needs.prepare-release-version.outputs.releaseVersion }} --unreleased
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Create release commit with tag
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: 'chore(release): ${{ needs.prepare-release-version.outputs.releaseVersionStrict }}'
+          branch: ${{ github.ref_name }}
+          commit_options: '--no-verify --signoff'
+          file_pattern: 'CMakeLists.txt'
+          tag_name: ${{ needs.prepare-release-version.outputs.releaseVersion }}
+          tagging_message: 'Release ${{ needs.prepare-release-version.outputs.releaseVersionStrict }}'
+          disable_globbing: true
+          create_git_tag_only: false
       - name: Install Qt
         uses: jurplel/install-qt-action@v4.3.1
         with:
@@ -120,8 +119,8 @@ jobs:
         uses: ncipollo/release-action@v1.21.0
         with:
           name: ${{ needs.prepare-release-version.outputs.releaseVersion }}
-          artifacts: '${{ steps.configure.outputs.buildDir }}/pkg/*.tar.xz,${{ steps.configure.outputs.buildDir }}/pkg/*.tar.gz,${{ steps.configure.outputs.buildDir }}/pkg/*.rpm,${{ steps.configure.outputs.buildDir }}/pkg/*.deb'
-          body: ${{ needs.prepare-release-version.outputs.releaseNotes }}
+          artifacts: '${{ steps.configure.outputs.buildDir }}/pkg/*.xz,${{ steps.configure.outputs.buildDir }}/pkg/*.gz,${{ steps.configure.outputs.buildDir }}/pkg/*.rpm,${{ steps.configure.outputs.buildDir }}/pkg/*.deb'
+          body: ${{ steps.generate-changelog.outputs.content }}
           tag: ${{ needs.prepare-release-version.outputs.releaseVersion }}
           prerelease: ${{ needs.prepare-release-version.outputs.isPrerelease }}
           makeLatest: ${{ needs.prepare-release-version.outputs.isPrerelease == 'false' }}

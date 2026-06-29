@@ -18,6 +18,8 @@ body = """
 ### {{ group | striptags | trim | upper_first }}
 {% for commit in commits %}
 - {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message | upper_first }}\
+{% if commit.remote.username %} by @{{ commit.remote.username }}{% endif %}\
+{% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}](https://github.com/FoxTale-Group/VSMM/pull/{{ commit.remote.pr_number }})){% endif %}\
 {% endfor %}
 {% endfor %}\n
 """
@@ -27,6 +29,11 @@ footer = ""
 [git]
 conventional_commits = true       # parse messages as Conventional Commits
 filter_unconventional = true      # drop commits that don't follow the spec
+
+commit_preprocessors = [
+  { pattern = '(?m)\s*\(#\d+\)$', replace = "" },
+]
+
 split_commits = false
 protect_breaking_commits = true   # never filter out a breaking change
 filter_commits = true             # only keep commits matched by a parser below
@@ -37,6 +44,7 @@ sort_commits = "newest"
 tag_pattern = "v[0-9]*"
 
 commit_parsers = [
+  { message = '^\w+\((ci|build|chore|docs|style)\)', skip = true },
   { message = "^feat",      group = "<!-- 0 -->🚀 Features" },
   { message = "^fix",       group = "<!-- 1 -->🐛 Bug Fixes" },
   { message = "^perf",      group = "<!-- 2 -->⚡ Performance" },
@@ -51,3 +59,7 @@ commit_parsers = [
   { message = "^Release",   skip = true },   # the auto release commit
   { message = ".*",         skip = true },   # anything unmatched
 ]
+
+[remote.github]
+owner = "FoxTale-Group"
+repo  = "VSMM"
