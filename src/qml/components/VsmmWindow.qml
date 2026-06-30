@@ -32,7 +32,7 @@ ApplicationWindow
 
     header: WindowTitleBar {
         windowTitleText: _VsmmWindow.windowTitle
-        windowIconSource: _VsmmWindow.windowIcon ? "qrc:/qt/qml/vsmodchecker/assets/" + _VsmmWindow.windowIcon : ""
+        windowIconSource: _VsmmWindow.windowIcon ? "qrc:/qt/qml/vsmm/assets/" + _VsmmWindow.windowIcon : ""
         cornerRadius: _VsmmWindow.windowCornerRadius
 
         showMaximize: _VsmmWindow.resizable

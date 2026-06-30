@@ -22,25 +22,25 @@
 #include <zip.h>
 
 namespace vsmodchecker {
-    class ZipArchive {
-    public:
-        using FileIndex = zip_int64_t;
-        using FileContentSize = zip_int64_t;
+class ZipArchive {
+  public:
+    using FileIndex = zip_int64_t;
+    using FileContentSize = zip_int64_t;
 
-        explicit ZipArchive(QString file);
-        ZipArchive(ZipArchive&) = delete("Cannot copy zip archive");
-        ZipArchive& operator=(ZipArchive&) = delete("Cannot copy zip archive");
+    explicit ZipArchive(QString file);
+    ZipArchive(ZipArchive &) = delete ("Cannot copy zip archive");
+    ZipArchive &operator=(ZipArchive &) = delete ("Cannot copy zip archive");
 
-        ZipArchive(ZipArchive&& other) noexcept;
-        ZipArchive& operator=(ZipArchive&& other) noexcept;
+    ZipArchive(ZipArchive &&other) noexcept;
+    ZipArchive &operator=(ZipArchive &&other) noexcept;
 
-        [[nodiscard]] QPair<bool, int> open();
-        [[nodiscard]] FileIndex getFileIndex(std::string_view fileName) const;
-        [[nodiscard]] QByteArray getFileContent(FileIndex fileIndex) const;
-        ~ZipArchive();
+    [[nodiscard]] QPair<bool, int> open();
+    [[nodiscard]] FileIndex getFileIndex(std::string_view fileName) const;
+    [[nodiscard]] QByteArray getFileContent(FileIndex fileIndex) const;
+    ~ZipArchive();
 
-    private:
-        QString mFile;
-        zip_t *mZipFile{nullptr};
-    };
-} // vsmodchecker
+  private:
+    QString mFile;
+    zip_t *mZipFile{nullptr};
+};
+} // namespace vsmodchecker

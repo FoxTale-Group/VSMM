@@ -2,7 +2,7 @@ import QtQml
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import vsmodchecker
+import vsmm
 
 VsmmWindow {
     id: windowMain
@@ -39,7 +39,7 @@ VsmmWindow {
 
             ActionButton {
                 text: "Launch Game"
-                icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/launch.svg"
+                icon.source: "qrc:/qt/qml/vsmm/assets/icons/launch.svg"
 
                 display: AbstractButton.TextBesideIcon
                 Layout.preferredHeight: 60
@@ -54,7 +54,7 @@ VsmmWindow {
             }
 
             ActionButton {
-                icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/settings.svg"
+                icon.source: "qrc:/qt/qml/vsmm/assets/icons/settings.svg"
 
                 display: AbstractButton.IconOnly
 

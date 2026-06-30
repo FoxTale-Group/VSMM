@@ -18,36 +18,35 @@
 
 #pragma once
 
-#include <QQuickImageProvider>
 #include <QHash>
 #include <QMutex>
+#include <QQuickImageProvider>
 
 namespace vsmodchecker {
-    class ModImageProvider : public QQuickImageProvider
-    {
-        Q_OBJECT
+class ModImageProvider : public QQuickImageProvider {
+    Q_OBJECT
 
-    public:
-        struct ImageEntry {
-            QImage image;
-            qint64 diff{0};
-        };
-
-        ModImageProvider();
-
-        QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
-        qint64 getDiff(const QString &id) const;
-        bool hasImage(const QString &id) const;
-
-    signals:
-        void imageAdded(const QString &id);
-
-    public slots:
-        void onImageReceived(const QString &id, QImage image);
-        void onModsReloading();
-
-    private:
-        QHash<QString, ImageEntry> mImages;
-        mutable QMutex mMutex;
+  public:
+    struct ImageEntry {
+        QImage image;
+        qint64 diff{0};
     };
-}
+
+    ModImageProvider();
+
+    QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
+    qint64 getDiff(const QString &id) const;
+    bool hasImage(const QString &id) const;
+
+  signals:
+    void imageAdded(const QString &id);
+
+  public slots:
+    void onImageReceived(const QString &id, QImage image);
+    void onModsReloading();
+
+  private:
+    QHash<QString, ImageEntry> mImages;
+    mutable QMutex mMutex;
+};
+} // namespace vsmodchecker

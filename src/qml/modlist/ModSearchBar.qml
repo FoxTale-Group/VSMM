@@ -55,7 +55,7 @@ Rectangle {
         spacing: 5
 
         IconImage {
-            source: "qrc:/qt/qml/vsmodchecker/assets/icons/search.svg"
+            source: "qrc:/qt/qml/vsmm/assets/icons/search.svg"
             color: searchBar.searchBarFocused ? "#ffffff" : "#888888"
 
             Behavior on color {

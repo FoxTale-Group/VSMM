@@ -22,53 +22,53 @@
 #include "ModImageProvider.hpp"
 #include "ModStore.hpp"
 
+#include <QDir>
 #include <QNetworkAccessManager>
 #include <QThreadPool>
-#include <QDir>
 #include <qqmlintegration.h>
 
 namespace vsmodchecker {
-    class ModLoader : public QObject {
-        Q_OBJECT
-        QML_ELEMENT
-        QML_SINGLETON
+class ModLoader : public QObject {
+    Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
-    public:
-        ModLoader() = default;
-        [[nodiscard]] bool setModsPath(const QString& modsPath);
-        bool initModsList();
-        void setNetworkManager(QNetworkAccessManager *networkManager);
-        void setStore(ModStore *store);
-        void load(const QFileInfo& fileInfo);
+  public:
+    ModLoader() = default;
+    [[nodiscard]] bool setModsPath(const QString &modsPath);
+    bool initModsList();
+    void setNetworkManager(QNetworkAccessManager *networkManager);
+    void setStore(ModStore *store);
+    void load(const QFileInfo &fileInfo);
 
-    signals:
-        void modIconDownloaded(const QString &modId, QImage image);
-        void allModsReloaded();
+  signals:
+    void modIconDownloaded(const QString &modId, QImage image);
+    void allModsReloaded();
 
-    public slots:
-        void onModsReloading();
-        void onLoadFromGUI(const QString& filePath);
+  public slots:
+    void onModsReloading();
+    void onLoadFromGUI(const QString &filePath);
 
-    private slots:
-        void notifyModProcessed();
+  private slots:
+    void notifyModProcessed();
 
-    private:
-        struct ModInfoZip {
-            QString name, version, id, author, filename;
-        };
-        void retrieveInfoForMod(ModInfoZip info, const QString& filePath);
-        void retrieveModIcon(const QString& id, const QUrl& url);
-        void load(const QString& filePath, bool fromGUI);
-
-        static ModInfoZip parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename);
-
-        ModStore *mStore{nullptr};
-        QNetworkAccessManager *mNetworkManager{nullptr};
-        QDir mModsPath;
-        qint64 mRequestCount{0};
-        QThreadPool mThreadPoolExtractZips;
-
-    private slots:
-        void requestInfoFinished();
+  private:
+    struct ModInfoZip {
+        QString name, version, id, author, filename;
     };
-} // vsmodchecker
+    void retrieveInfoForMod(ModInfoZip info, const QString &filePath);
+    void retrieveModIcon(const QString &id, const QUrl &url);
+    void load(const QString &filePath, bool fromGUI);
+
+    static ModInfoZip parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename);
+
+    ModStore *mStore{nullptr};
+    QNetworkAccessManager *mNetworkManager{nullptr};
+    QDir mModsPath;
+    qint64 mRequestCount{0};
+    QThreadPool mThreadPoolExtractZips;
+
+  private slots:
+    void requestInfoFinished();
+};
+} // namespace vsmodchecker

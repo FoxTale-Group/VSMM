@@ -20,51 +20,51 @@
 
 #include "ModEntry.hpp"
 
-#include <QObject>
 #include <QHash>
+#include <QObject>
 #include <qqmlintegration.h>
 
 namespace vsmodchecker {
-    class ModStore : public QObject {
-        Q_OBJECT
-        QML_ELEMENT
-        QML_SINGLETON
-        Q_PROPERTY(int count READ count NOTIFY modsModified)
-        Q_PROPERTY(int updates READ updates NOTIFY modsModified)
-        Q_PROPERTY(bool reloading READ reloading NOTIFY modsModified)
+class ModStore : public QObject {
+    Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
+    Q_PROPERTY(int count READ count NOTIFY modsModified)
+    Q_PROPERTY(int updates READ updates NOTIFY modsModified)
+    Q_PROPERTY(bool reloading READ reloading NOTIFY modsModified)
 
-    public:
-        explicit ModStore(QObject *parent = nullptr);
+  public:
+    explicit ModStore(QObject *parent = nullptr);
 
-        const ModEntry& add(ModEntry mod);
-        const ModEntry& replace(ModEntry mod);
-        Q_INVOKABLE void reload();
-        Q_INVOKABLE void load(const QString& filePath);
+    const ModEntry &add(ModEntry mod);
+    const ModEntry &replace(ModEntry mod);
+    Q_INVOKABLE void reload();
+    Q_INVOKABLE void load(const QString &filePath);
 
-        [[nodiscard]] bool contains(const QString &id) const;
-        [[nodiscard]] const ModEntry* find(const QString &id) const;
-        [[nodiscard]] int count() const;
-        [[nodiscard]] int updates() const;
-        [[nodiscard]] int reloading() const;
+    [[nodiscard]] bool contains(const QString &id) const;
+    [[nodiscard]] const ModEntry *find(const QString &id) const;
+    [[nodiscard]] int count() const;
+    [[nodiscard]] int updates() const;
+    [[nodiscard]] int reloading() const;
 
-    signals:
-        void modsModified();
-        void modAdded(const ModEntry &mod);
-        void modUpdated(const ModEntry &mod);
-        void modsReloading();
-        void modAddedFromGUI(const QString& filePath);
+  signals:
+    void modsModified();
+    void modAdded(const ModEntry &mod);
+    void modUpdated(const ModEntry &mod);
+    void modsReloading();
+    void modAddedFromGUI(const QString &filePath);
 
-    public slots:
-        void onModsReloaded();
+  public slots:
+    void onModsReloaded();
 
-    private:
-        template<typename Obj, typename Signal, typename... Args>
-        void emitSignal(Signal&& signal, Obj* obj, Args&&... args) {
-            emit (obj->*signal)(std::forward<Args>(args)...);
-            emit modsModified();
-        }
+  private:
+    template <typename Obj, typename Signal, typename... Args>
+    void emitSignal(Signal &&signal, Obj *obj, Args &&...args) {
+        emit(obj->*signal)(std::forward<Args>(args)...);
+        emit modsModified();
+    }
 
-        QHash<QString, ModEntry> mMods;
-        bool mModsBeingReloaded{true};
-    };
-} // vsmodchecker
+    QHash<QString, ModEntry> mMods;
+    bool mModsBeingReloaded{true};
+};
+} // namespace vsmodchecker
