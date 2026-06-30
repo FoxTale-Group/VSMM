@@ -30,7 +30,7 @@ glance which mods have updates available — all inside a custom, frameless, dar
 ## Screenshots
 
 <!-- Add screenshots or a GIF here -->
-![Screenshot of Vintage Story Mod Manager UI](/.images/VSMM.png)
+![Screenshot of Vintage Story Mod Manager UI](/.docs/images/VSMM.png)
 
 ---
 
@@ -86,24 +86,19 @@ You can name your `build-dir` whatever you like.
 - [x] Scan local mods folder
 - [x] Fetch info + update status from the mod API
 - [x] Display icons, tags, and update badges
-- [x] Search / sort / filter
-  - [ ] More filter options
+- [x] Search / sort
 - [x] Add a mod from the GUI
-- [ ] Config / Settings
-- [ ] Launch Game
-- [ ] Check for updates (single + all)
-- [ ] Update selected / update all
-- [ ] Per-mod actions:
-  - [ ] update,
-  - [ ] check update,
-  - [ ] favorite,
-  - [x] open mod's page
-  - [ ] delete
-- [ ] Enable / disable mods
-- [ ] Mod profiles
+- [x] Check for updates
+- [ ] More filter/search options (#15)
+- [ ] Update mods (#19)
+- [ ] Config / Settings (#16)
+- [ ] Launch Game (#20)
+- [ ] Per-mod actions (#26)
+- [ ] Enable / disable mods (#23)
+- [ ] Mod profiles (#21)
 
 
-See the [project board](about:newtab) for the
+See the [project board](https://github.com/orgs/FoxTale-Group/projects/2/views/1) for the
 full list of features, ideas, and bugs.
 
 ---
