@@ -73,6 +73,11 @@ Rectangle {
 
             background: Item{}
 
+            Keys.onEscapePressed: (event) => {
+                focus = false
+                event.accepted = true
+            }
+
             onTextChanged: {
                 ModSortFilterModel.filterText = searchInput.text
             }

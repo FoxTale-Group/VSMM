@@ -245,7 +245,7 @@ Rectangle {
             }
 
             ModActionButton {
-                icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/download_one.svg"
+                buttonIcon: "download_one.svg"
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
@@ -266,7 +266,7 @@ Rectangle {
             }
 
             ModActionButton {
-                icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/check_update.svg"
+                buttonIcon: "check_update.svg"
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
@@ -282,12 +282,12 @@ Rectangle {
 
             ModActionButton {
 
-                property string fav_icon: "qrc:/qt/qml/vsmodchecker/assets/icons/favorite.svg"
-                property string fav_icon_fill: "qrc:/qt/qml/vsmodchecker/assets/icons/favorite_filled.svg"
+                property string fav_icon: "favorite.svg"
+                property string fav_icon_fill: "favorite_filled.svg"
 
                 property bool favorited: false
 
-                icon.source: favorited ? fav_icon_fill : fav_icon
+                buttonIcon: favorited ? fav_icon_fill : fav_icon
                 iconColor: favorited ? "#ca22c7" : "white"
 
                 Layout.preferredHeight: 35
@@ -306,7 +306,7 @@ Rectangle {
             }
 
             ModActionButton {
-                icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/open_link.svg"
+                buttonIcon: "open_link.svg"
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
@@ -324,7 +324,7 @@ Rectangle {
             }
 
             ModActionButton {
-                icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/delete.svg"
+                buttonIcon: "delete.svg"
 
                 Layout.leftMargin: 5
 

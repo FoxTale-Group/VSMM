@@ -1,3 +1,3 @@
 import QtQml
 
-AppWindow{}
+MainAppWindow{}

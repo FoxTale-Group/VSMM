@@ -14,6 +14,8 @@ Item {
     property bool showMaximize: true
     property bool showMinimize: true
 
+    property bool canMove: true
+
     height: 30
 
     // Title bar background rectangle with rounded corners
@@ -30,6 +32,7 @@ Item {
     }
 
     MouseArea {
+        enabled: _TitleBar.canMove
         anchors.fill: parent
         onPressed: Window.window.startSystemMove()
         // Double-click to maximize/restore

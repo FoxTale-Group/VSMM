@@ -3,33 +3,18 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-ApplicationWindow
-{
-    id: window
+VsmmWindow {
+    id: _settingsWindow
 
     width: 600
     height: 400
     minimumWidth: 600
     minimumHeight: 400
 
-    flags: Qt.Dialog | Qt.FramelessWindowHint
+    windowTitle: "Settings"
+    windowIcon: "icons/settings.svg"
+
+    dialog: true
+    movable: false
     modality: Qt.ApplicationModal
-
-    visible: false
-    color: "transparent"
-
-    property int windowCornerRadius: 10 // Window corner radius
-
-    background: WindowBackground { cornerRadius: window.windowCornerRadius }
-
-    header: WindowTitleBar {
-        windowIconSource: "qrc:/qt/qml/vsmodchecker/assets/icons/settings.svg"
-        windowTitleText: "Settings"
-        cornerRadius: window.windowCornerRadius
-
-        showMinimize: false
-        showMaximize: false
-    }
-
-    WindowResizers{}
 }
