@@ -69,6 +69,6 @@ Testing/
 .cache/
 
 .idea/
-build.sh
+
 build_and_run.sh
 run.sh
