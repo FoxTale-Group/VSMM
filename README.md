@@ -34,45 +34,64 @@ glance which mods have updates available — all inside a custom, frameless, dar
 
 ---
 
-## Building
+## Releases & Running
 
-> [!NOTE]
-> Currently only building from source is supported. Releases will be added soon.
+[Latest release](https://github.com/FoxTale-Group/VSMM/releases/latest)
+
+### Runtime Dependencies
+- Qt 6.11
+- libzip
+
+(this section is work in progress)
+
+---
+
+## Building from source
 
 ### Requirements
 
 - A C++23-capable compiler
 - [CMake](https://cmake.org/) ≥ 4.3 and [Ninja](https://ninja-build.org/)
-- [Qt 6](https://www.qt.io/) — `Core`, `Quick`, `Qml`, `Network`, `QuickControls2`
+- [Qt 6](https://www.qt.io/) - `Core`, `Quick`, `Qml`, `Network`, `QuickControls2`
 - [libzip](https://libzip.org/)
-- [cpp-semver](https://github.com/easz/cpp-semver) — fetched automatically via CMake `FetchContent`
+- [cpp-semver](https://github.com/easz/cpp-semver) - fetched automatically via CMake `FetchContent`
 
-On Arch Linux:
 
+Install requred build dependencies using your distribution package manager.
 ```bash
-sudo pacman -S qt6-base qt6-declarative libzip cmake ninja
-```
+# For Arch:
+sudo pacman -S cmake ninja qt6-base qt6-declarative libzip 
 
-On Ubuntu:
-```bash
-sudo apt install cmake ninja-build qt6-{base,declarative}-dev libzip-dev qml6-module-qtquick-controls qml6-module-qtquick-window qml6-module-qtqml-workerscript
-```
+# For Ubuntu:
+sudo apt install cmake ninja-build qt6-{base,declarative}-dev libzip-dev qml6-module-qtquick-controls qml6-module-qtquick-window
 
----
+# For Fedora:
+sudo dnf install cmake ninja-build libzip-devel qt6-qtbase-devel qt6-qtquickcontrols2-devel
+```
 
 ### Building
 
 ```bash
-cmake -G Ninja -S . -B build-dir -DCMAKE_BUILD_TYPE=Debug && cmake --build build-dir
-```
+# Clone this repository from `main` branch:
+git clone https://github.com/FoxTale-Group/VSMM.git
+cd VSMM
 
-For an optimized build, use `-DCMAKE_BUILD_TYPE=Release` and a matching build dir.
-You can name your `build-dir` whatever you like.
+# Build:
+cmake -G Ninja -S . -B build-dir -DCMAKE_BUILD_TYPE=Release && cmake --build build-dir
+```
+> [!NOTE]
+> For an optimized build, use `-DCMAKE_BUILD_TYPE=Release` and a matching build directory.
+> Use `-DCMAKE_BUILD_TYPE=Release` for more detailed verbose logs.
+> You can name your `build-dir` whatever you like.
+
+> [!TIP]
+> You can also use `build.sh` or `build-debug.sh` scripts.
+
 
 ### Running
 
 ```bash
-# Uses the default mods directory (<GenericConfig>/VintagestoryData/Mods)
+# Uses the default mods directory (~/.config/VintagestoryData/Mods)
 ./build-dir/bin/VSModChecker
 
 # Or point it at a specific mods folder
@@ -89,13 +108,13 @@ You can name your `build-dir` whatever you like.
 - [x] Search / sort
 - [x] Add a mod from the GUI
 - [x] Check for updates
-- [ ] More filter/search options (#15)
-- [ ] Update mods (#19)
-- [ ] Config / Settings (#16)
-- [ ] Launch Game (#20)
-- [ ] Per-mod actions (#26)
-- [ ] Enable / disable mods (#23)
-- [ ] Mod profiles (#21)
+- [ ] More filter/search options (https://github.com/FoxTale-Group/VSMM/issues/15)
+- [ ] Update mods (https://github.com/FoxTale-Group/VSMM/issues/19)
+- [ ] Config / Settings (https://github.com/FoxTale-Group/VSMM/issues/16)
+- [ ] Launch Game (https://github.com/FoxTale-Group/VSMM/issues/20)
+- [ ] Per-mod actions (https://github.com/FoxTale-Group/VSMM/issues/26)
+- [ ] Enable / disable mods (https://github.com/FoxTale-Group/VSMM/issues/23)
+- [ ] Mod profiles (https://github.com/FoxTale-Group/VSMM/issues/21)
 
 
 See the [project board](https://github.com/orgs/FoxTale-Group/projects/2/views/1) for the
