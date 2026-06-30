@@ -28,11 +28,7 @@ body:
       multiple: true
       options:
         - ui
-        - loader
-        - store
-        - network
-        - search
-        - settings
+        - backend
     validations:
       required: true
 
