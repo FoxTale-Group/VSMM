@@ -18,7 +18,6 @@
 
 #include "App.hpp"
 #include <Config.hpp>
-#include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QIcon>
 #include <QStandardPaths>
@@ -40,17 +39,7 @@ App::App(int &argc, char *argv[])
     QCommandLineParser parser;
     parser.addHelpOption();
     parser.addVersionOption();
-
-    QCommandLineOption modsDirOption("mods-dir", "Path to mods directory", "path", QString());
-    parser.addOption(modsDirOption);
-
     parser.process(*this);
-
-    QString modsDir = parser.value(modsDirOption);
-    if (modsDir.isEmpty()) {
-        modsDir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QDir::separator() +
-                  "VintagestoryData" + QDir::separator() + "Mods";
-    }
 
     connect(&mQmlEngine, &QQmlApplicationEngine::objectCreationFailed,
             [](const QUrl &url) { qFatal() << QString("QML object creation failed %1").arg(url.toString()); });
@@ -58,10 +47,10 @@ App::App(int &argc, char *argv[])
     mNetworkDiskCache.setCacheDirectory(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
     mNetworkManager.setCache(&mNetworkDiskCache);
 
-    initQmlEngine(modsDir);
+    initQmlEngine();
 }
 
-void App::initQmlEngine(const QString &modsPath) {
+void App::initQmlEngine() {
     mModImageProvider = new ModImageProvider();
     mQmlEngine.addImageProvider("modicon", mModImageProvider);
     mQmlEngine.loadFromModule("vsmm", "Main");
@@ -83,7 +72,7 @@ void App::initQmlEngine(const QString &modsPath) {
     connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
     connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
 
-    if (!modManager->setModsPath(modsPath)) {
+    if (!modManager->setModsPath(config->getModsDir())) {
         qWarning() << "Mods directory not found; starting with an empty mod list";
     } else if (!modManager->initModsList()) {
         qWarning() << "Failed to initialize mods list";

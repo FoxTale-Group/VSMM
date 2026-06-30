@@ -31,7 +31,7 @@ class App final : public QGuiApplication {
     ~App() override = default;
 
   private:
-    void initQmlEngine(const QString &modsPath);
+    void initQmlEngine();
 
   private:
     QNetworkAccessManager mNetworkManager;

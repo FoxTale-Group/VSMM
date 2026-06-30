@@ -35,7 +35,7 @@ class ModLoader : public QObject {
 
   public:
     ModLoader() = default;
-    [[nodiscard]] bool setModsPath(const QString &modsPath);
+    [[nodiscard]] bool setModsPath(QAnyStringView modsPath);
     bool initModsList();
     void setNetworkManager(QNetworkAccessManager *networkManager);
     void setStore(ModStore *store);

@@ -31,7 +31,7 @@ Config::Config() {
         mConfig = QJsonDocument::fromJson(mConfigFile.readAll()).object();
         mConfigFile.close();
     } else {
-        mConfig["vsmm"] = createDefaultConfig();
+        mConfig["vsmm"] = QJsonObject();
     }
 
     parseConfig();
@@ -47,25 +47,36 @@ Config::~Config() {
     qWarning() << "Config could not be saved";
 }
 
-const QDir &Config::getGameDir() const { return mGameDir; }
-const QDir &Config::getModsDir() const { return mModsDir; }
+QAnyStringView Config::getGameDir() const { return mGameDir; }
+QAnyStringView Config::getModsDir() const { return mModsDir; }
 bool Config::getDeleteOldModVersion() const { return mDeleteOldModVersion; }
-QUrl Config::getGameDirQml() const { return getGameDir().absolutePath(); }
-QUrl Config::getModsDirQml() const { return getModsDir().absolutePath(); }
+QUrl Config::getGameDirQml() const { return getGameDir().toString(); }
+QUrl Config::getModsDirQml() const { return getModsDir().toString(); }
 
-void Config::setGameDirQml(const QUrl &dir) {
-    mGameDir = dir.toString();
-    emit gameDirChanged();
-}
-
-void Config::setModsDirQml(const QUrl &dir) {
-    mModsDir = dir.toString();
-    emit modsDirChanged();
-}
-
+void Config::setGameDirQml(const QUrl &dir) { updateConfig(ConfigKeys::GameDir, dir.toString()); }
+void Config::setModsDirQml(const QUrl &dir) { updateConfig(ConfigKeys::ModsDir, dir.toString()); }
 void Config::setDeleteOldModVersion(bool deleteOldModVersion) {
-    mDeleteOldModVersion = deleteOldModVersion;
-    emit deletedOldModVersionChanged();
+    updateConfig(ConfigKeys::DeleteOldModVersion, deleteOldModVersion);
+}
+
+void Config::updateConfig(ConfigKeys key, QVariant &&value) {
+    auto vsmmObj = mConfig["vsmm"].toObject();
+
+    switch (key) {
+    case ConfigKeys::ModsDir:
+        vsmmObj["modsDir"] = mModsDir = value.toString();
+        emit modsDirChanged();
+        break;
+    case ConfigKeys::DeleteOldModVersion:
+        vsmmObj["deleteOldModVersion"] = mDeleteOldModVersion = value.toBool();
+        emit deletedOldModVersionChanged();
+        break;
+    case ConfigKeys::GameDir:
+        vsmmObj["gameDir"] = mGameDir = value.toString();
+        emit gameDirChanged();
+        break;
+    }
+    mConfig["vsmm"] = std::move(vsmmObj);
 }
 
 void Config::parseConfig() {
@@ -78,30 +89,22 @@ void Config::parseConfig() {
     }
 
     QJsonObject vsmm = mConfig["vsmm"].toObject();
+    QString gameDir = vsmm["gameDir"].toString();
+    QString modsDir = vsmm["modsDir"].toString(defModsDir);
+    if (!QDir{}.exists(modsDir)) {
+        modsDir = QDir::cleanPath(QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                                  "/.var/app/at.vintagestory.VintageStory/config/VintagestoryData/Mods");
 
-    mGameDir = vsmm["gameDir"].toString();
-    mModsDir = vsmm["modsDir"].toString(defModsDir);
-    if (!mModsDir.exists()) {
-        mModsDir = QDir::cleanPath(QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
-                                   "/.var/app/at.vintagestory.VintageStory/config/VintagestoryData/Mods");
-
-        if (!mModsDir.exists()) {
-            mModsDir = QDir();
+        qDebug() << "Checking flatpak version...";
+        if (!QDir{}.exists(modsDir)) {
+            modsDir.clear();
+            qWarning() << "Mods dir does not exist";
         }
     }
-    mDeleteOldModVersion = vsmm["deleteOldModVersion"].toBool(true);
 
-    emit gameDirChanged();
-    emit modsDirChanged();
-    emit deletedOldModVersionChanged();
+    updateConfig(ConfigKeys::ModsDir, QVariant::fromValue(std::move(modsDir)));
+    updateConfig(ConfigKeys::GameDir, QVariant::fromValue(std::move(modsDir)));
+    updateConfig(ConfigKeys::DeleteOldModVersion, vsmm["deleteOldModVersion"].toBool(true));
 }
 
-QJsonObject Config::createDefaultConfig() {
-    auto vsmm = QJsonObject();
-    vsmm["gameDir"] = "";
-    vsmm["modsDir"] = "";
-    vsmm["deleteOldModVersion"] = true;
-
-    return vsmm;
-}
 } // namespace vsmodchecker

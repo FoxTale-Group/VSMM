@@ -32,8 +32,13 @@ QUrl GetModUrlApi(QAnyStringView modId) { return QString("https://mods.vintagest
 } // namespace
 
 namespace vsmodchecker {
-bool ModLoader::setModsPath(const QString &modsPath) {
-    QDir modsDir = modsPath;
+bool ModLoader::setModsPath(QAnyStringView modsPath) {
+    if (modsPath.isEmpty()) {
+        qWarning() << "Mods path is not set";
+        return false;
+    }
+
+    QDir modsDir = modsPath.toString();
     if (!modsDir.exists()) {
         qWarning() << QString("Mods path does not exist: %1").arg(modsPath);
         return false;

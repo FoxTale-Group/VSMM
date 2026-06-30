@@ -39,8 +39,8 @@ class Config final : public QObject {
   public:
     Config();
     ~Config() override;
-    [[nodiscard]] const QDir &getGameDir() const;
-    [[nodiscard]] const QDir &getModsDir() const;
+    [[nodiscard]] QAnyStringView getGameDir() const;
+    [[nodiscard]] QAnyStringView getModsDir() const;
     [[nodiscard]] bool getDeleteOldModVersion() const;
     [[nodiscard]] QUrl getGameDirQml() const;
     [[nodiscard]] QUrl getModsDirQml() const;
@@ -55,13 +55,13 @@ class Config final : public QObject {
     void deletedOldModVersionChanged();
 
   private:
+    enum class ConfigKeys : quint8 { GameDir = 0, ModsDir, DeleteOldModVersion };
+    void updateConfig(ConfigKeys key, QVariant &&value);
     void parseConfig();
     QJsonObject mConfig;
     QFile mConfigFile;
-    QDir mGameDir;
-    QDir mModsDir;
+    QString mGameDir;
+    QString mModsDir;
     bool mDeleteOldModVersion{true};
-
-    static QJsonObject createDefaultConfig();
 };
 } // namespace vsmodchecker
