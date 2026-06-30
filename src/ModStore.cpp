@@ -21,73 +21,64 @@
 #include <chrono>
 
 namespace vsmodchecker {
-    ModStore::ModStore(QObject *parent) : QObject{parent} {
-    }
+ModStore::ModStore(QObject *parent) : QObject{parent} {}
 
-    const ModEntry& ModStore::add(ModEntry mod) {
-        const QString id = mod.getId().toString();
-        const auto it = mMods.insert(id, std::move(mod));
-        emitSignal(&ModStore::modAdded, this, *it);
-        return *it;
-    }
+const ModEntry &ModStore::add(ModEntry mod) {
+    const QString id = mod.getId().toString();
+    const auto it = mMods.insert(id, std::move(mod));
+    emitSignal(&ModStore::modAdded, this, *it);
+    return *it;
+}
 
-    const ModEntry& ModStore::replace(ModEntry mod) {
-        const QString id = mod.getId().toString();
-        const auto it = mMods.insert(id, std::move(mod));
-        emitSignal(&ModStore::modUpdated, this, *it);
-        return *it;
-    }
+const ModEntry &ModStore::replace(ModEntry mod) {
+    const QString id = mod.getId().toString();
+    const auto it = mMods.insert(id, std::move(mod));
+    emitSignal(&ModStore::modUpdated, this, *it);
+    return *it;
+}
 
-    void ModStore::reload() {
-        if (mModsBeingReloaded) {
-            qWarning() << "Mods reload already in progress";
-            return;
+void ModStore::reload() {
+    if (mModsBeingReloaded) {
+        qWarning() << "Mods reload already in progress";
+        return;
+    }
+    if (mMods.isEmpty()) {
+        return;
+    }
+    mModsBeingReloaded = true;
+    mMods.clear();
+    emitSignal(&ModStore::modsReloading, this);
+}
+
+void ModStore::load(const QString &filePath) { emit modAddedFromGUI(filePath); }
+
+bool ModStore::contains(const QString &id) const { return mMods.contains(id); }
+
+const ModEntry *ModStore::find(const QString &id) const {
+    const auto it = mMods.constFind(id);
+    return it == mMods.constEnd() ? nullptr : &it.value();
+}
+
+int ModStore::count() const { return static_cast<int>(mMods.size()); }
+
+int ModStore::updates() const {
+    int updates{0};
+    for (const auto &mod : mMods) {
+        if (mod.hasUpdate()) {
+            updates++;
         }
-        if (mMods.isEmpty()) {
-            return;
-        }
-        mModsBeingReloaded = true;
-        mMods.clear();
-        emitSignal(&ModStore::modsReloading, this);
     }
+    return updates;
+}
 
-    void ModStore::load(const QString &filePath) {
-        emit modAddedFromGUI(filePath);
-    }
+int ModStore::reloading() const { return mModsBeingReloaded; }
 
-    bool ModStore::contains(const QString &id) const {
-        return mMods.contains(id);
-    }
-
-    const ModEntry* ModStore::find(const QString &id) const {
-        const auto it = mMods.constFind(id);
-        return it == mMods.constEnd() ? nullptr : &it.value();
-    }
-
-    int ModStore::count() const {
-        return static_cast<int>(mMods.size());
-    }
-
-    int ModStore::updates() const {
-        int updates{0};
-        for (const auto &mod : mMods) {
-            if (mod.hasUpdate()) {
-                updates++;
-            }
-        }
-        return updates;
-    }
-
-    int ModStore::reloading() const {
-        return mModsBeingReloaded;
-    }
-
-    void ModStore::onModsReloaded() {
-        constexpr std::chrono::milliseconds delay{500};
-        QTimer::singleShot(delay, this, [this] {
-            mModsBeingReloaded = false;
-            emit modsModified();
-        });
-        qDebug() << "Mods reloaded";
-    }
-} // vsmodchecker
+void ModStore::onModsReloaded() {
+    constexpr std::chrono::milliseconds delay{500};
+    QTimer::singleShot(delay, this, [this] {
+        mModsBeingReloaded = false;
+        emit modsModified();
+    });
+    qDebug() << "Mods reloaded";
+}
+} // namespace vsmodchecker

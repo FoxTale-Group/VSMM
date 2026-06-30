@@ -19,124 +19,123 @@
 #include "ModListModel.hpp"
 
 namespace vsmodchecker {
-    ModListModel::ModListModel(QObject *parent) : QAbstractListModel(parent) {
+ModListModel::ModListModel(QObject *parent) : QAbstractListModel(parent) {}
+
+int ModListModel::rowCount(const QModelIndex &parent) const {
+    if (parent.isValid()) {
+        return 0;
     }
+    return static_cast<int>(mOrder.size());
+}
 
-    int ModListModel::rowCount(const QModelIndex &parent) const {
-        if (parent.isValid()) {
-            return 0;
-        }
-        return static_cast<int>(mOrder.size());
-    }
-
-    QVariant ModListModel::data(const QModelIndex &index, int role) const {
-        if (!mStore || !index.isValid() || index.row() < 0 || index.row() >= mOrder.size()) {
-            return {};
-        }
-
-        const ModEntry* modPtr = mStore->find(mOrder.at(index.row()));
-        if (!modPtr) {
-            return {};
-        }
-        const ModEntry& mod = *modPtr;
-        switch (role) {
-            case NameRole:
-                return mod.getName().toString();
-            case VersionRole:
-                return mod.getVersion().toString();
-            case AuthorRole:
-                return mod.getAuthor().toString();
-            case UpdateVersionRole:
-                return mod.getUpdateVersion().toString();
-            case TagsRole:
-                return mod.getTags();
-            case UrlRole:
-                return mod.getUrl();
-            case InfoReceivedRole:
-                return mod.hasInfoReceived();
-            case TypeRole:
-                return mod.getType().toString();
-            case HasUpdateRole:
-                return mod.hasUpdate();
-            case IconRole: {
-                if (!mImageProvider || !mImageProvider->hasImage(mod.getId().toString())) {
-                    return QString();
-                }
-                return QStringLiteral("image://modicon/%1?diff=%2").arg(mod.getId().toString()).arg(mImageProvider->getDiff(mod.getId().toString()));
-            }
-            default:
-                return {};
-        }
-
+QVariant ModListModel::data(const QModelIndex &index, int role) const {
+    if (!mStore || !index.isValid() || index.row() < 0 || index.row() >= mOrder.size()) {
         return {};
     }
 
-    QHash<int, QByteArray> ModListModel::roleNames() const {
-        return {
-            {NameRole, "name"},
-            {VersionRole, "version"},
-            {AuthorRole, "author"},
-            {UpdateVersionRole, "updateVersion"},
-            {TagsRole, "tags"},
-            {UrlRole, "url"},
-            {InfoReceivedRole, "infoReceived"},
-            {TypeRole, "type"},
-            {HasUpdateRole, "hasUpdate"},
-            {IconRole, "modicon"},
-        };
+    const ModEntry *modPtr = mStore->find(mOrder.at(index.row()));
+    if (!modPtr) {
+        return {};
     }
-
-    void ModListModel::setModImageProvider(ModImageProvider *provider) {
-        mImageProvider = provider;
-    }
-
-    void ModListModel::setStore(ModStore *store) {
-        mStore = store;
-        connect(store, &ModStore::modAdded, this, &ModListModel::onModAdded);
-        connect(store, &ModStore::modUpdated, this, &ModListModel::onModUpdated);
-        connect(store, &ModStore::modsReloading, this, &ModListModel::onModsReloading);
-    }
-
-    void ModListModel::onModAdded(const ModEntry &mod) {
-        const QString modId = mod.getId().toString();
-        if (mIdToRow.contains(modId)) {
-            return;
+    const ModEntry &mod = *modPtr;
+    switch (role) {
+    case NameRole:
+        return mod.getName().toString();
+    case VersionRole:
+        return mod.getVersion().toString();
+    case AuthorRole:
+        return mod.getAuthor().toString();
+    case UpdateVersionRole:
+        return mod.getUpdateVersion().toString();
+    case TagsRole:
+        return mod.getTags();
+    case UrlRole:
+        return mod.getUrl();
+    case InfoReceivedRole:
+        return mod.hasInfoReceived();
+    case TypeRole:
+        return mod.getType().toString();
+    case HasUpdateRole:
+        return mod.hasUpdate();
+    case IconRole: {
+        if (!mImageProvider || !mImageProvider->hasImage(mod.getId().toString())) {
+            return QString();
         }
-
-        const int row = static_cast<int>(mOrder.size());
-        beginInsertRows({}, row, row);
-        mOrder.append(modId);
-        mIdToRow.insert(modId, row);
-        endInsertRows();
+        return QStringLiteral("image://modicon/%1?diff=%2")
+            .arg(mod.getId().toString())
+            .arg(mImageProvider->getDiff(mod.getId().toString()));
+    }
+    default:
+        return {};
     }
 
-    void ModListModel::onModUpdated(const ModEntry &mod) {
-        const auto it = mIdToRow.constFind(mod.getId().toString());
-        if (it == mIdToRow.constEnd()) {
-            return;
-        }
-        if (const QModelIndex idx = index(*it); idx.isValid()) {
-            emit dataChanged(idx, idx);
-        }
+    return {};
+}
+
+QHash<int, QByteArray> ModListModel::roleNames() const {
+    return {
+        {NameRole, "name"},
+        {VersionRole, "version"},
+        {AuthorRole, "author"},
+        {UpdateVersionRole, "updateVersion"},
+        {TagsRole, "tags"},
+        {UrlRole, "url"},
+        {InfoReceivedRole, "infoReceived"},
+        {TypeRole, "type"},
+        {HasUpdateRole, "hasUpdate"},
+        {IconRole, "modicon"},
+    };
+}
+
+void ModListModel::setModImageProvider(ModImageProvider *provider) { mImageProvider = provider; }
+
+void ModListModel::setStore(ModStore *store) {
+    mStore = store;
+    connect(store, &ModStore::modAdded, this, &ModListModel::onModAdded);
+    connect(store, &ModStore::modUpdated, this, &ModListModel::onModUpdated);
+    connect(store, &ModStore::modsReloading, this, &ModListModel::onModsReloading);
+}
+
+void ModListModel::onModAdded(const ModEntry &mod) {
+    const QString modId = mod.getId().toString();
+    if (mIdToRow.contains(modId)) {
+        return;
     }
 
-    void ModListModel::iconUpdate(const QString &modId) {
-        const auto it = mIdToRow.constFind(modId);
-        if (it == mIdToRow.constEnd()) {
-            return;
-        }
-        if (const QModelIndex idx = index(*it); idx.isValid()) {
-            emit dataChanged(idx, idx, {IconRole});
-        }
-    }
+    const int row = static_cast<int>(mOrder.size());
+    beginInsertRows({}, row, row);
+    mOrder.append(modId);
+    mIdToRow.insert(modId, row);
+    endInsertRows();
+}
 
-    void ModListModel::onModsReloading() {
-        if (mOrder.isEmpty()) {
-            return;
-        }
-        beginRemoveRows(QModelIndex(), 0, static_cast<int>(mOrder.size() - 1));
-        mOrder.clear();
-        mIdToRow.clear();
-        endRemoveRows();
+void ModListModel::onModUpdated(const ModEntry &mod) {
+    const auto it = mIdToRow.constFind(mod.getId().toString());
+    if (it == mIdToRow.constEnd()) {
+        return;
     }
-} // vsmodchecker
+    if (const QModelIndex idx = index(*it); idx.isValid()) {
+        emit dataChanged(idx, idx);
+    }
+}
+
+void ModListModel::iconUpdate(const QString &modId) {
+    const auto it = mIdToRow.constFind(modId);
+    if (it == mIdToRow.constEnd()) {
+        return;
+    }
+    if (const QModelIndex idx = index(*it); idx.isValid()) {
+        emit dataChanged(idx, idx, {IconRole});
+    }
+}
+
+void ModListModel::onModsReloading() {
+    if (mOrder.isEmpty()) {
+        return;
+    }
+    beginRemoveRows(QModelIndex(), 0, static_cast<int>(mOrder.size() - 1));
+    mOrder.clear();
+    mIdToRow.clear();
+    endRemoveRows();
+}
+} // namespace vsmodchecker

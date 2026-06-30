@@ -18,61 +18,61 @@
 
 #include "App.hpp"
 
-template <>
-struct std::formatter<QString, char> : std::formatter<std::string_view, char>
-{
-    auto format(const QString& s, std::format_context& ctx) const {
+template <> struct std::formatter<QString, char> : std::formatter<std::string_view, char> {
+    auto format(const QString &s, std::format_context &ctx) const {
         // Transcode UTF-16 -> UTF-8 once, then defer to string_view formatter.
         const QByteArray utf8 = s.toUtf8();
         return std::formatter<std::string_view, char>::format(
-            std::string_view{utf8.constData(),
-                             static_cast<std::size_t>(utf8.size())},
-            ctx);
+            std::string_view{utf8.constData(), static_cast<std::size_t>(utf8.size())}, ctx);
     }
 };
 
 namespace {
-    QtMessageHandler qtMsgHandlerOld;
-    void qtMsgHandler(QtMsgType type,
-                      const QMessageLogContext& ctx,
-                      const QString& msg) {
-        static constexpr std::string_view COLOR_GREEN { "\033[1;32m" };
-        static constexpr std::string_view COLOR_RED { "\033[1;31m" };
-        static constexpr std::string_view COLOR_YELLOW { "\033[1;33m" };
-        static constexpr std::string_view COLOR_WHITE { "\033[0;37m" };
-        static constexpr std::string_view COLOR_RESET { "\033[0m" };
-        std::string res;
-        switch (type) {
+QtMessageHandler qtMsgHandlerOld;
+void qtMsgHandler(QtMsgType type, const QMessageLogContext &ctx, const QString &msg) {
+    static constexpr std::string_view COLOR_GREEN{"\033[1;32m"};
+    static constexpr std::string_view COLOR_RED{"\033[1;31m"};
+    static constexpr std::string_view COLOR_YELLOW{"\033[1;33m"};
+    static constexpr std::string_view COLOR_WHITE{"\033[0;37m"};
+    static constexpr std::string_view COLOR_RESET{"\033[0m"};
+    std::string res;
+    switch (type) {
 #ifdef DEBUG
-            case QtDebugMsg:    res = std::format("{}{}{}", COLOR_WHITE, msg, COLOR_RESET); break;
+    case QtDebugMsg:
+        res = std::format("{}{}{}", COLOR_WHITE, msg, COLOR_RESET);
+        break;
 #endif
-            case QtInfoMsg:     res = std::format("{}{}{}", COLOR_GREEN, msg, COLOR_RESET); break;
-            case QtWarningMsg:  res = std::format("{}{}{}", COLOR_YELLOW, msg, COLOR_RESET); break;
+    case QtInfoMsg:
+        res = std::format("{}{}{}", COLOR_GREEN, msg, COLOR_RESET);
+        break;
+    case QtWarningMsg:
+        res = std::format("{}{}{}", COLOR_YELLOW, msg, COLOR_RESET);
+        break;
 
-            case QtCriticalMsg: res = std::format("{}{}{}", COLOR_RED, msg, COLOR_RESET); break;
-            case QtFatalMsg:    res = std::format("{}{} ({}:{}){}", COLOR_RED,
-                                              msg,
-                                              ctx.file ? ctx.file : "?",
-                                              ctx.line, COLOR_RESET);
-                break;
-            default:
-                break;
-        }
+    case QtCriticalMsg:
+        res = std::format("{}{}{}", COLOR_RED, msg, COLOR_RESET);
+        break;
+    case QtFatalMsg:
+        res = std::format("{}{} ({}:{}){}", COLOR_RED, msg, ctx.file ? ctx.file : "?", ctx.line, COLOR_RESET);
+        break;
+    default:
+        break;
+    }
 
-        if (qtMsgHandlerOld && !res.empty()) {
-            qtMsgHandlerOld(type, ctx, QString::fromStdString(res));
-        }
+    if (qtMsgHandlerOld && !res.empty()) {
+        qtMsgHandlerOld(type, ctx, QString::fromStdString(res));
     }
 }
+} // namespace
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     qSetMessagePattern("[%{time hh:mm:ss.zzz}] %{type} %{if-debug}%{file}:%{line} %{endif}- %{message}");
     qtMsgHandlerOld = qInstallMessageHandler(qtMsgHandler);
 
 #ifdef Q_OS_LINUX
     qputenv("QT_QPA_PLATFORMTHEME", "xdgdesktopportal");
 #endif
-    
+
     vsmodchecker::App app(argc, argv);
 
     return vsmodchecker::App::exec();

@@ -9,7 +9,9 @@ set(EXECUTABLES
         ZipArchive.cpp
         ModEntry.cpp
         ModImageProvider.cpp
-        ModListModel.cpp)
+        ModListModel.cpp
+        Config.cpp
+        Config.h)
 
 qt_add_executable(${PROJECT_NAME} ${EXECUTABLES})
 

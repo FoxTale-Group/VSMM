@@ -18,25 +18,25 @@
 
 #pragma once
 #include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QNetworkDiskCache>
 #include <QNetworkAccessManager>
+#include <QNetworkDiskCache>
+#include <QQmlApplicationEngine>
 
 #include "ModImageProvider.hpp"
 
 namespace vsmodchecker {
-    class App final : public QGuiApplication {
-    public:
-        App(int& argc, char *argv[]);
-        ~App() override = default;
+class App final : public QGuiApplication {
+  public:
+    App(int &argc, char *argv[]);
+    ~App() override = default;
 
-    private:
-        void initQmlEngine(const QString &modsPath);
+  private:
+    void initQmlEngine(const QString &modsPath);
 
-    private:
-        QNetworkAccessManager mNetworkManager;
-        QNetworkDiskCache mNetworkDiskCache;
-        ModImageProvider* mModImageProvider{nullptr}; // ownership passed to QML engine
-        QQmlApplicationEngine mQmlEngine;
-    };
-} // vsmodchecker
+  private:
+    QNetworkAccessManager mNetworkManager;
+    QNetworkDiskCache mNetworkDiskCache;
+    ModImageProvider *mModImageProvider{nullptr}; // ownership passed to QML engine
+    QQmlApplicationEngine mQmlEngine;
+};
+} // namespace vsmodchecker

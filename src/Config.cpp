@@ -16,32 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
-#include <QSortFilterProxyModel>
-#include <qqmlintegration.h>
+#include "Config.hpp"
 
 namespace vsmodchecker {
-class ModSortFilterModel : public QSortFilterProxyModel {
-    Q_OBJECT
-    QML_ELEMENT
-    QML_SINGLETON
-    Q_PROPERTY(QString filterText READ getFilterText WRITE setFilterText NOTIFY filterTextChanged)
-
-  public:
-    explicit ModSortFilterModel(QObject *parent = nullptr);
-
-    [[nodiscard]] QString getFilterText() const;
-    void setFilterText(const QString &filterText);
-
-  signals:
-    void filterTextChanged();
-
-  protected:
-    [[nodiscard]] bool lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const override;
-    [[nodiscard]] bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
-
-  private:
-    QString mFilterText;
-};
-} // namespace vsmodchecker
+} // vsmodchecker

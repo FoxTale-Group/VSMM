@@ -27,45 +27,45 @@
 #include <QList>
 
 namespace vsmodchecker {
-    class ModListModel : public QAbstractListModel {
-        Q_OBJECT
-        QML_ELEMENT
-        QML_SINGLETON
+class ModListModel : public QAbstractListModel {
+    Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
-    public:
-        enum Roles {
-            NameRole = Qt::UserRole + 1,
-            AuthorRole,
-            VersionRole,
-            UpdateVersionRole,
-            TagsRole,
-            UrlRole,
-            InfoReceivedRole,
-            TypeRole,
-            HasUpdateRole,
-            IconRole
-        };
-
-        explicit ModListModel(QObject *parent = nullptr);
-        [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
-        [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
-        [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-
-        void setModImageProvider(ModImageProvider *provider);
-        void setStore(ModStore *store);
-
-    public slots:
-        void iconUpdate(const QString &modId);
-
-    private slots:
-        void onModAdded(const ModEntry &mod);
-        void onModUpdated(const ModEntry &mod);
-        void onModsReloading();
-
-    private:
-        ModStore *mStore{nullptr};
-        QList<QString> mOrder;          // row order -> mod id
-        QHash<QString, int> mIdToRow;   // mod id -> row index
-        ModImageProvider *mImageProvider{nullptr};
+  public:
+    enum Roles {
+        NameRole = Qt::UserRole + 1,
+        AuthorRole,
+        VersionRole,
+        UpdateVersionRole,
+        TagsRole,
+        UrlRole,
+        InfoReceivedRole,
+        TypeRole,
+        HasUpdateRole,
+        IconRole
     };
-} // vsmodchecker
+
+    explicit ModListModel(QObject *parent = nullptr);
+    [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
+    [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
+    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
+
+    void setModImageProvider(ModImageProvider *provider);
+    void setStore(ModStore *store);
+
+  public slots:
+    void iconUpdate(const QString &modId);
+
+  private slots:
+    void onModAdded(const ModEntry &mod);
+    void onModUpdated(const ModEntry &mod);
+    void onModsReloading();
+
+  private:
+    ModStore *mStore{nullptr};
+    QList<QString> mOrder;        // row order -> mod id
+    QHash<QString, int> mIdToRow; // mod id -> row index
+    ModImageProvider *mImageProvider{nullptr};
+};
+} // namespace vsmodchecker
