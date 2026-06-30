@@ -14,17 +14,20 @@ Button
     property int radius: 6
     property string tooltipText: ""
 
+    property string buttonIcon: ""
     property string iconColor: "#ffffff"
 
+    icon.source: buttonIcon ? "qrc:/qt/qml/vsmodchecker/assets/icons/" + buttonIcon : ""
+
     font.bold: true
-    icon.width: 20
-    icon.height: 20
+    palette.buttonText: "white"
+    icon.width: 30
+    icon.height: 30
+    icon.color: iconColor
 
     ToolTip.text: tooltipText
     ToolTip.visible: hovered && tooltipText !== ""
     ToolTip.delay: 500
-
-    display: AbstractButton.IconOnly
 
     scale: rootButton.down ? 0.95 : 1.0
 
@@ -57,18 +60,7 @@ Button
         }
     }
 
-    contentItem: Item {
-        implicitWidth: rootButton.icon.width
-        implicitHeight: rootButton.icon.height
-
-        IconImage {
-            anchors.centerIn: parent
-
-            source: rootButton.icon.source
-            color: rootButton.iconColor
-            
-            sourceSize: Qt.size(rootButton.icon.width, rootButton.icon.height)
-            fillMode: Image.PreserveAspectFit
-        }
+    HoverHandler {
+        cursorShape: Qt.PointingHandCursor
     }
 }
