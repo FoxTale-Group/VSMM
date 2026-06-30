@@ -17,7 +17,7 @@ Button
     property string buttonIcon: ""
     property string iconColor: "#ffffff"
 
-    icon.source: buttonIcon ? "qrc:/qt/qml/vsmodchecker/assets/icons/" + buttonIcon : ""
+    icon.source: buttonIcon ? "qrc:/qt/qml/vsmm/assets/icons/" + buttonIcon : ""
 
     font.bold: true
     palette.buttonText: "white"

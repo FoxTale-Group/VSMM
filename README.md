@@ -126,7 +126,7 @@ full list of features, ideas, and bugs.
 
 Contributions are welcome! Please open an issue to discuss significant changes
 before submitting a pull request. The codebase splits cleanly into a C++ backend
-(`src/`) and a QML frontend (`qml/`).
+(`src/`) and a QML frontend (`src/qml/`).
 
 ## License
 

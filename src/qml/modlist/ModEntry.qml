@@ -4,7 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.impl
 import QtQuick.Effects
-import vsmodchecker
+import vsmm
 
 Rectangle {
     id: modEntry
@@ -105,7 +105,7 @@ Rectangle {
 
             IconImage {
                 id: fallbackIcon
-                source: "qrc:/qt/qml/vsmodchecker/assets/icons/extension.svg"
+                source: "qrc:/qt/qml/vsmm/assets/icons/extension.svg"
                 color: "white"
                 anchors.fill: parent
                 anchors.margins: 4

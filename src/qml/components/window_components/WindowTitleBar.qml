@@ -66,7 +66,7 @@ Item {
 
         // Minimize Button
         Button {
-            icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/minimize.svg"
+            icon.source: "qrc:/qt/qml/vsmm/assets/icons/minimize.svg"
             icon.color: "white"
             display: AbstractButton.IconOnly
             Layout.preferredWidth: 30
@@ -85,7 +85,7 @@ Item {
         // Maximize / Restore Button
         Button {
             // Change icon based on current state
-            icon.source: Window.window.visibility === Window.Maximized ? "qrc:/qt/qml/vsmodchecker/assets/icons/close_fullscreen.svg" : "qrc:/qt/qml/vsmodchecker/assets/icons/fullscreen.svg"
+            icon.source: Window.window.visibility === Window.Maximized ? "qrc:/qt/qml/vsmm/assets/icons/close_fullscreen.svg" : "qrc:/qt/qml/vsmm/assets/icons/fullscreen.svg"
             icon.color: "white"
             display: AbstractButton.IconOnly
             Layout.preferredWidth: 30
@@ -109,7 +109,7 @@ Item {
 
         // Close Button
         Button {
-            icon.source: "qrc:/qt/qml/vsmodchecker/assets/icons/close.svg"
+            icon.source: "qrc:/qt/qml/vsmm/assets/icons/close.svg"
             icon.color: "white"
             display: AbstractButton.IconOnly
             Layout.preferredWidth: 30

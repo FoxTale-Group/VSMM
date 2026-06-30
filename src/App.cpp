@@ -17,11 +17,12 @@
  */
 
 #include "App.hpp"
+#include <Config.hpp>
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QIcon>
 #include <QStandardPaths>
-#include <config.hpp>
+#include <constants.hpp>
 #include <qqmlcontext.h>
 
 #include "ModListModel.hpp"
@@ -34,7 +35,7 @@ App::App(int &argc, char *argv[])
     setApplicationDisplayName(APP_DISPLAY_NAME);
     setApplicationName(APP_DISPLAY_NAME);
     setApplicationVersion(APP_VERSION);
-    setWindowIcon(QIcon(":/qt/qml/vsmodchecker/assets/logo/VSMM.png"));
+    setWindowIcon(QIcon(":/qt/qml/vsmm/assets/logo/VSMM.png"));
 
     QCommandLineParser parser;
     parser.addHelpOption();
@@ -61,14 +62,15 @@ App::App(int &argc, char *argv[])
 }
 
 void App::initQmlEngine(const QString &modsPath) {
-    mQmlEngine.loadFromModule("vsmodchecker", "Main");
     mModImageProvider = new ModImageProvider();
     mQmlEngine.addImageProvider("modicon", mModImageProvider);
+    mQmlEngine.loadFromModule("vsmm", "Main");
 
-    auto modManager = mQmlEngine.singletonInstance<ModLoader *>("vsmodchecker", "ModLoader");
-    auto modSortFilterModel = mQmlEngine.singletonInstance<ModSortFilterModel *>("vsmodchecker", "ModSortFilterModel");
-    auto modStore = mQmlEngine.singletonInstance<ModStore *>("vsmodchecker", "ModStore");
-    auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmodchecker", "ModListModel");
+    auto config = mQmlEngine.singletonInstance<Config *>("vsmm", "Config");
+    auto modManager = mQmlEngine.singletonInstance<ModLoader *>("vsmm", "ModLoader");
+    auto modSortFilterModel = mQmlEngine.singletonInstance<ModSortFilterModel *>("vsmm", "ModSortFilterModel");
+    auto modStore = mQmlEngine.singletonInstance<ModStore *>("vsmm", "ModStore");
+    auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmm", "ModListModel");
     modSortFilterModel->setSourceModel(modListModel);
 
     modManager->setNetworkManager(&mNetworkManager);
