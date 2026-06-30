@@ -102,6 +102,14 @@ if (UNIX AND NOT APPLE)
     # Rell the DEB/RPM packagers to automatically find library dependencies
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
     set(CPACK_RPM_PACKAGE_AUTOREQPROV "yes")
+    set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
+            "/usr/share/applications"
+            "/usr/share/icons"
+            "/usr/share/icons/hicolor"
+            "/usr/share/icons/hicolor/256x256"
+            "/usr/share/icons/hicolor/256x256/apps")
+
+    # Version formatting
     string(REPLACE "-" "~" DISTRO_VER "${VSMM_RELEASE_VERSION}")
     set(CPACK_DEBIAN_PACKAGE_VERSION "${DISTRO_VER}")
     set(CPACK_RPM_PACKAGE_VERSION "${DISTRO_VER}")
