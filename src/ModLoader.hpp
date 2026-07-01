@@ -29,7 +29,7 @@
 #include <QThreadPool>
 #include <qqmlintegration.h>
 
-namespace vsmodchecker {
+namespace vsmm {
 class ModLoader : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -72,4 +72,4 @@ class ModLoader : public QObject {
   private slots:
     void requestInfoFinished();
 };
-} // namespace vsmodchecker
+} // namespace vsmm

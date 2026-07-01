@@ -20,7 +20,7 @@
 
 #include "ModListModel.hpp"
 
-namespace vsmodchecker {
+namespace vsmm {
 ModSortFilterModel::ModSortFilterModel(QObject *parent) : QSortFilterProxyModel{parent} {
     setDynamicSortFilter(true);
     QSortFilterProxyModel::sort(0);
@@ -55,4 +55,4 @@ void ModSortFilterModel::setFilterText(const QString &filterText) {
     endFilterChange();
     emit filterTextChanged();
 }
-} // namespace vsmodchecker
+} // namespace vsmm

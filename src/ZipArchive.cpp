@@ -21,7 +21,7 @@
 #include <QtSwap>
 #include <utility>
 
-namespace vsmodchecker {
+namespace vsmm {
 ZipArchive::ZipArchive(QString file) : mFile(std::move(file)) {}
 
 QPair<bool, int> ZipArchive::open() {
@@ -85,4 +85,4 @@ ZipArchive::~ZipArchive() {
     zip_close(mZipFile);
     mZipFile = nullptr;
 }
-} // namespace vsmodchecker
+} // namespace vsmm

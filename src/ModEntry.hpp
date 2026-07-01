@@ -22,7 +22,7 @@
 #include <QJsonObject>
 #include <semver/semver.hpp>
 
-namespace vsmodchecker {
+namespace vsmm {
 
 struct LocalModInfo {
     QString mName, mId, mAuthor;
@@ -74,4 +74,4 @@ class ModEntry {
 
     bool mHasUpdate{false};
 };
-} // namespace vsmodchecker
+} // namespace vsmm

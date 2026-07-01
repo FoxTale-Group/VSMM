@@ -27,7 +27,7 @@ QUrl GetModUrlByAlias(QAnyStringView alias) { return QString("https://mods.vinta
 QUrl GetModUrlByAssetId(qint64 assetId) { return QString("https://mods.vintagestory.at/show/mod/%1").arg(assetId); }
 } // namespace
 
-namespace vsmodchecker {
+namespace vsmm {
 
 ModEntry::ModEntry(LocalModInfo info)
     : mName{std::move(info.mName)}, mVersion{std::move(info.mVersion)}, mAuthor{std::move(info.mAuthor)},
@@ -167,4 +167,4 @@ void ModEntry::initType(const QJsonObject &json) {
 
     mOnlineInfo.mType = json["type"].toString();
 }
-} // namespace vsmodchecker
+} // namespace vsmm

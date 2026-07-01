@@ -21,7 +21,7 @@
 #include <QString>
 #include <zip.h>
 
-namespace vsmodchecker {
+namespace vsmm {
 class ZipArchive {
   public:
     using FileIndex = zip_int64_t;
@@ -43,4 +43,4 @@ class ZipArchive {
     QString mFile;
     zip_t *mZipFile{nullptr};
 };
-} // namespace vsmodchecker
+} // namespace vsmm

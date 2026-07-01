@@ -22,7 +22,7 @@
 #include <QTimer>
 #include <chrono>
 
-namespace vsmodchecker {
+namespace vsmm {
 ModStore::ModStore(QObject *parent) : QObject{parent} {}
 
 void ModStore::add(LocalModInfo localModInfo) {
@@ -109,4 +109,4 @@ void ModStore::onModsReloaded() {
     });
     qDebug() << "Mods reloaded";
 }
-} // namespace vsmodchecker
+} // namespace vsmm

@@ -18,7 +18,7 @@
 
 #include "ModListModel.hpp"
 
-namespace vsmodchecker {
+namespace vsmm {
 ModListModel::ModListModel(QObject *parent) : QAbstractListModel(parent) {}
 
 int ModListModel::rowCount(const QModelIndex &parent) const {
@@ -129,4 +129,4 @@ void ModListModel::onModsReloading() {
     mIdToRow.clear();
     endRemoveRows();
 }
-} // namespace vsmodchecker
+} // namespace vsmm

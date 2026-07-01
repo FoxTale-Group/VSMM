@@ -33,7 +33,7 @@ using namespace Qt::StringLiterals;
 QUrl GetModUrlApi(QAnyStringView modId) { return u"https://mods.vintagestory.at/api/mod/%1"_s.arg(modId); }
 } // namespace
 
-namespace vsmodchecker {
+namespace vsmm {
 bool ModLoader::initModsList() {
     static const QStringList modsExts{{"*.zip"}};
 
@@ -281,4 +281,4 @@ QJsonObject ModLoader::createOnlineModEntry(const QByteArray &jsonByteArray, QAn
 
     return responseObj["mod"_L1].toObject();
 }
-} // namespace vsmodchecker
+} // namespace vsmm

@@ -21,7 +21,7 @@
 #include <QSortFilterProxyModel>
 #include <qqmlintegration.h>
 
-namespace vsmodchecker {
+namespace vsmm {
 class ModSortFilterModel : public QSortFilterProxyModel {
     Q_OBJECT
     QML_ELEMENT
@@ -44,4 +44,4 @@ class ModSortFilterModel : public QSortFilterProxyModel {
   private:
     QString mFilterText;
 };
-} // namespace vsmodchecker
+} // namespace vsmm

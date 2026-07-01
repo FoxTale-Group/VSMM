@@ -22,7 +22,7 @@
 #include <QJsonArray>
 #include <QStandardPaths>
 
-namespace vsmodchecker {
+namespace vsmm {
 Config::Config() {
     QDir().mkdir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
     mConfigFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + QDir::separator() +
@@ -164,4 +164,4 @@ QPair<bool, QString> Config::checkClientSettingsVer(const QJsonObject &clientSet
     return {true, {}};
 }
 
-} // namespace vsmodchecker
+} // namespace vsmm

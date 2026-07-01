@@ -24,7 +24,7 @@
 
 #include "ModImageProvider.hpp"
 
-namespace vsmodchecker {
+namespace vsmm {
 class App final : public QGuiApplication {
   public:
     App(int &argc, char *argv[]);
@@ -39,4 +39,4 @@ class App final : public QGuiApplication {
     ModImageProvider *mModImageProvider{nullptr}; // ownership passed to QML engine
     QQmlApplicationEngine mQmlEngine;
 };
-} // namespace vsmodchecker
+} // namespace vsmm

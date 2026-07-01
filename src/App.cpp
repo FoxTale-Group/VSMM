@@ -28,7 +28,7 @@
 #include "ModLoader.hpp"
 #include "ModSortFilterModel.hpp"
 
-namespace vsmodchecker {
+namespace vsmm {
 App::App(int &argc, char *argv[])
     : QGuiApplication{argc, argv}, mNetworkManager{this}, mNetworkDiskCache{this}, mQmlEngine{this} {
     setApplicationDisplayName(APP_DISPLAY_NAME);
@@ -77,4 +77,4 @@ void App::initQmlEngine() {
         qWarning() << "Failed to initialize mods list";
     }
 }
-} // namespace vsmodchecker
+} // namespace vsmm

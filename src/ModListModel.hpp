@@ -26,7 +26,7 @@
 #include <QHash>
 #include <QList>
 
-namespace vsmodchecker {
+namespace vsmm {
 class ModListModel : public QAbstractListModel {
     Q_OBJECT
     QML_ELEMENT
@@ -67,4 +67,4 @@ class ModListModel : public QAbstractListModel {
     QHash<QString, int> mIdToRow; // mod id -> row index
     ModImageProvider *mImageProvider{nullptr};
 };
-} // namespace vsmodchecker
+} // namespace vsmm

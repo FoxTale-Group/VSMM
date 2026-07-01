@@ -23,7 +23,7 @@
 #include <QJsonObject>
 #include <qqmlintegration.h>
 
-namespace vsmodchecker {
+namespace vsmm {
 class Config final : public QObject {
     Q_OBJECT
     QML_NAMED_ELEMENT(Config)
@@ -57,4 +57,4 @@ class Config final : public QObject {
     QList<QDir> mModsDirs;
     bool mConfigReady{false};
 };
-} // namespace vsmodchecker
+} // namespace vsmm

@@ -4,7 +4,7 @@
 
 #include "ModImageProvider.hpp"
 
-namespace vsmodchecker {
+namespace vsmm {
 ModImageProvider::ModImageProvider() : QQuickImageProvider(Image) {}
 
 QImage ModImageProvider::requestImage(const QString &id, QSize *size, const QSize &requestedSize) {
@@ -49,4 +49,4 @@ void ModImageProvider::onModsReloading() {
     QMutexLocker locker(&mMutex);
     mImages.clear();
 }
-} // namespace vsmodchecker
+} // namespace vsmm

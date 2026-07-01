@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
     qputenv("QT_QPA_PLATFORMTHEME", "xdgdesktopportal");
 #endif
 
-    vsmodchecker::App app(argc, argv);
+    vsmm::App app(argc, argv);
 
-    return vsmodchecker::App::exec();
+    return vsmm::App::exec();
 }

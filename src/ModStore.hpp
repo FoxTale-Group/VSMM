@@ -24,7 +24,7 @@
 #include <QObject>
 #include <qqmlintegration.h>
 
-namespace vsmodchecker {
+namespace vsmm {
 class ModStore : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -67,4 +67,4 @@ class ModStore : public QObject {
     QHash<QString, ModEntry> mMods;
     bool mModsBeingReloaded{true};
 };
-} // namespace vsmodchecker
+} // namespace vsmm

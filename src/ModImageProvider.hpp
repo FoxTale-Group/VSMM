@@ -22,7 +22,7 @@
 #include <QMutex>
 #include <QQuickImageProvider>
 
-namespace vsmodchecker {
+namespace vsmm {
 class ModImageProvider : public QQuickImageProvider {
     Q_OBJECT
 
@@ -49,4 +49,4 @@ class ModImageProvider : public QQuickImageProvider {
     QHash<QString, ImageEntry> mImages;
     mutable QMutex mMutex;
 };
-} // namespace vsmodchecker
+} // namespace vsmm
