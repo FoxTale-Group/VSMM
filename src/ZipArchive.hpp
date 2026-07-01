@@ -28,14 +28,14 @@ class ZipArchive {
     using FileContentSize = zip_int64_t;
 
     explicit ZipArchive(QString file);
-    ZipArchive(ZipArchive &) = delete ("Cannot copy zip archive");
-    ZipArchive &operator=(ZipArchive &) = delete ("Cannot copy zip archive");
+    ZipArchive(ZipArchive &) = delete;
+    ZipArchive &operator=(ZipArchive &) = delete;
 
     ZipArchive(ZipArchive &&other) noexcept;
     ZipArchive &operator=(ZipArchive &&other) noexcept;
 
     [[nodiscard]] QPair<bool, int> open();
-    [[nodiscard]] FileIndex getFileIndex(std::string_view fileName) const;
+    [[nodiscard]] FileIndex getFileIndex(QUtf8StringView fileName) const;
     [[nodiscard]] QByteArray getFileContent(FileIndex fileIndex) const;
     ~ZipArchive();
 

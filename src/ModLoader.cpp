@@ -18,6 +18,7 @@
 
 #include "ModLoader.hpp"
 #include "ZipArchive.hpp"
+#include "constants.hpp"
 
 #include <QJsonArray>
 #include <QJsonObject>
@@ -28,36 +29,39 @@
 #include <utility>
 
 namespace {
-QUrl GetModUrlApi(QAnyStringView modId) { return QString("https://mods.vintagestory.at/api/mod/%1").arg(modId); }
+using namespace Qt::StringLiterals;
+QUrl GetModUrlApi(QAnyStringView modId) { return u"https://mods.vintagestory.at/api/mod/%1"_s.arg(modId); }
 } // namespace
 
 namespace vsmodchecker {
-bool ModLoader::setModsPath(QAnyStringView modsPath) {
-    if (modsPath.isEmpty()) {
-        qWarning() << "Mods path is not set";
-        return false;
-    }
-
-    QDir modsDir = modsPath.toString();
-    if (!modsDir.exists()) {
-        qWarning() << QString("Mods path does not exist: %1").arg(modsPath);
-        return false;
-    }
-
-    mModsPath = std::move(modsDir);
-    return true;
-}
-
 bool ModLoader::initModsList() {
-    if (mModsPath.path().isEmpty()) {
-        qCritical("Mods path is not set");
+    static const QStringList modsExts{{"*.zip"}};
+
+    if (!mConfig) {
+        qFatal("Config is not set");
         return false;
     }
 
-    const auto entryList =
-        mModsPath.entryInfoList(QStringList{"*.zip"}, QDir::Files | QDir::Readable | QDir::NoDotAndDotDot);
-    for (const auto &entry : entryList) {
-        load(entry);
+    if (!mConfig->isReady()) {
+        qCritical("Config is not ready");
+        return false;
+    }
+
+    QList<QDir> modsDirs = mConfig->getModsDirs();
+    if (modsDirs.isEmpty()) {
+        qCritical("No mods dirs found");
+        return false;
+    }
+
+    for (const auto &modsDir : modsDirs) {
+        if (!modsDir.exists()) {
+            qWarning() << "Mods path " << modsDir.path() << " does not exist";
+            continue;
+        }
+
+        for (auto &entry : modsDir.entryInfoList(modsExts, QDir::Files | QDir::Readable | QDir::NoDotAndDotDot)) {
+            load(std::move(entry));
+        }
     }
 
     if (mRequestCount == 0) {
@@ -67,6 +71,7 @@ bool ModLoader::initModsList() {
 }
 
 void ModLoader::setNetworkManager(QNetworkAccessManager *networkManager) { mNetworkManager = networkManager; }
+void ModLoader::setConfig(Config *config) { mConfig = config; }
 
 void ModLoader::setStore(ModStore *store) {
     mStore = store;
@@ -75,10 +80,8 @@ void ModLoader::setStore(ModStore *store) {
     connect(this, &ModLoader::allModsReloaded, mStore, &ModStore::onModsReloaded);
 }
 
-void ModLoader::load(const QFileInfo &fileInfo) { load(fileInfo.absoluteFilePath(), false); }
-
-void ModLoader::onLoadFromGUI(const QString &filePath) { load(QUrl{filePath}.toLocalFile(), true); }
-
+void ModLoader::load(QFileInfo &&fileInfo) { load_(std::move(fileInfo)); }
+void ModLoader::onLoadFromGUI(const QUrl &filePath) { load_(QFileInfo{filePath.toLocalFile()}); }
 void ModLoader::onModsReloading() { initModsList(); }
 
 void ModLoader::notifyModProcessed() {
@@ -87,44 +90,42 @@ void ModLoader::notifyModProcessed() {
     }
 }
 
-void ModLoader::retrieveInfoForMod(ModInfoZip info, const QString &filePath) {
+void ModLoader::retrieveInfoForMod(QString modId) {
     if (!mNetworkManager) {
         qCritical() << "Network manager is not set";
         notifyModProcessed();
         return;
     }
 
-    QNetworkRequest request(GetModUrlApi(info.id));
+    QNetworkRequest request = createRequest(GetModUrlApi(modId));
     QNetworkReply *reply = mNetworkManager->get(request);
-    reply->setProperty("modInfo", QVariant::fromValue(std::move(info)));
-    reply->setProperty("filePath", filePath);
+    reply->setProperty("modId", std::move(modId));
     connect(reply, &QNetworkReply::finished, this, &ModLoader::requestInfoFinished);
 }
 
 void ModLoader::retrieveModIcon(const QString &id, const QUrl &url) {
+    using namespace Qt::StringLiterals;
+
     if (!mNetworkManager) {
         qCritical() << "Network manager is not set";
         return;
     }
 
-    QNetworkRequest request(url);
-    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-
+    QNetworkRequest request = createRequest(url);
     QNetworkReply *reply = mNetworkManager->get(request);
     connect(reply, &QNetworkReply::finished, this, [this, id] {
         auto *reply_ = qobject_cast<QNetworkReply *>(sender());
 
         reply_->deleteLater();
         if (reply_->error() != QNetworkReply::NoError) {
-            qWarning() << QString("Failed to retrieve mod %1 icon: %2").arg(id).arg(reply_->errorString());
+            qWarning() << u"Failed to retrieve mod %1 icon: %2"_s.arg(id).arg(reply_->errorString());
             return;
         }
 
         QByteArray imageData = reply_->readAll();
-
-        QThreadPool::globalInstance()->start([this, id, imageData] {
+        QThreadPool::globalInstance()->start([this, id, imageData_ = std::move(imageData)] {
             QImage image;
-            if (!image.loadFromData(imageData)) {
+            if (!image.loadFromData(imageData_)) {
                 return;
             }
 
@@ -135,76 +136,64 @@ void ModLoader::retrieveModIcon(const QString &id, const QUrl &url) {
     });
 }
 
-void ModLoader::load(const QString &filePath, bool fromGUI) {
+void ModLoader::load_(QFileInfo &&fileInfo) {
+    using namespace Qt::StringLiterals;
     ++mRequestCount;
-    mThreadPoolExtractZips.start([this, filePath, fromGUI] mutable {
-        ZipArchive zipArchive(filePath);
+    mThreadPoolExtractZips.start([this, fileInfo_ = std::move(fileInfo)] mutable {
+        QString absoluteFilePath = fileInfo_.absoluteFilePath();
+        ZipArchive zipArchive(absoluteFilePath);
 
         if (const auto [open, errCode] = zipArchive.open(); !open) {
-            qWarning() << QString("Failed to open zip file: %1 {%2}").arg(filePath).arg(errCode);
+            qWarning() << u"Failed to open zip file: %1 {%2}"_s.arg(absoluteFilePath).arg(errCode);
             QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
             return;
         }
 
         ZipArchive::FileIndex zipFileId = zipArchive.getFileIndex("modinfo.json");
         if (zipFileId == -1) {
-            qWarning() << QString("Failed to locate modinfo.json in zip file: %1").arg(filePath);
+            qWarning() << u"Failed to locate modinfo.json in zip file: %1"_s.arg(absoluteFilePath);
             QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
             return;
         }
 
         auto fileBuffer = zipArchive.getFileContent(zipFileId);
         if (fileBuffer.isEmpty()) {
-            qWarning() << QString("Failed to read modinfo.json from zip file: %1").arg(filePath);
+            qWarning() << u"Failed to read modinfo.json from zip file: %1"_s.arg(absoluteFilePath);
             QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
             return;
         }
 
-        auto modInfo = parseModInfoJson(fileBuffer, filePath);
-        if (modInfo.id.isEmpty()) {
+        auto modInfo = parseLocalJson(fileBuffer, std::move(fileInfo_));
+        if (modInfo.mId.isEmpty() || modInfo.mVersion == semver::version{} || modInfo.mAuthor.isEmpty() ||
+            modInfo.mName.isEmpty()) {
             QMetaObject::invokeMethod(this, [this] { notifyModProcessed(); }, Qt::QueuedConnection);
+            qWarning() << u"Failed to parse modinfo.json from zip file: %1"_s.arg(absoluteFilePath);
             return;
         }
 
         QMetaObject::invokeMethod(
             this,
-            [this, modInfo_ = std::move(modInfo), filePath, fromGUI] mutable {
-                retrieveInfoForMod(std::move(modInfo_), fromGUI ? filePath : QString());
+            [this, modInfo_ = std::move(modInfo)] mutable {
+                // Copy id for info retrieval
+                QString modId = modInfo_.mId;
+                mStore->add(std::move(modInfo_));
+                retrieveInfoForMod(modId);
             },
             Qt::QueuedConnection);
     });
 }
 
-ModLoader::ModInfoZip ModLoader::parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename) {
-    ModInfoZip info;
-    info.filename = QFileInfo{filename}.fileName();
-
-    QJsonParseError errorCode{.error = QJsonParseError::NoError};
-    QJsonObject json = QJsonDocument::fromJson(jsonByteArray.toByteArray(), &errorCode).object();
-    if (errorCode.error != QJsonParseError::NoError) {
-        qWarning() << QString("Failed to parse modinfo.json from zip file: %1 Reason: %2")
-                          .arg(filename)
-                          .arg(errorCode.errorString());
-        return {};
-    }
-    for (const auto &[key, value] : json.asKeyValueRange()) {
-        auto lowercaseKey = key.toString().toLower();
-
-        if (lowercaseKey == "version") {
-            info.version = value.toString();
-        } else if (lowercaseKey == "modid") {
-            info.id = value.toString();
-        } else if (lowercaseKey == "name") {
-            info.name = value.toString();
-        } else if (lowercaseKey == "authors") {
-            info.author = value.toArray().at(0).toString();
-        }
-    }
-
-    return info;
+QNetworkRequest ModLoader::createRequest(const QUrl &url) {
+    QNetworkRequest request(url);
+    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    request.setHeader(QNetworkRequest::KnownHeaders::UserAgentHeader,
+                      QStringLiteral("%1/%2").arg(APP_NAME).arg(APP_VERSION));
+    return request;
 }
 
 void ModLoader::requestInfoFinished() {
+    using namespace Qt::StringLiterals;
+
     notifyModProcessed();
     auto response = qobject_cast<QNetworkReply *>(sender());
     if (!response) {
@@ -212,46 +201,84 @@ void ModLoader::requestInfoFinished() {
     }
     response->deleteLater();
 
-    auto info = response->property("modInfo").value<ModInfoZip>();
+    const auto modId = response->property("modId").value<QString>();
     if (response->error() != QNetworkReply::NoError) {
-        qWarning() << QString("Failed to retrieve mod info for %1: %2").arg(info.id, response->errorString());
-        if (!mStore->contains(info.id)) {
-            mStore->add(ModEntry{info.name, info.version, info.author, info.id, info.filename});
-        }
+        qWarning() << u"Failed to retrieve mod info for %1: %2"_s.arg(modId).arg(response->errorString());
         return;
     }
 
     if (auto value = response->header(QNetworkRequest::ContentTypeHeader).toString(); value != "application/json") {
-        qWarning() << QString("Invalid response format for %1: %2").arg(info.id, value);
+        qWarning() << u"Invalid response format for %1: %2"_s.arg(modId).arg(value);
         return;
     }
 
     const QByteArray responseData = response->readAll();
-    auto responseJsonObj = QJsonDocument::fromJson(responseData).object()["mod"].toObject();
+    QJsonObject modObj = createOnlineModEntry(responseData, modId);
+    if (modId.isEmpty()) {
+        return;
+    }
 
-    if (const ModEntry *existing = mStore->find(info.id)) {
-        qWarning() << QString("Detected doubled mod %1. Checking version...").arg(info.name);
-
-        try {
-            if (semver::version::parse(existing->getVersion().toString().toStdString()) <
-                semver::version::parse(info.version.toStdString())) {
-                mStore->replace(ModEntry{responseJsonObj, info.version, info.id, info.filename});
-                if (auto filePath = response->property("filePath").toString(); !filePath.isEmpty()) {
-                    QFile::copy(filePath, mModsPath.absolutePath() + QDir::separator() + info.filename);
-                }
-                qInfo() << QString("Found newer version of %1. Overwriting...").arg(info.name);
-            } else {
-                qInfo() << QString("Mod %1 is up to date.").arg(info.name);
-            }
-        } catch (const semver::semver_exception &e) {
-            qWarning() << QString("Failed to parse other version for mod %1: %2").arg(info.name, e.what());
-        }
-    } else {
-        retrieveModIcon(info.id, responseJsonObj["logofile"].toString());
-        mStore->add(ModEntry{responseJsonObj, info.version, info.id, info.filename});
-        if (auto filePath = response->property("filePath").toString(); !filePath.isEmpty()) {
-            QFile::copy(filePath, mModsPath.absolutePath() + QDir::separator() + info.filename);
+    if (modObj["logofile"_L1].isString()) {
+        QString logoFile = modObj["logofile"_L1].toString();
+        if (!logoFile.isEmpty()) {
+            retrieveModIcon(modId, logoFile);
         }
     }
+    mStore->updateOnline(modId, std::move(modObj));
+}
+
+LocalModInfo ModLoader::parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo) {
+    using namespace Qt::StringLiterals;
+
+    LocalModInfo info;
+    info.mFileInfo = std::move(fileInfo);
+
+    QJsonParseError errorCode{.error = QJsonParseError::NoError};
+    QJsonObject json = QJsonDocument::fromJson(jsonByteArray, &errorCode).object();
+    if (errorCode.error != QJsonParseError::NoError) {
+        qWarning() << u"Failed to parse modinfo.json from zip file: %1 Reason: %2"_s
+                          .arg(info.mFileInfo.absoluteFilePath())
+                          .arg(errorCode.errorString());
+        return {};
+    }
+    for (const auto &[key, value] : json.asKeyValueRange()) {
+        auto lowercaseKey = key.toString().toLower();
+
+        if (lowercaseKey == "version" && value.isString()) {
+            info.mVersion = semver::version::parse(value.toString().toStdString());
+        } else if (lowercaseKey == "modid" && value.isString()) {
+            info.mId = value.toString();
+        } else if (lowercaseKey == "name" && value.isString()) {
+            info.mName = value.toString();
+        } else if (lowercaseKey == "authors" && value.isArray() && !value.toArray().isEmpty()) {
+            info.mAuthor = value.toArray().at(0).toString();
+        }
+    }
+
+    return info;
+}
+
+QJsonObject ModLoader::createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId) {
+    using namespace Qt::StringLiterals;
+
+    QJsonParseError parseError{.error = QJsonParseError::NoError};
+    auto responseJsonObj = QJsonDocument::fromJson(jsonByteArray, &parseError);
+    if (parseError.error != QJsonParseError::NoError) {
+        qWarning() << u"Failed to parse online info for: %1 Reason: %2"_s.arg(modId).arg(parseError.errorString());
+        return {};
+    }
+
+    if (!responseJsonObj.isObject()) {
+        qWarning() << u"Retreived invalid response for %1"_s.arg(modId);
+        return {};
+    }
+
+    auto responseObj = responseJsonObj.object();
+    if (!responseObj["mod"_L1].isObject()) {
+        qWarning() << u"Retreived invalid response for %1"_s.arg(modId);
+        return {};
+    }
+
+    return responseObj["mod"_L1].toObject();
 }
 } // namespace vsmodchecker

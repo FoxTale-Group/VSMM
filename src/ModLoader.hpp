@@ -22,6 +22,8 @@
 #include "ModImageProvider.hpp"
 #include "ModStore.hpp"
 
+#include <Config.hpp>
+
 #include <QDir>
 #include <QNetworkAccessManager>
 #include <QThreadPool>
@@ -35,11 +37,11 @@ class ModLoader : public QObject {
 
   public:
     ModLoader() = default;
-    [[nodiscard]] bool setModsPath(QAnyStringView modsPath);
     bool initModsList();
     void setNetworkManager(QNetworkAccessManager *networkManager);
+    void setConfig(Config *config);
     void setStore(ModStore *store);
-    void load(const QFileInfo &fileInfo);
+    void load(QFileInfo &&fileInfo);
 
   signals:
     void modIconDownloaded(const QString &modId, QImage image);
@@ -47,24 +49,23 @@ class ModLoader : public QObject {
 
   public slots:
     void onModsReloading();
-    void onLoadFromGUI(const QString &filePath);
+    void onLoadFromGUI(const QUrl &filePath);
 
   private slots:
     void notifyModProcessed();
 
   private:
-    struct ModInfoZip {
-        QString name, version, id, author, filename;
-    };
-    void retrieveInfoForMod(ModInfoZip info, const QString &filePath);
+    void retrieveInfoForMod(QString modId);
     void retrieveModIcon(const QString &id, const QUrl &url);
-    void load(const QString &filePath, bool fromGUI);
+    void load_(QFileInfo &&fileInfo);
 
-    static ModInfoZip parseModInfoJson(QByteArrayView jsonByteArray, const QString &filename);
+    static QNetworkRequest createRequest(const QUrl &url);
+    static LocalModInfo parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo);
+    static QJsonObject createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId);
 
+    Config *mConfig{nullptr};
     ModStore *mStore{nullptr};
     QNetworkAccessManager *mNetworkManager{nullptr};
-    QDir mModsPath;
     qint64 mRequestCount{0};
     QThreadPool mThreadPoolExtractZips;
 

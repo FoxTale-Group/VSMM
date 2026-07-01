@@ -18,46 +18,60 @@
 
 #pragma once
 
+#include <QFileInfo>
 #include <QJsonObject>
+#include <semver/semver.hpp>
 
 namespace vsmodchecker {
+
+struct LocalModInfo {
+    QString mName, mId, mAuthor;
+    semver::version mVersion{};
+    QFileInfo mFileInfo;
+};
+
 class ModEntry {
   public:
-    ModEntry(const QJsonObject &json, QString version, QString modId, QString filename);
-    ModEntry(QString name, QString version, QString author, QString modId, QString filename);
+    explicit ModEntry(LocalModInfo info);
 
     [[nodiscard]] QAnyStringView getId() const;
     [[nodiscard]] QAnyStringView getName() const;
     [[nodiscard]] QAnyStringView getAuthor() const;
-    [[nodiscard]] QAnyStringView getVersion() const;
+    [[nodiscard]] const semver::version &getVersion() const;
+    [[nodiscard]] const QFileInfo &getFileInfo() const;
+
+    void initOnlineInfo(QJsonObject json);
+
+    // Online
     [[nodiscard]] const QUrl &getUrl() const;
-    [[nodiscard]] QAnyStringView getUpdateVersion() const;
+    [[nodiscard]] const semver::version &getLatestVersion() const;
     [[nodiscard]] const QStringList &getTags() const;
     [[nodiscard]] const QUrl &getLatestVersionUrl() const;
     [[nodiscard]] QAnyStringView getType() const;
     [[nodiscard]] bool hasUpdate() const;
-    [[nodiscard]] bool hasInfoReceived() const;
 
   private:
+    struct OnlineInfo {
+        QString mName, mAuthor, mType;
+        QStringList mTags;
+        QUrl mUrl, mLatestReleaseUrl;
+        semver::version mLatestVersion;
+    };
+
     void initName(const QJsonObject &json);
-    void initUpdateVersion(const QJsonObject &json);
+    void initLatestRelease(const QJsonObject &json);
     void initAuthor(const QJsonObject &json);
     void initTags(const QJsonObject &json);
     void initModUrl(const QJsonObject &json);
     void initType(const QJsonObject &json);
 
     QString mName;
-    QString mVersion;
+    semver::version mVersion;
     QString mAuthor;
     QString mModId;
-    QString mFilename;
-    QString mUpdateVersion;
-    QUrl mLatestVersionUrl;
-    QStringList mTags;
-    QUrl mUrl;
-    QString mType;
+    QFileInfo mFileInfo;
+    OnlineInfo mOnlineInfo;
 
-    bool mHasInfoReceived{false};
     bool mHasUpdate{false};
 };
 } // namespace vsmodchecker

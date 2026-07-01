@@ -64,6 +64,7 @@ void App::initQmlEngine() {
 
     modManager->setNetworkManager(&mNetworkManager);
     modManager->setStore(modStore);
+    modManager->setConfig(config);
 
     modListModel->setStore(modStore);
     modListModel->setModImageProvider(mModImageProvider);
@@ -72,9 +73,7 @@ void App::initQmlEngine() {
     connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
     connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
 
-    if (!modManager->setModsPath(config->getModsDir())) {
-        qWarning() << "Mods directory not found; starting with an empty mod list";
-    } else if (!modManager->initModsList()) {
+    if (!modManager->initModsList()) {
         qWarning() << "Failed to initialize mods list";
     }
 }

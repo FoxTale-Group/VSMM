@@ -36,10 +36,10 @@ class ModStore : public QObject {
   public:
     explicit ModStore(QObject *parent = nullptr);
 
-    const ModEntry &add(ModEntry mod);
-    const ModEntry &replace(ModEntry mod);
+    void add(LocalModInfo localModInfo);
+    void updateOnline(QStringView id, QJsonObject onlineInfo);
     Q_INVOKABLE void reload();
-    Q_INVOKABLE void load(const QString &filePath);
+    Q_INVOKABLE void load(const QUrl &filePath);
 
     [[nodiscard]] bool contains(const QString &id) const;
     [[nodiscard]] const ModEntry *find(const QString &id) const;
@@ -52,7 +52,7 @@ class ModStore : public QObject {
     void modAdded(const ModEntry &mod);
     void modUpdated(const ModEntry &mod);
     void modsReloading();
-    void modAddedFromGUI(const QString &filePath);
+    void modAddedFromGUI(const QUrl &filePath);
 
   public slots:
     void onModsReloaded();

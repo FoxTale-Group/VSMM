@@ -42,17 +42,15 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
     case NameRole:
         return mod.getName().toString();
     case VersionRole:
-        return mod.getVersion().toString();
+        return QString::fromStdString(mod.getVersion().str());
     case AuthorRole:
         return mod.getAuthor().toString();
-    case UpdateVersionRole:
-        return mod.getUpdateVersion().toString();
+    case LatestVersionRole:
+        return QString::fromStdString(mod.getLatestVersion().str());
     case TagsRole:
         return mod.getTags();
     case UrlRole:
         return mod.getUrl();
-    case InfoReceivedRole:
-        return mod.hasInfoReceived();
     case TypeRole:
         return mod.getType().toString();
     case HasUpdateRole:
@@ -74,15 +72,8 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
 
 QHash<int, QByteArray> ModListModel::roleNames() const {
     return {
-        {NameRole, "name"},
-        {VersionRole, "version"},
-        {AuthorRole, "author"},
-        {UpdateVersionRole, "updateVersion"},
-        {TagsRole, "tags"},
-        {UrlRole, "url"},
-        {InfoReceivedRole, "infoReceived"},
-        {TypeRole, "type"},
-        {HasUpdateRole, "hasUpdate"},
+        {NameRole, "name"},    {VersionRole, "version"}, {AuthorRole, "author"}, {LatestVersionRole, "latestVersion"},
+        {TagsRole, "tags"},    {UrlRole, "url"},         {TypeRole, "type"},     {HasUpdateRole, "hasUpdate"},
         {IconRole, "modicon"},
     };
 }

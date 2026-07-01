@@ -37,10 +37,9 @@ class ModListModel : public QAbstractListModel {
         NameRole = Qt::UserRole + 1,
         AuthorRole,
         VersionRole,
-        UpdateVersionRole,
+        LatestVersionRole,
         TagsRole,
         UrlRole,
-        InfoReceivedRole,
         TypeRole,
         HasUpdateRole,
         IconRole

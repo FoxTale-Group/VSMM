@@ -28,40 +28,33 @@ class Config final : public QObject {
     Q_OBJECT
     QML_NAMED_ELEMENT(Config)
     QML_SINGLETON
-    Q_PROPERTY(QUrl gameDir READ getGameDirQml WRITE setGameDirQml NOTIFY gameDirChanged)
-    Q_PROPERTY(QUrl modsDir READ getModsDirQml WRITE setModsDirQml NOTIFY modsDirChanged)
-    Q_PROPERTY(bool deleteOldVersion READ getDeleteOldModVersion WRITE setDeleteOldModVersion NOTIFY
-                   deletedOldModVersionChanged)
+    Q_PROPERTY(QVariantHash config READ getConfig WRITE setConfig NOTIFY configChanged)
+    Q_PROPERTY(bool ready READ isReady NOTIFY configReady)
 
-  private:
     static constexpr QAnyStringView CONFIG_FILE_NAME = "config.json";
+    const QStringList CLIENT_SETTINGS_VER_SUPPORT = {QStringLiteral("1.16")};
 
   public:
     Config();
     ~Config() override;
-    [[nodiscard]] QAnyStringView getGameDir() const;
-    [[nodiscard]] QAnyStringView getModsDir() const;
-    [[nodiscard]] bool getDeleteOldModVersion() const;
-    [[nodiscard]] QUrl getGameDirQml() const;
-    [[nodiscard]] QUrl getModsDirQml() const;
+    [[nodiscard]] QVariantHash getConfig() const;
+    void setConfig(const QVariantHash &data);
 
-    void setGameDirQml(const QUrl &dir);
-    void setModsDirQml(const QUrl &dir);
-    void setDeleteOldModVersion(bool deleteOldModVersion);
+    [[nodiscard]] const QList<QDir> &getModsDirs() const;
+    [[nodiscard]] bool isReady() const;
 
   signals:
-    void gameDirChanged();
-    void modsDirChanged();
-    void deletedOldModVersionChanged();
+    void configChanged();
+    void configReady();
 
   private:
-    enum class ConfigKeys : quint8 { GameDir = 0, ModsDir, DeleteOldModVersion };
-    void updateConfig(ConfigKeys key, QVariant &&value);
+    void setConfigReady(bool ready);
     void parseConfig();
-    QJsonObject mConfig;
+    void readModsPaths(const QJsonObject &clientSettings);
+    [[nodiscard]] QPair<bool, QString> checkClientSettingsVer(const QJsonObject &clientSettings) const;
+    QVariantHash mConfig;
     QFile mConfigFile;
-    QString mGameDir;
-    QString mModsDir;
-    bool mDeleteOldModVersion{true};
+    QList<QDir> mModsDirs;
+    bool mConfigReady{false};
 };
 } // namespace vsmodchecker

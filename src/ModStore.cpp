@@ -17,24 +17,52 @@
  */
 
 #include "ModStore.hpp"
+
+#include <QDir>
 #include <QTimer>
 #include <chrono>
 
 namespace vsmodchecker {
 ModStore::ModStore(QObject *parent) : QObject{parent} {}
 
-const ModEntry &ModStore::add(ModEntry mod) {
-    const QString id = mod.getId().toString();
-    const auto it = mMods.insert(id, std::move(mod));
+void ModStore::add(LocalModInfo localModInfo) {
+    using namespace Qt::StringLiterals;
+
+    if (localModInfo.mId.isEmpty()) {
+        return;
+    }
+
+    for (auto it = mMods.begin(); it != mMods.end(); ++it) {
+        // Found mod with the same id, check which is newer and replace
+        if (it.key() == localModInfo.mId) {
+            auto &currentMod = *it;
+            if (currentMod.getVersion() < localModInfo.mVersion) {
+                qInfo() << u"Got newer version of mod %1. Replacing..."_s.arg(localModInfo.mId);
+
+                QStringView modPath = currentMod.getFileInfo().absolutePath();
+                // remove old mod and copy new one
+                QFile::remove(currentMod.getFileInfo().absoluteFilePath());
+                QFile::copy(localModInfo.mFileInfo.absoluteFilePath(),
+                            modPath + QDir::separator() + localModInfo.mFileInfo.fileName());
+                currentMod = ModEntry{std::move(localModInfo)};
+                emitSignal(&ModStore::modUpdated, this, currentMod);
+            }
+            return;
+        }
+    }
+
+    const QString id = localModInfo.mId;
+    const auto it = mMods.emplace(id, std::move(localModInfo));
     emitSignal(&ModStore::modAdded, this, *it);
-    return *it;
 }
 
-const ModEntry &ModStore::replace(ModEntry mod) {
-    const QString id = mod.getId().toString();
-    const auto it = mMods.insert(id, std::move(mod));
-    emitSignal(&ModStore::modUpdated, this, *it);
-    return *it;
+void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
+    auto it = mMods.find(id);
+    if (it == mMods.end()) {
+        return;
+    }
+    auto &mod = *it;
+    mod.initOnlineInfo(std::move(onlineInfo));
 }
 
 void ModStore::reload() {
@@ -50,7 +78,7 @@ void ModStore::reload() {
     emitSignal(&ModStore::modsReloading, this);
 }
 
-void ModStore::load(const QString &filePath) { emit modAddedFromGUI(filePath); }
+void ModStore::load(const QUrl &filePath) { emit modAddedFromGUI(filePath); }
 
 bool ModStore::contains(const QString &id) const { return mMods.contains(id); }
 

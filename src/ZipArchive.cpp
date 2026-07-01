@@ -55,14 +55,15 @@ ZipArchive &ZipArchive::operator=(ZipArchive &&other) noexcept {
     return *this;
 }
 
-ZipArchive::FileIndex ZipArchive::getFileIndex(std::string_view fileName) const {
+ZipArchive::FileIndex ZipArchive::getFileIndex(QUtf8StringView fileName) const {
     return zip_name_locate(mZipFile, fileName.data(), ZIP_FL_ENC_UTF_8);
 }
 
 QByteArray ZipArchive::getFileContent(FileIndex fileIndex) const {
+    using namespace Qt::StringLiterals;
     zip_stat_t fileStats;
     if (const int res = zip_stat_index(mZipFile, fileIndex, ZIP_FL_ENC_UTF_8, &fileStats); res != ZIP_ER_OK) {
-        qWarning() << QString("Failed to stat file in zip archive: %1 {%2}").arg(mFile).arg(res);
+        qWarning() << u"Failed to stat file in zip archive: %1 {%2}"_s.arg(mFile).arg(res);
         return {};
     }
 
