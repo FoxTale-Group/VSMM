@@ -10,6 +10,7 @@ VsmmWindow {
     id: _addModWindow
 
     dialog: true
+    resizable: false
     modality: Qt.ApplicationModal
     windowTitle: "Install mod"
 

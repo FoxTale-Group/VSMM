@@ -14,7 +14,6 @@ Rectangle {
 
     color: "transparent"
 
-
     AnimRadialReveal {
         id: revealEffect
         anchors.fill: parent
@@ -22,7 +21,6 @@ Rectangle {
 
         animationDuration: 200
 
-        // This rectangle gets perfectly cut out by the mask
         Rectangle {
             anchors.fill: parent
             radius: searchBar.radius

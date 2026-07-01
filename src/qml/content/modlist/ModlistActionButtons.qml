@@ -8,7 +8,7 @@ RowLayout
 {
     id: actionButtons
     Layout.fillWidth: true
-    spacing: 16
+    spacing: 10
 
     signal openAddModDialog()
 
@@ -36,29 +36,28 @@ RowLayout
     ModSearchBar{}
 
     ActionButton {
+        buttonIcon: "filter.svg"
+        display: AbstractButton.IconOnly
+        Layout.preferredHeight: 40
+
+        tooltipText: "Filter mods"
+
+        onClicked: {}
+    }
+
+    ActionButton {
         buttonIcon: "sync.svg"
         display: AbstractButton.IconOnly
         Layout.preferredHeight: 40
 
         tooltipText: "Refresh mod list"
-        enabled: ModStore.reloading === false
-        onClicked: ModStore.reload()
-    }
-
-    ActionButton {
-        text: "Check updates"
-        buttonIcon: "check_update.svg"
-
-        display: AbstractButton.IconOnly
-        Layout.preferredHeight: 40
-
-        tooltipText: "Check for mod updates"
 
         defaultColor: "#237cb8"
         hoverColor: "#1f5c87"
         pressColor: "#143f5c"
 
-        onClicked: console.log("Checking for updates...")
+        enabled: ModStore.reloading === false
+        onClicked: ModStore.reload()
     }
 
     ActionButton {

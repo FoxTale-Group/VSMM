@@ -20,7 +20,7 @@ ApplicationWindow
     // Window type properties
     property bool dialog: false
     property bool movable: true
-    property bool resizable: !dialog
+    property bool resizable: true
     property bool minimizable: !dialog
 
     visible: !dialog
