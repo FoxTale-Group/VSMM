@@ -5,6 +5,7 @@ import QtQuick.Controls.impl
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import vsmm
+import "js/StringHelpers.js" as StrUtils
 
 VsmmWindow {
     id: _addModWindow
@@ -92,7 +93,7 @@ VsmmWindow {
 
     function sendFile(path) {
         if (path.endsWith(".zip")) {
-            let fileName = _addModWindow.getFileName(path)
+            let fileName = StrUtils.getFileName(path)
 
             console.log("Sending to C++: " + path)
             console.log("Showing in UI: " + fileName)
@@ -103,17 +104,5 @@ VsmmWindow {
         } else {
             console.log("Error: Only .zip files are allowed!")
         }
-    }
-
-    function getFileName(path) {
-        let cleanPath = path.replace(/^(file:\/{2})/, "");
-
-        if (cleanPath.startsWith("/") && cleanPath.charAt(2) === ":") {
-            cleanPath = cleanPath.substring(1);
-        }
-
-        // A regular expression that splits the string at either a
-        // forward slash (Linux) or backward slash (Windows) just to be safe!
-        return cleanPath.split(/[/\\]/).pop();
     }
 }
