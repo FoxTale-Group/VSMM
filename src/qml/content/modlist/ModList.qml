@@ -15,11 +15,10 @@ Rectangle {
 
     ListView {
         id: modListView
-        anchors.fill: parent
-        Layout.margins: 1
+        anchors.fill: parent; anchors.margins: 1; spacing: 0
+        clip: true; reuseItems: true; cacheBuffer: 400
+
         model: ModSortFilterModel
-        spacing: 0
-        clip: true
 
         ScrollBar.vertical: ScrollBar {
             id: vbar

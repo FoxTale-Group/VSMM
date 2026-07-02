@@ -63,15 +63,22 @@ Rectangle {
                 id: background
                 anchors.fill: parent
                 radius: modIcon.radius
-                visible: true
-                layer.enabled: true
-                color: {
-                    if (mainImage.status === Image.Ready) {
-                        return Theme.colors.modIconBg
-                    } else {return Theme.colors.modIconBgDefault}
+                color: Theme.colors.modIconBgDefault
+                visible: mainImage.status !== Image.Ready
+
+                IconImage {
+                    id: fallbackIcon
+                    source: Theme.icons.iExtension
+                    color: Theme.colors.icon
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    sourceSize.width: modIcon.width
+                    sourceSize.height: modIcon.height
+                    visible: mainImage.status !== Image.Ready
                 }
             }
 
+            // Rounded square mask shape
             Rectangle {
                 id: maskTemplate
                 anchors.fill: parent
@@ -80,35 +87,26 @@ Rectangle {
                 layer.enabled: true
             }
 
-            IconImage {
-                id: fallbackIcon
-                source: Theme.icons.iExtension
-                color: Theme.colors.icon
-                anchors.fill: parent; anchors.margins: 4
-                sourceSize.width: modIcon.width; sourceSize.height: modIcon.height
-
-                visible: mainImage.status !== Image.Ready
-            }
-
+            // Mod icon from icon provider
             Image {
                 id: mainImage
                 source: modIcon.coverUrl
-
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectCrop
-
                 asynchronous: true
-
                 sourceSize.width: modIcon.width
                 sourceSize.height: modIcon.height
+                visible: false          // drawn through the effect below
+                layer.enabled: true     // keeps its texture realized even while hidden
+            }
 
-                layer.enabled: true
-                layer.effect: MultiEffect {
-                    maskEnabled: true
-                    maskSource: maskTemplate
-                }
-
-                visible: status === Image.Ready
+            // LAYER 2: Icon cropped to the rounded mask, shown only when ready
+            MultiEffect {
+                anchors.fill: parent
+                source: mainImage
+                maskEnabled: true
+                maskSource: maskTemplate
+                visible: mainImage.status === Image.Ready
             }
         }
 
