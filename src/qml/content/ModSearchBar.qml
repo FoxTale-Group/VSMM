@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.impl
+import vsmm
 
 Rectangle {
     id: searchBar
@@ -14,7 +15,6 @@ Rectangle {
 
     color: "transparent"
 
-
     AnimRadialReveal {
         id: revealEffect
         anchors.fill: parent
@@ -22,11 +22,10 @@ Rectangle {
 
         animationDuration: 200
 
-        // This rectangle gets perfectly cut out by the mask
         Rectangle {
             anchors.fill: parent
             radius: searchBar.radius
-            color: "#3e3e3e"
+            color: Theme.colors.searchBarBg
         }
     }
 
@@ -45,7 +44,7 @@ Rectangle {
             anchors.bottomMargin: 2
             height: 1
 
-            color: "#888888"
+            color: Theme.colors.searchBarDefault
         }
     }
 
@@ -55,8 +54,8 @@ Rectangle {
         spacing: 5
 
         IconImage {
-            source: "qrc:/qt/qml/vsmm/assets/icons/search.svg"
-            color: searchBar.searchBarFocused ? "#ffffff" : "#888888"
+            source: Theme.icons.iSearch
+            color: searchBar.searchBarFocused ? Theme.colors.searchBarIcon : Theme.colors.searchBarDefault
 
             Behavior on color {
                 ColorAnimation { duration: 250 }
@@ -67,8 +66,8 @@ Rectangle {
         {
             id: searchInput
             Layout.fillWidth: true
-            placeholderText: "Search installed mods..."
-            color: "white"
+            placeholderText: qsTr("Search installed mods...")
+            color: Theme.colors.text
             font.pixelSize: 14
 
             background: Item{}
@@ -84,4 +83,3 @@ Rectangle {
         }
     }
 }
-

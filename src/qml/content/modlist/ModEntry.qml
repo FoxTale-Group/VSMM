@@ -12,41 +12,18 @@ Rectangle {
     height: 64
     color: "transparent"
 
-    function tagColor(tag)
-    {
-        switch (tag)
-        {
-            case "Farming": return "#1D9E75"
-            case "Survival": return "#7F77DD"
-            case "Food": return "#D85A30"
-            case "Animals": return "#D4537E"
-            default: return "#888780"
-        }
-    }
-
-    HoverHandler {
-        id: rowHoverHandler
-    }
+    HoverHandler {id: rowHoverHandler}
 
     // Divider
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.leftMargin: 6
-        anchors.rightMargin: 16
-        height: 1
-        color: "#333333"
+    HorizontalDivider {
+        anchors.leftMargin: 6; anchors.rightMargin: 16
         visible: index !== modListView.count - 1
     }
 
     RowLayout {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
+        anchors.left: parent.left; anchors.right: parent.right
+        anchors.top: parent.top; anchors.bottom: parent.bottom
+        anchors.leftMargin: 12; anchors.rightMargin: 12
         spacing: 10
 
         CheckBox {
@@ -78,7 +55,7 @@ Rectangle {
             implicitHeight: 40
             radius: 8
             border.width: 1
-            border.color: "#000000"
+            border.color: Theme.colors.modIconBorder
 
             property string coverUrl: modicon
 
@@ -86,15 +63,22 @@ Rectangle {
                 id: background
                 anchors.fill: parent
                 radius: modIcon.radius
-                visible: true
-                layer.enabled: true
-                color: {
-                    if (mainImage.status === Image.Ready) {
-                        return "#ffffff"
-                    } else {return "#1D9E75"}
+                color: Theme.colors.modIconBgDefault
+                visible: mainImage.status !== Image.Ready
+
+                IconImage {
+                    id: fallbackIcon
+                    source: Theme.icons.iExtension
+                    color: Theme.colors.icon
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    sourceSize.width: modIcon.width
+                    sourceSize.height: modIcon.height
+                    visible: mainImage.status !== Image.Ready
                 }
             }
 
+            // Rounded square mask shape
             Rectangle {
                 id: maskTemplate
                 anchors.fill: parent
@@ -103,37 +87,26 @@ Rectangle {
                 layer.enabled: true
             }
 
-            IconImage {
-                id: fallbackIcon
-                source: "qrc:/qt/qml/vsmm/assets/icons/extension.svg"
-                color: "white"
-                anchors.fill: parent
-                anchors.margins: 4
-                sourceSize.width: modIcon.width
-                sourceSize.height: modIcon.height
-
-                visible: mainImage.status !== Image.Ready
-            }
-
+            // Mod icon from icon provider
             Image {
                 id: mainImage
                 source: modIcon.coverUrl
-
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectCrop
-
                 asynchronous: true
-
                 sourceSize.width: modIcon.width
                 sourceSize.height: modIcon.height
+                visible: false          // drawn through the effect below
+                layer.enabled: true     // keeps its texture realized even while hidden
+            }
 
-                layer.enabled: true
-                layer.effect: MultiEffect {
-                    maskEnabled: true
-                    maskSource: maskTemplate
-                }
-
-                visible: status === Image.Ready
+            // LAYER 2: Icon cropped to the rounded mask, shown only when ready
+            MultiEffect {
+                anchors.fill: parent
+                source: mainImage
+                maskEnabled: true
+                maskSource: maskTemplate
+                visible: mainImage.status === Image.Ready
             }
         }
 
@@ -141,70 +114,75 @@ Rectangle {
             spacing: 4
             clip: true
 
-            // Mod name, version layout
             RowLayout {
                 spacing: 6
 
+                // Mod Name
                 Label {
                     text: name
                     font.pixelSize: 14
                     font.weight: Font.Medium
-                    color: "#e0e0e0"
+                    color: Theme.colors.label
                     Layout.maximumWidth: 200
                     elide: Text.ElideRight
                 }
 
+                // Mod Author
                 Label {
-                    text: "by " + author
+                    text: qsTr("by %1").arg(author)
                     font.pixelSize: 12
-                    color: "#999999"
+                    color: Theme.colors.labelAlt
                 }
 
+                // Dot divider
                 Label {
                     text: "·"
                     font.pixelSize: 12
-                    color: "#999999"
+                    color: Theme.colors.labelAlt
                 }
 
+                // Mod version
                 Label {
-                    text: "v" + version
+                    text: qsTr("v%1").arg(version)
                     font.pixelSize: 11
-                    color: "#888888"
+                    color: Theme.colors.labelVersion
                 }
 
+                // Update available badge
                 Rectangle {
                     visible: hasUpdate
                     radius: 6
-                    color: "#3a2f12"
+                    color: Theme.colors.modUpdateBadgeBg
                     implicitWidth: updateLabel.width + 16
                     implicitHeight: 18
 
                     Label {
                         id: updateLabel
                         anchors.centerIn: parent
-                        text: "v" + latestVersion + " available"
+                        text: qsTr("v%1 available").arg(latestVersion)
                         font.pixelSize: 11
-                        color: "#e0a23a"
+                        color: Theme.colors.modUpdateBadgeText
                     }
                 }
+                // Latest version badge
                 Rectangle {
                     visible: !hasUpdate
                     radius: 6
-                    color: "#05552f"
+                    color: Theme.colors.modLatestBadgeBg
                     implicitWidth: latestLabel.width + 16
                     implicitHeight: 18
 
                     Label {
                         id: latestLabel
                         anchors.centerIn: parent
-                        text: "Latest"
+                        text: qsTr("Latest")
                         font.pixelSize: 11
-                        color: "#00ff00"
+                        color: Theme.colors.modLatestBadgeText
                     }
                 }
             }
 
-            // Mod author, category layout
+            // Tags
             RowLayout {
                 Layout.maximumWidth: modEntry.width * 0.7
                 spacing: 8
@@ -215,9 +193,9 @@ Rectangle {
                     delegate: Label {
                         text: modelData
                         font.pixelSize: 10
-                        color: tagColor(modelData)
+                        color: Theme.colors.modTagText
                         background: Rectangle {
-                            color: "#333333"
+                            color: Theme.colors.modTagBg
                             radius: 4
                         }
                         padding: 2
@@ -244,19 +222,19 @@ Rectangle {
                 }
             }
 
-            ModActionButton {
-                buttonIcon: "download_one.svg"
+            VsmmModEntryButton {
+                icon.source: Theme.icons.iDownloadOne
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
 
-                tooltipText: hasUpdate ? "Download update for '" + name + "'" : ""
+                tooltipText: hasUpdate ? qsTr("Download update for '%1'").arg(name) : ""
 
                 defaultColor: "transparent"
-                hoverColor: hasUpdate ? "#423710" : "transparent"
-                pressColor: hasUpdate ? "#231c07" : "transparent"
+                hoverColor: hasUpdate ? Theme.colors.buttonUpdateHover : "transparent"
+                pressColor: hasUpdate ? Theme.colors.buttonUpdatePress : "transparent"
 
-                iconColor: hasUpdate ? "#b5951c" : "#444444"
+                iconColor: hasUpdate ? Theme.colors.buttonUpdateLabel : Theme.colors.labelAlt
 
                 onClicked: {
                     if (hasUpdate) {
@@ -265,57 +243,41 @@ Rectangle {
                 }
             }
 
-            ModActionButton {
-                buttonIcon: "check_update.svg"
+            VsmmModEntryButton {
+                icon.source: Theme.icons.iCheckUpdate
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
 
-                tooltipText: "Check update for '" + name + "'"
-
-                defaultColor: "transparent"
-                hoverColor: "#444444"
-                pressColor: "#333333"
+                tooltipText: qsTr("Check update for '%1'").arg(name)
 
                 onClicked: {console.log("Checking update for " + name)}
             }
 
-            ModActionButton {
-
-                property string fav_icon: "favorite.svg"
-                property string fav_icon_fill: "favorite_filled.svg"
-
+            VsmmModEntryButton {
                 property bool favorited: false
 
-                buttonIcon: favorited ? fav_icon_fill : fav_icon
-                iconColor: favorited ? "#ca22c7" : "white"
+                icon.source: favorited ? Theme.icons.iFavoriteFilled : Theme.icons.iFavorite
+                iconColor: favorited ? Theme.colors.modFavButton : Theme.colors.icon
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
 
-                tooltipText: "Add '" + name + "' to favorites"
-
-                defaultColor: "transparent"
-                hoverColor: "#444444"
-                pressColor: "#333333"
+                tooltipText: qsTr("Add '%1' to favorites").arg(name)
 
                 onClicked: {
                     favorited = !favorited
-                    console.log("Added '" + name + "' to favorited")
+                    console.log("Added '" + name + "' to favorites")
                 }
             }
 
-            ModActionButton {
-                buttonIcon: "open_link.svg"
+            VsmmModEntryButton {
+                icon.source: Theme.icons.iOpenLink
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
 
-                tooltipText: "Open '" + name + "' mod page"
-
-                defaultColor: "transparent"
-                hoverColor: "#444444"
-                pressColor: "#333333"
+                tooltipText: qsTr("Open '%1' mod page").arg(name)
 
                 onClicked: {
                     console.log("Opening " + url + " modpage")
@@ -323,20 +285,19 @@ Rectangle {
                 }
             }
 
-            ModActionButton {
-                buttonIcon: "delete.svg"
+            VsmmModEntryButton {
+                icon.source: Theme.icons.iDelete
+                iconColor: Theme.colors.modDelButtonIcon
 
                 Layout.leftMargin: 5
 
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
 
-                tooltipText: "Delete mod  '" + name +"'"
+                tooltipText: qsTr("Delete mod '%1'").arg(name)
 
-                defaultColor: "transparent"
-                hoverColor: "#572525"
-                pressColor: "#291313"
-                iconColor: "#dd1919"
+                hoverColor: Theme.colors.modDelButtonHover
+                pressColor: Theme.colors.modDelButtonPress
 
                 onClicked: {console.log("Deleting " + name)}
             }

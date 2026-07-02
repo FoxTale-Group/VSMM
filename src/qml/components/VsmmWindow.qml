@@ -2,6 +2,8 @@ import QtQml
 import QtQuick
 import QtQuick.Controls
 
+import vsmm
+
 ApplicationWindow
 {
     id: _VsmmWindow
@@ -13,14 +15,13 @@ ApplicationWindow
     minimumHeight: 250
 
     // Custom properties
-    property string windowTitle: "Window Title"
+    property string windowTitle: ""
     property string windowIcon: ""
-    property int windowCornerRadius: 10
 
     // Window type properties
     property bool dialog: false
     property bool movable: true
-    property bool resizable: !dialog
+    property bool resizable: true
     property bool minimizable: !dialog
 
     visible: !dialog
@@ -32,8 +33,8 @@ ApplicationWindow
 
     header: WindowTitleBar {
         windowTitleText: _VsmmWindow.windowTitle
-        windowIconSource: _VsmmWindow.windowIcon ? "qrc:/qt/qml/vsmm/assets/" + _VsmmWindow.windowIcon : ""
-        cornerRadius: _VsmmWindow.windowCornerRadius
+        windowIconSource: _VsmmWindow.windowIcon
+        cornerRadius: Theme.windowRadius
 
         showMaximize: _VsmmWindow.resizable
         showMinimize: _VsmmWindow.minimizable
@@ -56,5 +57,12 @@ ApplicationWindow
         visible: _VsmmWindow.resizable
     }
 
-    background: WindowBackground { cornerRadius: _VsmmWindow.windowCornerRadius }
+    background: Rectangle {
+        anchors.fill: parent
+        color: Theme.colors.windowBackground
+        radius: Window.window.visibility === Window.Maximized ? 0 : Theme.windowRadius
+
+        border.color: Theme.colors.windowBorder
+        border.width: Window.window.visibility === Window.Maximized ? 0 : 1
+    }
 }
