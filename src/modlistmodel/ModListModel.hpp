@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include "ModEntry.hpp"
-#include "ModImageProvider.hpp"
-#include "ModStore.hpp"
+#include "../imgprovider/ModImageProvider.hpp"
+#include "../modentry/ModEntry.hpp"
+#include "../modstore/ModStore.hpp"
 
 #include <QAbstractListModel>
 #include <QHash>

@@ -17,7 +17,6 @@
  */
 
 #include "ModLoader.hpp"
-#include "ZipArchive.hpp"
 #include "constants.hpp"
 
 #include <QJsonArray>
@@ -25,6 +24,7 @@
 #include <QNetworkReply>
 #include <QThreadPool>
 
+#include <ZipArchive.hpp>
 #include <semver/semver.hpp>
 #include <utility>
 
@@ -177,7 +177,7 @@ void ModLoader::load_(QFileInfo &&fileInfo) {
                 // Copy id for info retrieval
                 QString modId = modInfo_.mId;
                 mStore->add(std::move(modInfo_));
-                retrieveInfoForMod(modId);
+                retrieveInfoForMod(std::move(modId));
             },
             Qt::QueuedConnection);
     });
@@ -214,7 +214,7 @@ void ModLoader::requestInfoFinished() {
 
     const QByteArray responseData = response->readAll();
     QJsonObject modObj = createOnlineModEntry(responseData, modId);
-    if (modId.isEmpty()) {
+    if (modObj.isEmpty()) {
         return;
     }
 

@@ -5,19 +5,22 @@ qt_policy(SET QTP0005 NEW)
 configure_file(constants.hpp.in constants.hpp)
 
 add_subdirectory(config Config)
+add_subdirectory(zip)
+add_subdirectory(modentry)
+add_subdirectory(modstore ModStore)
+add_subdirectory(imgprovider)
+add_subdirectory(modlistmodel ModListModel)
+add_subdirectory(modloader ModLoader)
+add_subdirectory(modsortfiltermodel ModSortFilterModel)
 
 set(EXECUTABLES
         main.cpp
-        App.cpp
-        ZipArchive.cpp
-        ModEntry.cpp
-        ModImageProvider.cpp
-        ModListModel.cpp)
+        App.cpp)
 
 qt_add_executable(${PROJECT_NAME} ${EXECUTABLES})
-add_dependencies(${PROJECT_NAME} Config)
+add_dependencies(${PROJECT_NAME} Config ZipArchive ModStore ImgProvider ModListModel ModLoader ModSortFilterModel)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE zip semver Qt6::Core Qt6::Quick Qt6::Qml Qt6::Network Config)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core Qt6::Quick Qt6::Qml Qt6::Network Config ZipArchive ModStore ImgProvider ModListModel ModLoader ModSortFilterModel)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # Get all SVG icons
@@ -28,22 +31,17 @@ file(GLOB_RECURSE QML_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPEN
 
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
-set(QML_SOURCES
-        ModLoader.cpp
-        ModLoader.hpp
-        ModSortFilterModel.cpp
-        ModSortFilterModel.hpp
-        ModStore.cpp
-        ModStore.hpp)
-
 qt_add_qml_module(${PROJECT_NAME}
         URI vsmm
         VERSION 1.0
         QML_FILES ${QML_FILES}
         RESOURCES ${ICON_FILES} ../assets/logo/VSMM.png
-        SOURCES ${QML_SOURCES}
         IMPORTS
-            Config)
+            Config
+            ModStore
+            ModListModel
+            ModLoader
+            ModSortFilterModel)
 
 # -- CPACK --
 

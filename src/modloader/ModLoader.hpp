@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include "ModEntry.hpp"
-#include "ModImageProvider.hpp"
-#include "ModStore.hpp"
+#include <ModEntry.hpp>
+#include <ModImageProvider.hpp>
+#include <ModStore.hpp>
 
 #include <Config.hpp>
 

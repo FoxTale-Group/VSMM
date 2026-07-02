@@ -24,9 +24,9 @@
 #include <constants.hpp>
 #include <qqmlcontext.h>
 
-#include "ModListModel.hpp"
-#include "ModLoader.hpp"
-#include "ModSortFilterModel.hpp"
+#include <ModListModel.hpp>
+#include <ModLoader.hpp>
+#include <ModSortFilterModel.hpp>
 
 namespace vsmm {
 App::App(int &argc, char *argv[])

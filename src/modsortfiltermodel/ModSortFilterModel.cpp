@@ -17,8 +17,7 @@
  */
 
 #include "ModSortFilterModel.hpp"
-
-#include "ModListModel.hpp"
+#include <ModListModel.hpp>
 
 namespace vsmm {
 ModSortFilterModel::ModSortFilterModel(QObject *parent) : QSortFilterProxyModel{parent} {

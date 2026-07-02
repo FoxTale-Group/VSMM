@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "ModEntry.hpp"
+#include "../modentry/ModEntry.hpp"
 
 #include <QHash>
 #include <QObject>

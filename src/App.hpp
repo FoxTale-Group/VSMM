@@ -22,7 +22,7 @@
 #include <QNetworkDiskCache>
 #include <QQmlApplicationEngine>
 
-#include "ModImageProvider.hpp"
+#include "imgprovider/ModImageProvider.hpp"
 
 namespace vsmm {
 class App final : public QGuiApplication {
