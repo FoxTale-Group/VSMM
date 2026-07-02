@@ -12,18 +12,18 @@ RowLayout
 
     signal openAddModDialog()
 
-    ActionButton {
+    VsmmButton {
         text: "Add mod"
-        buttonIcon: "add_box.svg"
+        icon.source: Theme.icons.iAddBox
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
 
         tooltipText: "Add a new mod from file"
 
-        defaultColor: "#1D9E75"
-        hoverColor: "#188160"
-        pressColor: "#0d5e44"
+        defaultColor: Theme.colors.buttonAddModDefault
+        hoverColor: Theme.colors.buttonAddModHover
+        pressColor: Theme.colors.buttonAddModPress
 
         onClicked: {
             console.log("Add mod button clicked.")
@@ -31,12 +31,10 @@ RowLayout
         }
     }
 
-    //Item { Layout.fillWidth: true } // Spring
-
     ModSearchBar{}
 
-    ActionButton {
-        buttonIcon: "filter.svg"
+    VsmmButton {
+        icon.source: Theme.icons.iFilter
         display: AbstractButton.IconOnly
         Layout.preferredHeight: 40
 
@@ -45,50 +43,50 @@ RowLayout
         onClicked: {}
     }
 
-    ActionButton {
-        buttonIcon: "sync.svg"
+    VsmmButton {
+        icon.source: Theme.icons.iSync
         display: AbstractButton.IconOnly
         Layout.preferredHeight: 40
 
         tooltipText: "Refresh mod list"
 
-        defaultColor: "#237cb8"
-        hoverColor: "#1f5c87"
-        pressColor: "#143f5c"
+        defaultColor: Theme.colors.highlightButtonDefault
+        hoverColor: Theme.colors.highlightButtonHover
+        pressColor: Theme.colors.highlightButtonPress
 
         enabled: ModStore.reloading === false
         onClicked: ModStore.reload()
     }
 
-    ActionButton {
+    VsmmButton {
         text: "Update selected"
-        buttonIcon: "download.svg"
+        icon.source: Theme.icons.iDownload
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
 
         tooltipText: "Update selected mods"
 
-        defaultColor: "#237cb8"
-        hoverColor: "#1f5c87"
-        pressColor: "#143f5c"
+        defaultColor: Theme.colors.highlightButtonDefault
+        hoverColor: Theme.colors.highlightButtonHover
+        pressColor: Theme.colors.highlightButtonPress
 
         onClicked: console.log("Updating selected mods...")
     }
 
-    ActionButton {
+    VsmmButton {
         text: "Update all"
-        buttonIcon: "download_all.svg"
+        icon.source: Theme.icons.iDownloadAll
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
-        palette.buttonText: "#e0a23a"
+        palette.buttonText: Theme.colors.buttonUpdateLabel
 
-        tooltipText: "Update selected mods"
+        tooltipText: "Update all mods"
 
-        defaultColor: "#a6842e"
-        hoverColor: "#7c6220"
-        pressColor: "#453713"
+        defaultColor: Theme.colors.buttonUpdateDefault
+        hoverColor: Theme.colors.buttonUpdateHover
+        pressColor: Theme.colors.buttonUpdatePress
 
         onClicked: console.log("Updating all mods...")
     }

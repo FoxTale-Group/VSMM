@@ -26,6 +26,8 @@ file(GLOB ICON_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS "../
 # Get all QML and JS files
 file(GLOB_RECURSE QML_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS "qml/*.qml" "qml/js/*.js")
 
+set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 set(QML_SOURCES
         ModLoader.cpp
         ModLoader.hpp

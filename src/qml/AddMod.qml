@@ -24,26 +24,25 @@ VsmmWindow {
             text: "Install New Mod"
             font.pixelSize: 24
             font.bold: true
-            color: "white"
+            color: Theme.colors.label
         }
 
         // Drag and drop area
         Rectangle {
             id: dropZone
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: dropArea.containsDrag ? "#2a3d4d" : "#2b2b2b"
-            radius: 12
-            border.color: dropArea.containsDrag ? "#4da6ff" : "#555555"
-            border.width: 2
+            Layout.fillWidth: true; Layout.fillHeight: true
+            radius: 12; border.width: 2
+
+            color: dropArea.containsDrag ? Theme.colors.dropAreaDragBg : Theme.colors.dropAreaBg
+            border.color: dropArea.containsDrag ? Theme.colors.dropAreaDragFg : Theme.colors.dropAreaBorder
+
 
             ColumnLayout {
-                anchors.centerIn: parent
-                spacing: 10
+                anchors.centerIn: parent; spacing: 10
 
                 IconImage {
-                    source: "qrc:/qt/qml/vsmm/assets/icons/drop_item.svg"
-                    color: dropArea.containsDrag ? "#4da6ff" : "#888888"
+                    source: Theme.icons.iDropItem
+                    color: dropArea.containsDrag ? Theme.colors.dropAreaDragFg : Theme.colors.dropAreaIcon
                     sourceSize: Qt.size(64, 64)
                     Layout.alignment: Qt.AlignHCenter
                 }
@@ -51,7 +50,7 @@ VsmmWindow {
                 Label {
                     id: dragAndDropLabel
                     text: "Drag & Drop .zip file here\n...or click to browse"
-                    color: dropArea.containsDrag ? "white" : "#aaaaaa"
+                    color: Theme.colors.label
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
                 }
@@ -73,6 +72,10 @@ VsmmWindow {
             MouseArea {
                 anchors.fill: parent
                 onClicked: systemFilePicker.open()
+
+                HoverHandler {
+                    cursorShape: Qt.PointingHandCursor
+                }
             }
         }
 

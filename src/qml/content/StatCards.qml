@@ -16,11 +16,11 @@ RowLayout
             [{
                 label: "Installed",
                 value: ModStore.count,
-                color: "#2a2a2a", textColor: "#e0e0e0"
+                color: Theme.colors.statCardInstalledBg, textColor: Theme.colors.statCardInstalledText
             }, {
                 label: "Updates available",
                 value: ModStore.updates,
-                color: "#3a2f12", textColor: "#e0a23a"
+                color: Theme.colors.statCardUpdatesBg, textColor: Theme.colors.statCardUpdatesText
             }]
 
         delegate: Rectangle

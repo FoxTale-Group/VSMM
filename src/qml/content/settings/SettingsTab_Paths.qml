@@ -30,7 +30,7 @@ Rectangle {
                     anchors.fill: parent; anchors.leftMargin: 10; spacing: 5
 
                     IconImage {
-                        source: "qrc:/qt/qml/vsmm/assets/icons/extension.svg"
+                        source: Theme.icons.iExtension
                         color: modDirPath.fieldFocused ? "#ffffff" : "#888888"
 
                         Behavior on color {ColorAnimation {duration: 250}}
@@ -52,8 +52,8 @@ Rectangle {
                 }
             }
 
-            ActionButton {
-                buttonIcon: "folder.svg"
+            VsmmButton {
+                icon.source: Theme.icons.iFolder
                 display: AbstractButton.IconOnly
                 Layout.preferredHeight: 40
 
@@ -99,7 +99,7 @@ Rectangle {
                     anchors.fill: parent; anchors.leftMargin: 10; spacing: 5
 
                     IconImage {
-                        source: "qrc:/qt/qml/vsmm/assets/icons/gamepad.svg"
+                        source: Theme.icons.iGamepad
                         color: gameExePath.fieldFocused ? "#ffffff" : "#888888"
 
                         Behavior on color {ColorAnimation {duration: 250}}
@@ -122,8 +122,8 @@ Rectangle {
                 }
             }
 
-            ActionButton {
-                buttonIcon: "folder.svg"
+            VsmmButton {
+                icon.source: Theme.icons.iFolder
                 display: AbstractButton.IconOnly
                 Layout.preferredHeight: 40
 

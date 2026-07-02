@@ -8,16 +8,13 @@ Button
 {
     id: rootButton
 
-    property color defaultColor: "#595959"
-    property color hoverColor: "#3e3e3e"
-    property color pressColor: "#2a2a2a"
+    property color defaultColor: Theme.colors.modEntryButtonDefault
+    property color hoverColor: Theme.colors.modEntryButtonHover
+    property color pressColor: Theme.colors.modEntryButtonPress
     property int radius: 6
     property string tooltipText: ""
 
-    property string buttonIcon: ""
-    property string iconColor: "#ffffff"
-
-    icon.source: buttonIcon ? "qrc:/qt/qml/vsmm/assets/icons/" + buttonIcon : ""
+    property string iconColor: Theme.colors.icon
 
     font.bold: true
     icon.width: 20

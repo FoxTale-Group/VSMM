@@ -1,7 +1,6 @@
 import QtQml
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Controls.impl
 import QtQuick.Layouts
 import vsmm
 
@@ -10,7 +9,7 @@ VsmmWindow {
 
     width: 800; height: 600; minimumWidth: 600; minimumHeight: 400;
 
-    windowTitle: "Settings"; windowIcon: "icons/settings.svg";
+    windowTitle: "Settings"; windowIcon: Theme.icons.iSettings;
 
     dialog: true; movable: false; resizable: false;
     modality: Qt.ApplicationModal
@@ -46,9 +45,9 @@ VsmmWindow {
 
             LayoutHorizontalSpacer{}
 
-            ActionButton {
+            VsmmButton {
                 text: "Apply"
-                buttonIcon: ""
+                icon.source: ""
 
                 display: AbstractButton.TextOnly
                 Layout.preferredHeight: 30
@@ -56,9 +55,9 @@ VsmmWindow {
                 onClicked: console.log("Settings apply")
             }
 
-            ActionButton {
+            VsmmButton {
                 text: "Close"
-                buttonIcon: ""
+                icon.source: ""
 
                 display: AbstractButton.TextOnly
                 Layout.preferredHeight: 30

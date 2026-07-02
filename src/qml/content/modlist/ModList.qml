@@ -8,8 +8,8 @@ Rectangle {
     Layout.fillWidth: true
     Layout.fillHeight: true
     radius: 12
-    color: "#262626"
-    border.color: "#3a3a3a"
+    color: Theme.colors.modlistBg
+    border.color: Theme.colors.modlistBorder
     border.width: 1
     clip: true
 
@@ -31,7 +31,7 @@ Rectangle {
             contentItem: Rectangle {
                 implicitWidth: 16
                 radius: 8
-                color: vbar.pressed ? "#666666" : (vbar.hovered ? "#555555" : "#444444")
+                color: vbar.pressed ? Theme.colors.scrollBarHandlePress : (vbar.hovered ? Theme.colors.scrollBarHandleHover : Theme.colors.scrollBarHandleDefault)
             }
         }
 
