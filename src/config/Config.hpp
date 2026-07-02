@@ -23,45 +23,38 @@
 #include <QJsonObject>
 #include <qqmlintegration.h>
 
-namespace vsmodchecker {
+namespace vsmm {
 class Config final : public QObject {
     Q_OBJECT
     QML_NAMED_ELEMENT(Config)
     QML_SINGLETON
-    Q_PROPERTY(QUrl gameDir READ getGameDirQml WRITE setGameDirQml NOTIFY gameDirChanged)
-    Q_PROPERTY(QUrl modsDir READ getModsDirQml WRITE setModsDirQml NOTIFY modsDirChanged)
-    Q_PROPERTY(bool deleteOldVersion READ getDeleteOldModVersion WRITE setDeleteOldModVersion NOTIFY
-                   deletedOldModVersionChanged)
+    Q_PROPERTY(QVariantHash config READ getConfig WRITE setConfig NOTIFY configChanged)
+    Q_PROPERTY(bool ready READ isReady NOTIFY configReady)
 
-  private:
     static constexpr QAnyStringView CONFIG_FILE_NAME = "config.json";
+    const QStringList CLIENT_SETTINGS_VER_SUPPORT = {QStringLiteral("1.16")};
 
   public:
     Config();
     ~Config() override;
-    [[nodiscard]] const QDir &getGameDir() const;
-    [[nodiscard]] const QDir &getModsDir() const;
-    [[nodiscard]] bool getDeleteOldModVersion() const;
-    [[nodiscard]] QUrl getGameDirQml() const;
-    [[nodiscard]] QUrl getModsDirQml() const;
+    [[nodiscard]] QVariantHash getConfig() const;
+    void setConfig(const QVariantHash &data);
 
-    void setGameDirQml(const QUrl &dir);
-    void setModsDirQml(const QUrl &dir);
-    void setDeleteOldModVersion(bool deleteOldModVersion);
+    [[nodiscard]] const QList<QDir> &getModsDirs() const;
+    [[nodiscard]] bool isReady() const;
 
   signals:
-    void gameDirChanged();
-    void modsDirChanged();
-    void deletedOldModVersionChanged();
+    void configChanged();
+    void configReady();
 
   private:
+    void setConfigReady(bool ready);
     void parseConfig();
-    QJsonObject mConfig;
+    void readModsPaths(const QJsonObject &clientSettings);
+    [[nodiscard]] QPair<bool, QString> checkClientSettingsVer(const QJsonObject &clientSettings) const;
+    QVariantHash mConfig;
     QFile mConfigFile;
-    QDir mGameDir;
-    QDir mModsDir;
-    bool mDeleteOldModVersion{true};
-
-    static QJsonObject createDefaultConfig();
+    QList<QDir> mModsDirs;
+    bool mConfigReady{false};
 };
-} // namespace vsmodchecker
+} // namespace vsmm

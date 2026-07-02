@@ -182,7 +182,7 @@ Rectangle {
                     Label {
                         id: updateLabel
                         anchors.centerIn: parent
-                        text: "v" + updateVersion + " available"
+                        text: "v" + latestVersion + " available"
                         font.pixelSize: 11
                         color: "#e0a23a"
                     }

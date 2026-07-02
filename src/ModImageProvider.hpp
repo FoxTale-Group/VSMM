@@ -1,6 +1,6 @@
 /*
- * VS Mod Manager - A mod management tool for Vintage Story
- * Copyright (C) 2026 Amaroq & StardustVulpine
+ * VSMM - A mod management tool for Vintage Story
+ * Copyright (C) 2026 FoxTale-Group VSMM Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #include <QMutex>
 #include <QQuickImageProvider>
 
-namespace vsmodchecker {
+namespace vsmm {
 class ModImageProvider : public QQuickImageProvider {
     Q_OBJECT
 
@@ -49,4 +49,4 @@ class ModImageProvider : public QQuickImageProvider {
     QHash<QString, ImageEntry> mImages;
     mutable QMutex mMutex;
 };
-} // namespace vsmodchecker
+} // namespace vsmm

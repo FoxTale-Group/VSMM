@@ -1,6 +1,6 @@
 /*
- * VS Mod Manager - A mod management tool for Vintage Story
- * Copyright (C) 2026 Amaroq & StardustVulpine
+ * VSMM - A mod management tool for Vintage Story
+ * Copyright (C) 2026 FoxTale-Group VSMM Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #include <QObject>
 #include <qqmlintegration.h>
 
-namespace vsmodchecker {
+namespace vsmm {
 class ModStore : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -36,10 +36,10 @@ class ModStore : public QObject {
   public:
     explicit ModStore(QObject *parent = nullptr);
 
-    const ModEntry &add(ModEntry mod);
-    const ModEntry &replace(ModEntry mod);
+    void add(LocalModInfo localModInfo);
+    void updateOnline(QStringView id, QJsonObject onlineInfo);
     Q_INVOKABLE void reload();
-    Q_INVOKABLE void load(const QString &filePath);
+    Q_INVOKABLE void load(const QUrl &filePath);
 
     [[nodiscard]] bool contains(const QString &id) const;
     [[nodiscard]] const ModEntry *find(const QString &id) const;
@@ -52,7 +52,7 @@ class ModStore : public QObject {
     void modAdded(const ModEntry &mod);
     void modUpdated(const ModEntry &mod);
     void modsReloading();
-    void modAddedFromGUI(const QString &filePath);
+    void modAddedFromGUI(const QUrl &filePath);
 
   public slots:
     void onModsReloaded();
@@ -67,4 +67,4 @@ class ModStore : public QObject {
     QHash<QString, ModEntry> mMods;
     bool mModsBeingReloaded{true};
 };
-} // namespace vsmodchecker
+} // namespace vsmm

@@ -1,6 +1,6 @@
 /*
- * VS Mod Manager - A mod management tool for Vintage Story
- * Copyright (C) 2026 Amaroq & StardustVulpine
+ * VSMM - A mod management tool for Vintage Story
+ * Copyright (C) 2026 FoxTale-Group VSMM Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 #include "ModListModel.hpp"
 
-namespace vsmodchecker {
+namespace vsmm {
 ModSortFilterModel::ModSortFilterModel(QObject *parent) : QSortFilterProxyModel{parent} {
     setDynamicSortFilter(true);
     QSortFilterProxyModel::sort(0);
@@ -55,4 +55,4 @@ void ModSortFilterModel::setFilterText(const QString &filterText) {
     endFilterChange();
     emit filterTextChanged();
 }
-} // namespace vsmodchecker
+} // namespace vsmm

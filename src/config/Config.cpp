@@ -1,6 +1,6 @@
 /*
- * VS Mod Manager - A mod management tool for Vintage Story
- * Copyright (C) 2026 Amaroq & StardustVulpine
+ * VSMM - A mod management tool for Vintage Story
+ * Copyright (C) 2026 FoxTale-Group VSMM Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,89 +19,149 @@
 #include "Config.hpp"
 
 #include <QDir>
+#include <QJsonArray>
 #include <QStandardPaths>
 
-namespace vsmodchecker {
+namespace vsmm {
 Config::Config() {
     QDir().mkdir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
     mConfigFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + QDir::separator() +
                             CONFIG_FILE_NAME.toString());
 
-    if (mConfigFile.exists() && mConfigFile.open(QIODevice::ReadOnly)) {
-        mConfig = QJsonDocument::fromJson(mConfigFile.readAll()).object();
-        mConfigFile.close();
-    } else {
-        mConfig["vsmm"] = createDefaultConfig();
+    qDebug() << mConfigFile.fileName();
+
+    if (!mConfigFile.open(QIODevice::ReadWrite | QIODevice::ExistingOnly | QIODevice::Text)) {
+        setConfigReady(true);
+        return;
     }
 
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(mConfigFile.readAll());
+    if (!jsonDoc.isObject()) {
+        qWarning() << "Config file is not a valid JSON object";
+        setConfigReady(true);
+        return;
+    }
+
+    mConfig = jsonDoc.object().toVariantHash();
     parseConfig();
 }
 
 Config::~Config() {
-    if (mConfigFile.open(QIODevice::WriteOnly)) {
-        mConfigFile.write(QJsonDocument(mConfig).toJson());
-        qDebug() << "Config file saved";
+    if (!mConfigFile.isOpen() && !mConfigFile.open(QIODevice::WriteOnly | QIODevice::NewOnly | QIODevice::Text)) {
+        qWarning() << "Config could not be saved";
         return;
     }
 
-    qWarning() << "Config could not be saved";
+    mConfigFile.reset();
+    mConfigFile.write(QJsonDocument(QJsonObject::fromVariantHash(mConfig)).toJson());
+    qDebug() << "Config file saved";
 }
 
-const QDir &Config::getGameDir() const { return mGameDir; }
-const QDir &Config::getModsDir() const { return mModsDir; }
-bool Config::getDeleteOldModVersion() const { return mDeleteOldModVersion; }
-QUrl Config::getGameDirQml() const { return getGameDir().absolutePath(); }
-QUrl Config::getModsDirQml() const { return getModsDir().absolutePath(); }
-
-void Config::setGameDirQml(const QUrl &dir) {
-    mGameDir = dir.toString();
-    emit gameDirChanged();
+QVariantHash Config::getConfig() const { return mConfig; }
+void Config::setConfig(const QVariantHash &data) {
+    if (mConfig == data) {
+        return;
+    }
+    mConfig = data;
+    emit configChanged();
 }
 
-void Config::setModsDirQml(const QUrl &dir) {
-    mModsDir = dir.toString();
-    emit modsDirChanged();
-}
+const QList<QDir> &Config::getModsDirs() const { return mModsDirs; }
 
-void Config::setDeleteOldModVersion(bool deleteOldModVersion) {
-    mDeleteOldModVersion = deleteOldModVersion;
-    emit deletedOldModVersionChanged();
+bool Config::isReady() const { return mConfigReady; }
+
+void Config::setConfigReady(bool ready) {
+    mConfigReady = ready;
+    emit configReady();
 }
 
 void Config::parseConfig() {
-    static const QString defModsDir = QDir::cleanPath(
-        QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/VintagestoryData/Mods");
+    using namespace Qt::StringLiterals;
+    const QString clientSettingsFilename = "clientsettings.json";
 
-    if (!mConfig["vsmm"].isObject()) {
-        qWarning() << "Config file is missing vsmm object";
+    if (!mConfig["vsmm"_L1].isValid() || mConfig["vsmm"_L1].isNull() ||
+        !mConfig["vsmm"_L1].canConvert<QVariantHash>()) {
+        qWarning() << "VSMM config is not a valid";
+        setConfigReady(true);
         return;
     }
 
-    QJsonObject vsmm = mConfig["vsmm"].toObject();
-
-    mGameDir = vsmm["gameDir"].toString();
-    mModsDir = vsmm["modsDir"].toString(defModsDir);
-    if (!mModsDir.exists()) {
-        mModsDir = QDir::cleanPath(QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
-                                   "/.var/app/at.vintagestory.VintageStory/config/VintagestoryData/Mods");
-
-        if (!mModsDir.exists()) {
-            mModsDir = QDir();
-        }
+    auto vsmm = mConfig["vsmm"_L1].toHash();
+    auto configGamePath = vsmm["configGamePath"_L1].toString();
+    QDir configGameDir{configGamePath};
+    if (configGamePath.isEmpty() || !configGameDir.exists()) {
+        qWarning() << "Config game path does not exist";
+        setConfigReady(true);
+        return;
     }
-    mDeleteOldModVersion = vsmm["deleteOldModVersion"].toBool(true);
 
-    emit gameDirChanged();
-    emit modsDirChanged();
-    emit deletedOldModVersionChanged();
+    if (!configGameDir.exists(clientSettingsFilename)) {
+        qWarning() << "Client settings file does not exist";
+        setConfigReady(true);
+        return;
+    }
+
+    QFile clientSettingsFile{configGamePath + QDir::separator() + clientSettingsFilename};
+    if (!clientSettingsFile.open(QIODevice::ReadOnly | QIODevice::Text | QIODevice::ExistingOnly)) {
+        qWarning() << u"Failed to open client settings file"_s.arg(clientSettingsFile.fileName());
+        setConfigReady(true);
+        return;
+    }
+
+    QJsonDocument clientSettingsDoc = QJsonDocument::fromJson(clientSettingsFile.readAll());
+    if (!clientSettingsDoc.isObject()) {
+        qWarning() << "Client settings file is not a valid JSON object";
+        setConfigReady(true);
+        return;
+    }
+
+    auto clientSettings = clientSettingsDoc.object();
+    if (const auto &[valid, reason] = checkClientSettingsVer(clientSettings); !valid) {
+        qWarning() << u"Detected unsupported clientsettings: %1"_s.arg(reason);
+        setConfigReady(true);
+        return;
+    }
+
+    readModsPaths(clientSettings);
+    emit configChanged();
+    setConfigReady(true);
 }
 
-QJsonObject Config::createDefaultConfig() {
-    auto vsmm = QJsonObject();
-    vsmm["gameDir"] = "";
-    vsmm["modsDir"] = "";
-    vsmm["deleteOldModVersion"] = true;
+void Config::readModsPaths(const QJsonObject &clientSettings) {
+    using namespace Qt::StringLiterals;
+    if (!clientSettings["stringListSettings"_L1].isObject()) {
+        qWarning() << "Failed to locate stringListSettings in client settings file";
+        return;
+    }
 
-    return vsmm;
+    auto stringListSettings = clientSettings["stringListSettings"_L1].toObject();
+    if (!stringListSettings["modPaths"_L1].isArray()) {
+        qWarning() << "Invalid modPaths";
+        return;
+    }
+
+    for (const auto &path : stringListSettings["modPaths"_L1].toArray()) {
+        if (path == "Mods" || path.isNull() || path.isUndefined() || path.toStringView().isEmpty()) {
+            continue;
+        }
+
+        mModsDirs.append(path.toString());
+    }
 }
-} // namespace vsmodchecker
+
+QPair<bool, QString> Config::checkClientSettingsVer(const QJsonObject &clientSettings) const {
+    using namespace Qt::StringLiterals;
+    if (!clientSettings["stringSettings"_L1].isObject()) {
+        return {false, u"Invalid stringSettings"_s};
+    }
+
+    auto stringSettings = clientSettings["stringSettings"_L1].toObject();
+    if (auto clSettingsVersion = stringSettings["settingsVersion"_L1].toStringView();
+        !CLIENT_SETTINGS_VER_SUPPORT.contains(clSettingsVersion)) {
+        return {false, u"Unsupported clientsettings version %1"_s.arg(clSettingsVersion)};
+    }
+
+    return {true, {}};
+}
+
+} // namespace vsmm

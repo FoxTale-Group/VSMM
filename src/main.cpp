@@ -1,6 +1,6 @@
 /*
- * VS Mod Manager - A mod management tool for Vintage Story
- * Copyright (C) 2026 Amaroq & StardustVulpine
+ * VSMM - A mod management tool for Vintage Story
+ * Copyright (C) 2026 FoxTale-Group VSMM Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
     qputenv("QT_QPA_PLATFORMTHEME", "xdgdesktopportal");
 #endif
 
-    vsmodchecker::App app(argc, argv);
+    vsmm::App app(argc, argv);
 
-    return vsmodchecker::App::exec();
+    return vsmm::App::exec();
 }

@@ -1,6 +1,6 @@
 /*
- * VS Mod Manager - A mod management tool for Vintage Story
- * Copyright (C) 2026 Amaroq & StardustVulpine
+ * VSMM - A mod management tool for Vintage Story
+ * Copyright (C) 2026 FoxTale-Group VSMM Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 #include <QHash>
 #include <QList>
 
-namespace vsmodchecker {
+namespace vsmm {
 class ModListModel : public QAbstractListModel {
     Q_OBJECT
     QML_ELEMENT
@@ -37,10 +37,9 @@ class ModListModel : public QAbstractListModel {
         NameRole = Qt::UserRole + 1,
         AuthorRole,
         VersionRole,
-        UpdateVersionRole,
+        LatestVersionRole,
         TagsRole,
         UrlRole,
-        InfoReceivedRole,
         TypeRole,
         HasUpdateRole,
         IconRole
@@ -68,4 +67,4 @@ class ModListModel : public QAbstractListModel {
     QHash<QString, int> mIdToRow; // mod id -> row index
     ModImageProvider *mImageProvider{nullptr};
 };
-} // namespace vsmodchecker
+} // namespace vsmm

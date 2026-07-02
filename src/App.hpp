@@ -1,6 +1,6 @@
 /*
- * VS Mod Manager - A mod management tool for Vintage Story
- * Copyright (C) 2026 Amaroq & StardustVulpine
+ * VSMM - A mod management tool for Vintage Story
+ * Copyright (C) 2026 FoxTale-Group VSMM Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,14 +24,14 @@
 
 #include "ModImageProvider.hpp"
 
-namespace vsmodchecker {
+namespace vsmm {
 class App final : public QGuiApplication {
   public:
     App(int &argc, char *argv[]);
     ~App() override = default;
 
   private:
-    void initQmlEngine(const QString &modsPath);
+    void initQmlEngine();
 
   private:
     QNetworkAccessManager mNetworkManager;
@@ -39,4 +39,4 @@ class App final : public QGuiApplication {
     ModImageProvider *mModImageProvider{nullptr}; // ownership passed to QML engine
     QQmlApplicationEngine mQmlEngine;
 };
-} // namespace vsmodchecker
+} // namespace vsmm

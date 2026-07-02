@@ -1,6 +1,6 @@
 /*
- * VS Mod Manager - A mod management tool for Vintage Story
- * Copyright (C) 2026 Amaroq & StardustVulpine
+ * VSMM - A mod management tool for Vintage Story
+ * Copyright (C) 2026 FoxTale-Group VSMM Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,21 +21,21 @@
 #include <QString>
 #include <zip.h>
 
-namespace vsmodchecker {
+namespace vsmm {
 class ZipArchive {
   public:
     using FileIndex = zip_int64_t;
     using FileContentSize = zip_int64_t;
 
     explicit ZipArchive(QString file);
-    ZipArchive(ZipArchive &) = delete ("Cannot copy zip archive");
-    ZipArchive &operator=(ZipArchive &) = delete ("Cannot copy zip archive");
+    ZipArchive(ZipArchive &) = delete;
+    ZipArchive &operator=(ZipArchive &) = delete;
 
     ZipArchive(ZipArchive &&other) noexcept;
     ZipArchive &operator=(ZipArchive &&other) noexcept;
 
     [[nodiscard]] QPair<bool, int> open();
-    [[nodiscard]] FileIndex getFileIndex(std::string_view fileName) const;
+    [[nodiscard]] FileIndex getFileIndex(QUtf8StringView fileName) const;
     [[nodiscard]] QByteArray getFileContent(FileIndex fileIndex) const;
     ~ZipArchive();
 
@@ -43,4 +43,4 @@ class ZipArchive {
     QString mFile;
     zip_t *mZipFile{nullptr};
 };
-} // namespace vsmodchecker
+} // namespace vsmm
