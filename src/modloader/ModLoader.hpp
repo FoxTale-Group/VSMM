@@ -23,6 +23,7 @@
 #include <ModStore.hpp>
 
 #include <Config.hpp>
+#include <ModLoaderExport.hpp>
 
 #include <QDir>
 #include <QNetworkAccessManager>
@@ -30,7 +31,7 @@
 #include <qqmlintegration.h>
 
 namespace vsmm {
-class ModLoader : public QObject {
+class MODLOADER_EXPORT ModLoader : public QObject {
     Q_OBJECT
     QML_ELEMENT
     QML_SINGLETON

@@ -18,12 +18,12 @@
 
 #pragma once
 
-#include <QHash>
+#include <ImgProviderExport.hpp>
 #include <QMutex>
 #include <QQuickImageProvider>
 
 namespace vsmm {
-class ModImageProvider : public QQuickImageProvider {
+class IMGPROVIDER_EXPORT ModImageProvider : public QQuickImageProvider {
     Q_OBJECT
 
   public:

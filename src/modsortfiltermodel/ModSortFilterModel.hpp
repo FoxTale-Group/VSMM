@@ -18,11 +18,12 @@
 
 #pragma once
 
+#include <ModSortFilterModelExport.hpp>
 #include <QSortFilterProxyModel>
 #include <qqmlintegration.h>
 
 namespace vsmm {
-class ModSortFilterModel : public QSortFilterProxyModel {
+class MODSORTFILTERMODEL_EXPORT ModSortFilterModel : public QSortFilterProxyModel {
     Q_OBJECT
     QML_ELEMENT
     QML_SINGLETON

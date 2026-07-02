@@ -18,13 +18,14 @@
 
 #pragma once
 
+#include <ConfigExport.hpp>
 #include <QDir>
 #include <QFile>
 #include <QJsonObject>
 #include <qqmlintegration.h>
 
 namespace vsmm {
-class Config final : public QObject {
+class CONFIG_EXPORT Config final : public QObject {
     Q_OBJECT
     QML_NAMED_ELEMENT(Config)
     QML_SINGLETON

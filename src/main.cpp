@@ -66,7 +66,7 @@ void qtMsgHandler(QtMsgType type, const QMessageLogContext &ctx, const QString &
 } // namespace
 
 int main(int argc, char *argv[]) {
-    qSetMessagePattern("[%{time hh:mm:ss.zzz}] %{type} %{if-debug}%{file}:%{line} %{endif}- %{message}");
+    qSetMessagePattern("[%{time hh:mm:ss.zzz}] %{category} %{type} %{if-debug}%{file}:%{line} %{endif}- %{message}");
     qtMsgHandlerOld = qInstallMessageHandler(qtMsgHandler);
 
 #ifdef Q_OS_LINUX

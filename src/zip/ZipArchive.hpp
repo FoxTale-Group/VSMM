@@ -19,10 +19,11 @@
 #pragma once
 
 #include <QString>
+#include <ZipArchiveExport.hpp>
 #include <zip.h>
 
 namespace vsmm {
-class ZipArchive {
+class ZIPARCHIVE_EXPORT ZipArchive {
   public:
     using FileIndex = zip_int64_t;
     using FileContentSize = zip_int64_t;

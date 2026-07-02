@@ -18,14 +18,15 @@
 
 #pragma once
 
-#include "../modentry/ModEntry.hpp"
+#include <ModEntry.hpp>
+#include <ModStoreExport.hpp>
 
 #include <QHash>
 #include <QObject>
 #include <qqmlintegration.h>
 
 namespace vsmm {
-class ModStore : public QObject {
+class MODSTORE_EXPORT ModStore : public QObject {
     Q_OBJECT
     QML_ELEMENT
     QML_SINGLETON
