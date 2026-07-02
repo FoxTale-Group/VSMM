@@ -131,7 +131,7 @@ Rectangle {
 
                 // Mod Author
                 Label {
-                    text: "by " + author
+                    text: qsTr("by %1").arg(author)
                     font.pixelSize: 12
                     color: Theme.colors.labelAlt
                 }
@@ -145,7 +145,7 @@ Rectangle {
 
                 // Mod version
                 Label {
-                    text: "v" + version
+                    text: qsTr("v%1").arg(version)
                     font.pixelSize: 11
                     color: Theme.colors.labelVersion
                 }
@@ -161,7 +161,7 @@ Rectangle {
                     Label {
                         id: updateLabel
                         anchors.centerIn: parent
-                        text: "v" + latestVersion + " available"
+                        text: qsTr("v%1 available").arg(latestVersion)
                         font.pixelSize: 11
                         color: Theme.colors.modUpdateBadgeText
                     }
@@ -177,7 +177,7 @@ Rectangle {
                     Label {
                         id: latestLabel
                         anchors.centerIn: parent
-                        text: "Latest"
+                        text: qsTr("Latest")
                         font.pixelSize: 11
                         color: Theme.colors.modLatestBadgeText
                     }
@@ -230,7 +230,7 @@ Rectangle {
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
 
-                tooltipText: hasUpdate ? "Download update for '" + name + "'" : ""
+                tooltipText: hasUpdate ? qsTr("Download update for '%1'").arg(name) : ""
 
                 defaultColor: "transparent"
                 hoverColor: hasUpdate ? Theme.colors.buttonUpdateHover : "transparent"
@@ -251,7 +251,7 @@ Rectangle {
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
 
-                tooltipText: "Check update for '" + name + "'"
+                tooltipText: qsTr("Check update for '%1'").arg(name)
 
                 onClicked: {console.log("Checking update for " + name)}
             }
@@ -265,7 +265,7 @@ Rectangle {
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
 
-                tooltipText: "Add '" + name + "' to favorites"
+                tooltipText: qsTr("Add '%1' to favorites").arg(name)
 
                 onClicked: {
                     favorited = !favorited
@@ -279,7 +279,7 @@ Rectangle {
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
 
-                tooltipText: "Open '" + name + "' mod page"
+                tooltipText: qsTr("Open '%1' mod page").arg(name)
 
                 onClicked: {
                     console.log("Opening " + url + " modpage")
@@ -296,7 +296,7 @@ Rectangle {
                 Layout.preferredHeight: 35
                 Layout.preferredWidth: 35
 
-                tooltipText: "Delete mod  '" + name +"'"
+                tooltipText: qsTr("Delete mod '%1'").arg(name)
 
                 hoverColor: Theme.colors.modDelButtonHover
                 pressColor: Theme.colors.modDelButtonPress

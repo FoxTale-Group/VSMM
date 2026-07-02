@@ -13,13 +13,13 @@ RowLayout
     signal openAddModDialog()
 
     VsmmButton {
-        text: "Add mod"
+        text: qsTr("Add mod")
         icon.source: Theme.icons.iAddBox
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
 
-        tooltipText: "Add a new mod from file"
+        tooltipText: qsTr("Add a new mod from file")
 
         defaultColor: Theme.colors.buttonAddModDefault
         hoverColor: Theme.colors.buttonAddModHover
@@ -38,7 +38,7 @@ RowLayout
         display: AbstractButton.IconOnly
         Layout.preferredHeight: 40
 
-        tooltipText: "Filter mods"
+        tooltipText: qsTr("Filter mods")
 
         onClicked: {}
     }
@@ -48,7 +48,7 @@ RowLayout
         display: AbstractButton.IconOnly
         Layout.preferredHeight: 40
 
-        tooltipText: "Refresh mod list"
+        tooltipText: qsTr("Refresh mod list")
 
         defaultColor: Theme.colors.highlightButtonDefault
         hoverColor: Theme.colors.highlightButtonHover
@@ -59,13 +59,13 @@ RowLayout
     }
 
     VsmmButton {
-        text: "Update selected"
+        text: qsTr("Update selected")
         icon.source: Theme.icons.iDownload
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
 
-        tooltipText: "Update selected mods"
+        tooltipText: qsTr("Update selected mods")
 
         defaultColor: Theme.colors.highlightButtonDefault
         hoverColor: Theme.colors.highlightButtonHover
@@ -75,14 +75,14 @@ RowLayout
     }
 
     VsmmButton {
-        text: "Update all"
+        text: qsTr("Update all")
         icon.source: Theme.icons.iDownloadAll
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
         palette.buttonText: Theme.colors.buttonUpdateLabel
 
-        tooltipText: "Update all mods"
+        tooltipText: qsTr("Update all mods")
 
         defaultColor: Theme.colors.buttonUpdateDefault
         hoverColor: Theme.colors.buttonUpdateHover

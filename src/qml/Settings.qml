@@ -9,7 +9,7 @@ VsmmWindow {
 
     width: 800; height: 600; minimumWidth: 600; minimumHeight: 400;
 
-    windowTitle: "Settings"; windowIcon: Theme.icons.iSettings;
+    windowTitle: qsTr("Settings"); windowIcon: Theme.icons.iSettings;
 
     dialog: true; movable: false; resizable: false;
     modality: Qt.ApplicationModal
@@ -21,10 +21,10 @@ VsmmWindow {
             id: settingsTabBar
             Layout.fillWidth: true
 
-            TabButton { text: "General"}
-            TabButton { text: "Paths"}
-            TabButton { text: "Appearance"}
-            TabButton { text: "Advanced"}
+            TabButton { text: qsTr("General")}
+            TabButton { text: qsTr("Paths")}
+            TabButton { text: qsTr("Appearance")}
+            TabButton { text: qsTr("Advanced")}
         }
 
         StackLayout {
@@ -46,7 +46,7 @@ VsmmWindow {
             LayoutHorizontalSpacer{}
 
             VsmmButton {
-                text: "Apply"
+                text: qsTr("Apply")
                 icon.source: ""
 
                 display: AbstractButton.TextOnly
@@ -56,7 +56,7 @@ VsmmWindow {
             }
 
             VsmmButton {
-                text: "Close"
+                text: qsTr("Close")
                 icon.source: ""
 
                 display: AbstractButton.TextOnly

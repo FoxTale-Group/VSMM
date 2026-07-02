@@ -10,9 +10,9 @@ Rectangle {
     color: "transparent"
 
     Label {
-        text: "Theme and UI Options Go Here"
+        text: qsTr("Theme and UI Options Go Here")
         anchors.centerIn: parent
-        color: "white"
+        color: Theme.colors.label
     }
 
 }

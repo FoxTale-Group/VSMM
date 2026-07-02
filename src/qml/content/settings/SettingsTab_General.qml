@@ -27,10 +27,10 @@ Rectangle {
         }
 
         Label {
-            text: "Remove old mod versions when manually adding newer one"
+            text: qsTr("Remove old mod versions when manually adding newer one")
             font.pixelSize: 12
             font.bold: true
-            color: "white"
+            color: Theme.colors.label
         }
     }
 }

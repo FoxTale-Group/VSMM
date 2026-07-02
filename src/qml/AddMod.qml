@@ -13,7 +13,7 @@ VsmmWindow {
     dialog: true
     resizable: false
     modality: Qt.ApplicationModal
-    windowTitle: "Install mod"
+    windowTitle: qsTr("Install mod")
 
     ColumnLayout {
         anchors.fill: parent
@@ -21,7 +21,7 @@ VsmmWindow {
         spacing: 20
 
         Label {
-            text: "Install New Mod"
+            text: qsTr("Install New Mod")
             font.pixelSize: 24
             font.bold: true
             color: Theme.colors.label
@@ -49,7 +49,7 @@ VsmmWindow {
 
                 Label {
                     id: dragAndDropLabel
-                    text: "Drag & Drop .zip file here\n...or click to browse"
+                    text: qsTr("Drag & Drop .zip file here\n...or click to browse")
                     color: Theme.colors.label
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
@@ -81,11 +81,11 @@ VsmmWindow {
 
         FileDialog {
             id: systemFilePicker
-            title: "Select Mod Archive"
+            title: qsTr("Select Mod Archive")
 
             currentFolder: StandardPaths.writableLocation(StandardPaths.DownloadsLocation)
 
-            nameFilters: ["Vintage Story Mod Archive (*.zip)", "All Files (*)"]
+            nameFilters: [qsTr("Vintage Story Mod Archive (*.zip)"), qsTr("All Files (*)")]
 
             onAccepted: {
                 let rawUrl = systemFilePicker.selectedFile.toString()

@@ -14,11 +14,11 @@ RowLayout
     {
         model:
             [{
-                label: "Installed",
+                label: qsTr("Installed"),
                 value: ModStore.count,
                 color: Theme.colors.statCardInstalledBg, textColor: Theme.colors.statCardInstalledText
             }, {
-                label: "Updates available",
+                label: qsTr("Updates available"),
                 value: ModStore.updates,
                 color: Theme.colors.statCardUpdatesBg, textColor: Theme.colors.statCardUpdatesText
             }]
@@ -39,7 +39,7 @@ RowLayout
                 Label {
                     text: modelData.label
                     font.pixelSize: 12
-                    color: "#999999"
+                    color: Theme.colors.labelAlt
                 }
                 Label {
                     text: modelData.value

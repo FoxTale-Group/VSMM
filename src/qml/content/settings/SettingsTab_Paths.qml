@@ -12,7 +12,7 @@ Rectangle {
     ColumnLayout {
         anchors.fill: parent; spacing: 5;
 
-        Label {text: "Game config folder"; font.pixelSize: 14; font.bold: true; color: "white"}
+        Label {text: qsTr("Game config folder"); font.pixelSize: 14; font.bold: true; color: Theme.colors.label}
 
         RowLayout {
             Layout.fillWidth: true; spacing: 10
@@ -24,14 +24,14 @@ Rectangle {
                 property bool fieldFocused: modDirPath.activeFocus
                 color: "transparent"
 
-                Rectangle {anchors.fill: parent; radius: modDirPath.radius; color: "#3e3e3e"}
+                Rectangle {anchors.fill: parent; radius: modDirPath.radius; color: Theme.colors.searchBarBg}
 
                 RowLayout {
                     anchors.fill: parent; anchors.leftMargin: 10; spacing: 5
 
                     IconImage {
                         source: Theme.icons.iExtension
-                        color: modDirPath.fieldFocused ? "#ffffff" : "#888888"
+                        color: modDirPath.fieldFocused ? Theme.colors.searchBarIcon : Theme.colors.searchBarDefault
 
                         Behavior on color {ColorAnimation {duration: 250}}
                     }
@@ -39,8 +39,8 @@ Rectangle {
                     TextField {
                         id: modsDirInputField
                         Layout.fillWidth: true
-                        placeholderText: "Provide path to Vintage Story config folder..."
-                        color: "white"; font.pixelSize: 14
+                        placeholderText: qsTr("Provide path to Vintage Story config folder...")
+                        color: Theme.colors.text; font.pixelSize: 14
 
                         background: Rectangle {anchors.fill: parent; radius: modDirPath.radius; color: "#3e3e3e"}
 
@@ -57,7 +57,7 @@ Rectangle {
                 display: AbstractButton.IconOnly
                 Layout.preferredHeight: 40
 
-                tooltipText: "Pick a folder"
+                tooltipText: qsTr("Pick a folder")
 
                 onClicked: {}
             }
@@ -67,7 +67,7 @@ Rectangle {
             Layout.fillWidth: true
 
             Label {
-                text: "Current Path: "
+                text: qsTr("Current Path: ")
                 font.pixelSize: 12; font.bold: true; color: "green";
             }
             TextEdit {
@@ -76,12 +76,12 @@ Rectangle {
                 readOnly: true; selectByMouse: true
                 wrapMode: Text.WordWrap
 
-                font.pixelSize: 12; color: "white"
+                font.pixelSize: 12; color: Theme.colors.text
                 selectionColor: "lightblue"; selectedTextColor: "black"
             }
         }
 
-        Label {text: "Game executable path"; font.pixelSize: 14; font.bold: true; color: "white"}
+        Label {text: qsTr("Game executable path"); font.pixelSize: 14; font.bold: true; color: Theme.colors.label}
 
         RowLayout {
             Layout.fillWidth: true; spacing: 10
@@ -109,8 +109,8 @@ Rectangle {
                     {
                         id: dupa
                         Layout.fillWidth: true
-                        placeholderText: "Provide path to Vintage Story executable..."
-                        color: "white"; font.pixelSize: 14
+                        placeholderText: qsTr("Provide path to Vintage Story executable...")
+                        color: Theme.colors.text; font.pixelSize: 14
 
                         background: Rectangle {anchors.fill: parent; radius: gameExePath.radius; color: "#3e3e3e"}
 
@@ -127,7 +127,7 @@ Rectangle {
                 display: AbstractButton.IconOnly
                 Layout.preferredHeight: 40
 
-                tooltipText: "Pick a folder"
+                tooltipText: qsTr("Pick a folder")
 
                 onClicked: {}
             }
@@ -137,13 +137,13 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
 
-            Label {text: "Current Path: "; font.pixelSize: 12; font.bold: true; color: "green"}
+            Label {text: qsTr("Current Path: "); font.pixelSize: 12; font.bold: true; color: "green"}
             TextEdit {
                 text: Config.gameDir
 
                 readOnly: true; selectByMouse: true; wrapMode: Text.WordWrap
 
-                font.pixelSize: 12; color: "white"
+                font.pixelSize: 12; color: Theme.colors.text
                 selectionColor: "lightblue"; selectedTextColor: "black"
             }
         }

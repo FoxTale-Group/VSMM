@@ -30,7 +30,7 @@ VsmmWindow {
             spacing: 12
 
             VsmmButton {
-                text: "Launch Game"; icon.source: Theme.icons.iLaunch; tooltipText: "Launch Game"
+                text: qsTr("Launch Game"); icon.source: Theme.icons.iLaunch; tooltipText: qsTr("Launch Game")
 
                 display: AbstractButton.TextBesideIcon
                 Layout.preferredHeight: 60
@@ -43,7 +43,7 @@ VsmmWindow {
             }
 
             VsmmButton {
-                icon.source: Theme.icons.iSettings; tooltipText: "Settings"
+                icon.source: Theme.icons.iSettings; tooltipText: qsTr("Settings")
 
                 display: AbstractButton.IconOnly
 

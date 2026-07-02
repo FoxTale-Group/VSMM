@@ -66,7 +66,7 @@ Rectangle {
         {
             id: searchInput
             Layout.fillWidth: true
-            placeholderText: "Search installed mods..."
+            placeholderText: qsTr("Search installed mods...")
             color: Theme.colors.text
             font.pixelSize: 14
 
@@ -83,4 +83,3 @@ Rectangle {
         }
     }
 }
-

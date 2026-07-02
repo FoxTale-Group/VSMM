@@ -10,8 +10,8 @@ Rectangle {
     color: "transparent"
 
     Label {
-        text: "Dangerous System Options Go Here"
+        text: qsTr("Dangerous System Options Go Here")
         anchors.centerIn: parent
-        color: "white"
+        color: Theme.colors.label
     }
 }
