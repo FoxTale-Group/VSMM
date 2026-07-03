@@ -5,32 +5,38 @@ import QtQuick.Controls.impl
 import QtQuick.Layouts
 import vsmm
 
-Rectangle {
+VsmmTabPanel {
     id: _SettingsTab_General
-    color: "transparent"
+    content: ColumnLayout {
+        anchors.fill: parent
+        spacing: 5
 
-    RowLayout {
-        Layout.fillWidth: true;
-        spacing: 2
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 2
 
-        CheckBox {
-            id: aiojghnoaehgo
-            checked: false
+            CheckBox {
+                id: aiojghnoaehgo
+                checked: false
 
-            onCheckedChanged: {
-                if (checked) {
-                    console.log()
-                } else {
-                    console.log()
+                onCheckedChanged: {
+                    if (checked) {
+                        console.log()
+                    } else {
+                        console.log()
+                    }
                 }
+            }
+
+            Label {
+                text: qsTr("Remove old mod versions when manually adding newer one")
+                font.pixelSize: 12
+                font.bold: true
+                color: Theme.colors.label
             }
         }
 
-        Label {
-            text: qsTr("Remove old mod versions when manually adding newer one")
-            font.pixelSize: 12
-            font.bold: true
-            color: Theme.colors.label
-        }
+        LayoutVerticalSpacer{}
     }
+
 }

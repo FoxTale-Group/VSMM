@@ -5,11 +5,9 @@ import QtQuick.Controls.impl
 import QtQuick.Layouts
 import vsmm
 
-Rectangle {
+VsmmTabPanel {
     id: _SettingsTab_Paths
-    color: "transparent"
-
-    ColumnLayout {
+    content: ColumnLayout {
         anchors.fill: parent; spacing: 5;
 
         Label {text: qsTr("Game config folder"); font.pixelSize: 14; font.bold: true; color: Theme.colors.label}
@@ -150,4 +148,5 @@ Rectangle {
 
         LayoutVerticalSpacer{}
     }
+
 }

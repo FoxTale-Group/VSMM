@@ -15,16 +15,16 @@ VsmmWindow {
     modality: Qt.ApplicationModal
 
     ColumnLayout {
-        anchors.fill: parent; anchors.margins: 20;
+        anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20; anchors.topMargin: 5; anchors.bottomMargin: 10;
+        spacing: 0
 
-        TabBar {
+        VsmmTabBar {
             id: settingsTabBar
-            Layout.fillWidth: true
 
-            TabButton { text: qsTr("General")}
-            TabButton { text: qsTr("Paths")}
-            TabButton { text: qsTr("Appearance")}
-            TabButton { text: qsTr("Advanced")}
+            VsmmTabButton { text: qsTr("General")}
+            VsmmTabButton { text: qsTr("Paths")}
+            VsmmTabButton { text: qsTr("Appearance")}
+            VsmmTabButton { text: qsTr("Advanced")}
         }
 
         StackLayout {

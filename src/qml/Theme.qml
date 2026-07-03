@@ -38,6 +38,14 @@ QtObject {
         readonly property color scrollBarHandleHover:   "#555555"
         readonly property color scrollBarHandlePress:   "#666666"
 
+        // TabBar colors
+        readonly property color tabButtonInactive:       "#323232"
+        readonly property color tabButtonHover:          "#424242"
+        readonly property color tabPanelBackground:      "#262626"
+        readonly property color tabPanelBorder:          "#3a3a3a"
+        readonly property color tabButtonInactiveBorder: tabButtonInactive
+        readonly property color tabButtonHoverBorder:    tabButtonHover
+
         // Default button colors
         readonly property color buttonDefault: "#595959"
         readonly property color buttonHover:   "#3e3e3e"
@@ -89,9 +97,9 @@ QtObject {
         // Mod entry colors
         readonly property color modTagText:         "#888780"
         readonly property color modTagBg:           "#333333"
-        readonly property color modIconBorder:      "#000000"
+        readonly property color modIconBorder:      "#1D9E75"
         readonly property color modIconBgDefault:   "#1D9E75"
-        readonly property color modIconBg:          "#ffffff"
+        readonly property color modIconBg:          "#000000"
 
         // Mod entry update badges colors
         readonly property color modUpdateBadgeBg:   "#3a2f12"
