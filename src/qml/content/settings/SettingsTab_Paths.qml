@@ -1,15 +1,19 @@
 import QtQml
+import QtCore
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import vsmm
+import "../../js/StringHelpers.js" as StrUtils
 
-Rectangle {
+VsmmTabPanel {
     id: _SettingsTab_Paths
-    color: "transparent"
 
-    ColumnLayout {
+    property string gameConfigDir: "none"
+
+    content: ColumnLayout {
         anchors.fill: parent; spacing: 5;
 
         Label {text: qsTr("Game config folder"); font.pixelSize: 14; font.bold: true; color: Theme.colors.label}
@@ -18,36 +22,40 @@ Rectangle {
             Layout.fillWidth: true; spacing: 10
 
             Rectangle {
-                id: modDirPath
-                Layout.fillWidth: true; Layout.preferredHeight: 40; radius: 8
-
-                property bool fieldFocused: modDirPath.activeFocus
+                id: gameConfigDirPath
+                Layout.fillWidth: true;
+                Layout.preferredHeight: 40;
+                radius: 8
                 color: "transparent"
 
-                Rectangle {anchors.fill: parent; radius: modDirPath.radius; color: Theme.colors.searchBarBg}
+                property bool fieldFocused: gameConfigDirInputField.activeFocus
+
+                Rectangle {anchors.fill: parent; radius: parent.radius; color: Theme.colors.searchBarBg}
 
                 RowLayout {
                     anchors.fill: parent; anchors.leftMargin: 10; spacing: 5
 
                     IconImage {
                         source: Theme.icons.iExtension
-                        color: modDirPath.fieldFocused ? Theme.colors.searchBarIcon : Theme.colors.searchBarDefault
+                        color: gameConfigDirInputField.fieldFocused ? Theme.colors.searchBarIcon : Theme.colors.searchBarDefault
 
                         Behavior on color {ColorAnimation {duration: 250}}
                     }
 
                     TextField {
-                        id: modsDirInputField
+                        id: gameConfigDirInputField
                         Layout.fillWidth: true
                         placeholderText: qsTr("Provide path to Vintage Story config folder...")
                         color: Theme.colors.text; font.pixelSize: 14
 
-                        background: Rectangle {anchors.fill: parent; radius: modDirPath.radius; color: "#3e3e3e"}
+                        background: Rectangle {anchors.fill: parent; radius: gameConfigDirPath.radius; color: "#3e3e3e"}
 
                         Keys.onEscapePressed: (event) => {
                             focus = false
                             event.accepted = true
                         }
+
+                        onTextChanged: { _SettingsTab_Paths.gameConfigDir = text }
                     }
                 }
             }
@@ -59,7 +67,16 @@ Rectangle {
 
                 tooltipText: qsTr("Pick a folder")
 
-                onClicked: {}
+                onClicked: {systemFilePicker.open()}
+            }
+
+            FolderDialog {
+                id: systemFilePicker
+                title: qsTr("Select Vintage Story config folder")
+
+                currentFolder: StandardPaths.standardLocations(StandardPaths.HomeLocation)[0]
+
+                onAccepted: { gameConfigDirInputField.text = StrUtils.getCleanPath(systemFilePicker.selectedFolder.toString()) }
             }
         }
 
@@ -71,7 +88,7 @@ Rectangle {
                 font.pixelSize: 12; font.bold: true; color: "green";
             }
             TextEdit {
-                text: Config.modsDir
+                text: Config.config.vsmm.configGamePath
 
                 readOnly: true; selectByMouse: true
                 wrapMode: Text.WordWrap
@@ -107,7 +124,6 @@ Rectangle {
 
                     TextField
                     {
-                        id: dupa
                         Layout.fillWidth: true
                         placeholderText: qsTr("Provide path to Vintage Story executable...")
                         color: Theme.colors.text; font.pixelSize: 14
@@ -139,7 +155,7 @@ Rectangle {
 
             Label {text: qsTr("Current Path: "); font.pixelSize: 12; font.bold: true; color: "green"}
             TextEdit {
-                text: Config.gameDir
+                text: ""
 
                 readOnly: true; selectByMouse: true; wrapMode: Text.WordWrap
 
@@ -150,4 +166,5 @@ Rectangle {
 
         LayoutVerticalSpacer{}
     }
+
 }

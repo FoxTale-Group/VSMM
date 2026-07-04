@@ -1,4 +1,5 @@
 import QtQml
+import QtCore
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
@@ -83,7 +84,7 @@ VsmmWindow {
             id: systemFilePicker
             title: qsTr("Select Mod Archive")
 
-            currentFolder: StandardPaths.writableLocation(StandardPaths.DownloadsLocation)
+            currentFolder: StandardPaths.writableLocation(StandardPaths.DownloadLocation)
 
             nameFilters: [qsTr("Vintage Story Mod Archive (*.zip)"), qsTr("All Files (*)")]
 

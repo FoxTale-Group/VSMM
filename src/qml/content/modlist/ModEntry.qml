@@ -54,8 +54,7 @@ Rectangle {
             implicitWidth: 40
             implicitHeight: 40
             radius: 8
-            border.width: 1
-            border.color: Theme.colors.modIconBorder
+            color: Theme.colors.modIconBg
 
             property string coverUrl: modicon
 
@@ -107,6 +106,17 @@ Rectangle {
                 maskEnabled: true
                 maskSource: maskTemplate
                 visible: mainImage.status === Image.Ready
+            }
+
+            // LAYER 3: Icon image border
+            Rectangle {
+                color: "transparent"
+                anchors.fill: parent
+                implicitWidth: parent.width
+                implicitHeight: parent.height
+                radius: parent.radius * 625E-3 // Convert border radius to 62.5% of background radius
+                border.width: 1
+                border.color: Theme.colors.modIconBorder
             }
         }
 
