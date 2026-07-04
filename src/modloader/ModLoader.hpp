@@ -23,10 +23,10 @@
 #include <ModStore.hpp>
 
 #include <Config.hpp>
+#include <HttpClient.hpp>
 #include <ModLoaderExport.hpp>
 
 #include <QDir>
-#include <QNetworkAccessManager>
 #include <QThreadPool>
 #include <qqmlintegration.h>
 
@@ -36,10 +36,19 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     QML_ELEMENT
     QML_SINGLETON
 
+    static constexpr QLatin1StringView ONLINE_CONTENT_TYPE{"application/json"};
+    static constexpr QLatin1StringView ONLINE_JSON_ROOT_KEY{"mod"};
+    static constexpr QLatin1StringView ONLINE_LOGOFILE_JSON_KEY{"logofile"};
+    static constexpr QLatin1StringView ONLINE_STATUSCODE_JSON_KEY{"statuscode"};
+    static constexpr QLatin1StringView LOCAL_JSON_VERSION_KEY{"version"};
+    static constexpr QLatin1StringView LOCAL_JSON_MODID_KEY{"modid"};
+    static constexpr QLatin1StringView LOCAL_JSON_AUTHORS_KEY{"authors"};
+    static constexpr QLatin1StringView LOCAL_JSON_NAME_KEY{"name"};
+
   public:
-    ModLoader() = default;
+    ModLoader();
     bool initModsList();
-    void setNetworkManager(QNetworkAccessManager *networkManager);
+    void setHttpClient(HttpClient *httpClient);
     void setConfig(Config *config);
     void setStore(ModStore *store);
     void load(QFileInfo &&fileInfo);
@@ -52,25 +61,22 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     void onModsReloading();
     void onLoadFromGUI(const QUrl &filePath);
 
-  private slots:
-    void notifyModProcessed();
-
   private:
-    void retrieveInfoForMod(QString modId);
-    void retrieveModIcon(const QString &id, const QUrl &url);
     void load_(QFileInfo &&fileInfo);
 
-    static QNetworkRequest createRequest(const QUrl &url);
-    static LocalModInfo parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo);
-    static QJsonObject createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId);
+    [[nodiscard]] static QVariant getLocalInfoFromZip(QFileInfo &&fileInfo);
+    [[nodiscard]] static QVariant parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo);
+    [[nodiscard]] static QJsonObject createOnlineModEntry(QByteArray jsonByteArray, QAnyStringView modId);
 
     Config *mConfig{nullptr};
     ModStore *mStore{nullptr};
-    QNetworkAccessManager *mNetworkManager{nullptr};
-    qint64 mRequestCount{0};
-    QThreadPool mThreadPoolExtractZips;
+    HttpClient *mHttpClient{nullptr};
+    quint32 mModsLoadingInProgress{0};
+    QThreadPool mThreadPoolExtractZips{this};
+    QThreadPool mThreadPoolProcessIcon{this};
 
   private slots:
-    void requestInfoFinished();
+    void onModInfoRetrieved(QString modId, QByteArray data);
+    void onModIconRetrieved(QString modId, QByteArray data);
 };
 } // namespace vsmm

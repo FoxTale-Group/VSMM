@@ -29,8 +29,7 @@
 #include <ModSortFilterModel.hpp>
 
 namespace vsmm {
-App::App(int &argc, char *argv[])
-    : QGuiApplication{argc, argv}, mNetworkManager{this}, mNetworkDiskCache{this}, mQmlEngine{this} {
+App::App(int &argc, char *argv[]) : QGuiApplication{argc, argv}, mHttpClient{this}, mQmlEngine{this} {
     setApplicationDisplayName(APP_DISPLAY_NAME);
     setApplicationName(APP_DISPLAY_NAME);
     setApplicationVersion(APP_VERSION);
@@ -43,9 +42,6 @@ App::App(int &argc, char *argv[])
 
     connect(&mQmlEngine, &QQmlApplicationEngine::objectCreationFailed,
             [](const QUrl &url) { qFatal() << QString("QML object creation failed %1").arg(url.toString()); });
-
-    mNetworkDiskCache.setCacheDirectory(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
-    mNetworkManager.setCache(&mNetworkDiskCache);
 
     initQmlEngine();
 }
@@ -62,7 +58,7 @@ void App::initQmlEngine() {
     auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmm", "ModListModel");
     modSortFilterModel->setSourceModel(modListModel);
 
-    modManager->setNetworkManager(&mNetworkManager);
+    modManager->setHttpClient(&mHttpClient);
     modManager->setStore(modStore);
     modManager->setConfig(config);
 

@@ -4,6 +4,7 @@ qt_policy(SET QTP0005 NEW)
 
 configure_file(constants.hpp.in constants.hpp)
 
+add_subdirectory(httpclient)
 add_subdirectory(config Config)
 add_subdirectory(zip)
 add_subdirectory(modentry)
@@ -18,9 +19,9 @@ set(EXECUTABLES
         App.cpp)
 
 qt_add_executable(${PROJECT_NAME} ${EXECUTABLES})
-add_dependencies(${PROJECT_NAME} Config ZipArchive ModStore ImgProvider ModListModel ModLoader ModSortFilterModel)
+add_dependencies(${PROJECT_NAME} Config ZipArchive ModStore ImgProvider ModListModel ModLoader ModSortFilterModel HttpClient)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core Qt6::Quick Qt6::Qml Qt6::Network Config ZipArchive ModStore ImgProvider ModListModel ModLoader ModSortFilterModel)
+target_link_libraries(${PROJECT_NAME} PRIVATE Config ZipArchive ModStore ImgProvider ModListModel ModLoader ModSortFilterModel HttpClient)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # Get all SVG icons
