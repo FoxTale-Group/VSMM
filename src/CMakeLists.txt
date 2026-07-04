@@ -1,14 +1,18 @@
+# Setup Qt Policies
 qt_policy(SET QTP0001 NEW)
 qt_policy(SET QTP0004 NEW)
 qt_policy(SET QTP0005 NEW)
 
 configure_file(constants.hpp.in constants.hpp)
 
+# Set unified target directory for sub-libs generated qmldir and .qmltypes
 set(QT_QML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml_imports)
 
-list(APPEND QML_IMPORT_PATH ${CMAKE_CURRENT_BINARY_DIR})
+# Point QML import path directly to output directory
+list(APPEND QML_IMPORT_PATH ${QT_QML_OUTPUT_DIRECTORY})
 set(QML_IMPORT_PATH ${QML_IMPORT_PATH} CACHE PATH "Qt Creator QML Import Paths" FORCE)
 
+# Add libs and qml modules subdirectories
 add_subdirectory(httpclient)
 add_subdirectory(config Config)
 add_subdirectory(zip)
@@ -35,6 +39,7 @@ file(GLOB ICON_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS "../
 # Get all QML and JS files
 file(GLOB_RECURSE QML_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS "qml/*.qml" "qml/js/*.js")
 
+# Setup qml/Theme.qml as QML Singleton type
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 qt_add_qml_module(${PROJECT_NAME}
