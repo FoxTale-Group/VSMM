@@ -29,7 +29,7 @@
 #include <ModSortFilterModel.hpp>
 
 namespace vsmm {
-App::App(int &argc, char *argv[]) : QGuiApplication{argc, argv}, mHttpClient{this}, mQmlEngine{this} {
+App::App(int &argc, char *argv[]) : QGuiApplication{argc, argv} {
     setApplicationDisplayName(APP_DISPLAY_NAME);
     setApplicationName(APP_DISPLAY_NAME);
     setApplicationVersion(APP_VERSION);

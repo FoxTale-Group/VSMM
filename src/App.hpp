@@ -34,8 +34,8 @@ class App final : public QGuiApplication {
     void initQmlEngine();
 
   private:
-    HttpClient mHttpClient;
+    HttpClient mHttpClient{this};
     ModImageProvider *mModImageProvider{nullptr}; // ownership passed to QML engine
-    QQmlApplicationEngine mQmlEngine;
+    QQmlApplicationEngine mQmlEngine{this};
 };
 } // namespace vsmm
