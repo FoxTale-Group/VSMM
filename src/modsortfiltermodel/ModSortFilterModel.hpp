@@ -18,29 +18,31 @@
 
 #pragma once
 
-#include <QString>
-#include <zip.h>
+#include <ModSortFilterModelExport.hpp>
+#include <QSortFilterProxyModel>
+#include <qqmlintegration.h>
 
 namespace vsmm {
-class ZipArchive {
+class MODSORTFILTERMODEL_EXPORT ModSortFilterModel : public QSortFilterProxyModel {
+    Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
+    Q_PROPERTY(QString filterText READ getFilterText WRITE setFilterText NOTIFY filterTextChanged)
+
   public:
-    using FileIndex = zip_int64_t;
-    using FileContentSize = zip_int64_t;
+    explicit ModSortFilterModel(QObject *parent = nullptr);
 
-    explicit ZipArchive(QString file);
-    ZipArchive(ZipArchive &) = delete;
-    ZipArchive &operator=(ZipArchive &) = delete;
+    [[nodiscard]] QString getFilterText() const;
+    void setFilterText(const QString &filterText);
 
-    ZipArchive(ZipArchive &&other) noexcept;
-    ZipArchive &operator=(ZipArchive &&other) noexcept;
+  signals:
+    void filterTextChanged();
 
-    [[nodiscard]] QPair<bool, int> open();
-    [[nodiscard]] FileIndex getFileIndex(QUtf8StringView fileName) const;
-    [[nodiscard]] QByteArray getFileContent(FileIndex fileIndex) const;
-    ~ZipArchive();
+  protected:
+    [[nodiscard]] bool lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const override;
+    [[nodiscard]] bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
 
   private:
-    QString mFile;
-    zip_t *mZipFile{nullptr};
+    QString mFilterText;
 };
 } // namespace vsmm

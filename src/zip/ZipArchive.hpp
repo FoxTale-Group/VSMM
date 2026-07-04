@@ -18,35 +18,30 @@
 
 #pragma once
 
-#include <QHash>
-#include <QMutex>
-#include <QQuickImageProvider>
+#include <QString>
+#include <ZipArchiveExport.hpp>
+#include <zip.h>
 
 namespace vsmm {
-class ModImageProvider : public QQuickImageProvider {
-    Q_OBJECT
-
+class ZIPARCHIVE_EXPORT ZipArchive {
   public:
-    struct ImageEntry {
-        QImage image;
-        qint64 diff{0};
-    };
+    using FileIndex = zip_int64_t;
+    using FileContentSize = zip_int64_t;
 
-    ModImageProvider();
+    explicit ZipArchive(QString file);
+    ZipArchive(ZipArchive &) = delete;
+    ZipArchive &operator=(ZipArchive &) = delete;
 
-    QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
-    qint64 getDiff(const QString &id) const;
-    bool hasImage(const QString &id) const;
+    ZipArchive(ZipArchive &&other) noexcept;
+    ZipArchive &operator=(ZipArchive &&other) noexcept;
 
-  signals:
-    void imageAdded(const QString &id);
-
-  public slots:
-    void onImageReceived(const QString &id, QImage image);
-    void onModsReloading();
+    [[nodiscard]] QPair<bool, int> open();
+    [[nodiscard]] FileIndex getFileIndex(QUtf8StringView fileName) const;
+    [[nodiscard]] QByteArray getFileContent(FileIndex fileIndex) const;
+    ~ZipArchive();
 
   private:
-    QHash<QString, ImageEntry> mImages;
-    mutable QMutex mMutex;
+    QString mFile;
+    zip_t *mZipFile{nullptr};
 };
 } // namespace vsmm

@@ -18,30 +18,35 @@
 
 #pragma once
 
-#include <QSortFilterProxyModel>
-#include <qqmlintegration.h>
+#include <ImgProviderExport.hpp>
+#include <QMutex>
+#include <QQuickImageProvider>
 
 namespace vsmm {
-class ModSortFilterModel : public QSortFilterProxyModel {
+class IMGPROVIDER_EXPORT ModImageProvider : public QQuickImageProvider {
     Q_OBJECT
-    QML_ELEMENT
-    QML_SINGLETON
-    Q_PROPERTY(QString filterText READ getFilterText WRITE setFilterText NOTIFY filterTextChanged)
 
   public:
-    explicit ModSortFilterModel(QObject *parent = nullptr);
+    struct ImageEntry {
+        QImage image;
+        qint64 diff{0};
+    };
 
-    [[nodiscard]] QString getFilterText() const;
-    void setFilterText(const QString &filterText);
+    ModImageProvider();
+
+    QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
+    qint64 getDiff(const QString &id) const;
+    bool hasImage(const QString &id) const;
 
   signals:
-    void filterTextChanged();
+    void imageAdded(const QString &id);
 
-  protected:
-    [[nodiscard]] bool lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const override;
-    [[nodiscard]] bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
+  public slots:
+    void onImageReceived(const QString &id, QImage image);
+    void onModsReloading();
 
   private:
-    QString mFilterText;
+    QHash<QString, ImageEntry> mImages;
+    mutable QMutex mMutex;
 };
 } // namespace vsmm

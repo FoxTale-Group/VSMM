@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <ModEntryExport.hpp>
 #include <QFileInfo>
 #include <QJsonObject>
 #include <semver/semver.hpp>
@@ -30,7 +31,7 @@ struct LocalModInfo {
     QFileInfo mFileInfo;
 };
 
-class ModEntry {
+class MODENTRY_EXPORT ModEntry {
   public:
     explicit ModEntry(LocalModInfo info);
 

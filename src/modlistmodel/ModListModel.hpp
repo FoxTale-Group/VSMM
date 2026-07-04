@@ -18,16 +18,17 @@
 
 #pragma once
 
-#include "ModEntry.hpp"
-#include "ModImageProvider.hpp"
-#include "ModStore.hpp"
+#include <ModEntry.hpp>
+#include <ModImageProvider.hpp>
+#include <ModListModelExport.hpp>
+#include <ModStore.hpp>
 
 #include <QAbstractListModel>
 #include <QHash>
 #include <QList>
 
 namespace vsmm {
-class ModListModel : public QAbstractListModel {
+class MODLISTMODEL_EXPORT ModListModel : public QAbstractListModel {
     Q_OBJECT
     QML_ELEMENT
     QML_SINGLETON

@@ -63,6 +63,7 @@ void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
     }
     auto &mod = *it;
     mod.initOnlineInfo(std::move(onlineInfo));
+    emitSignal(&ModStore::modUpdated, this, mod);
 }
 
 void ModStore::reload() {

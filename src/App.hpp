@@ -17,12 +17,12 @@
  */
 
 #pragma once
+
 #include <QGuiApplication>
-#include <QNetworkAccessManager>
-#include <QNetworkDiskCache>
 #include <QQmlApplicationEngine>
 
-#include "ModImageProvider.hpp"
+#include <HttpClient.hpp>
+#include <ModImageProvider.hpp>
 
 namespace vsmm {
 class App final : public QGuiApplication {
@@ -34,9 +34,8 @@ class App final : public QGuiApplication {
     void initQmlEngine();
 
   private:
-    QNetworkAccessManager mNetworkManager;
-    QNetworkDiskCache mNetworkDiskCache;
+    HttpClient mHttpClient{this};
     ModImageProvider *mModImageProvider{nullptr}; // ownership passed to QML engine
-    QQmlApplicationEngine mQmlEngine;
+    QQmlApplicationEngine mQmlEngine{this};
 };
 } // namespace vsmm
