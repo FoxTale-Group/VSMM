@@ -7,6 +7,9 @@ import vsmm
 
 VsmmTabPanel {
     id: _SettingsTab_General
+
+    property bool deleteOldModVersion: false
+
     content: ColumnLayout {
         anchors.fill: parent
         spacing: 5
@@ -16,15 +19,12 @@ VsmmTabPanel {
             spacing: 2
 
             CheckBox {
-                id: aiojghnoaehgo
-                checked: false
+                id: deleteModCheck
+                checked: _SettingsTab_General.deleteOldModVersion
 
                 onCheckedChanged: {
-                    if (checked) {
-                        console.log()
-                    } else {
-                        console.log()
-                    }
+                    _SettingsTab_General.deleteOldModVersion = checked
+                    console.log("deleteOldModVersions: " + _SettingsTab_General.deleteOldModVersion)
                 }
             }
 
@@ -33,6 +33,7 @@ VsmmTabPanel {
                 font.pixelSize: 12
                 font.bold: true
                 color: Theme.colors.label
+                
             }
         }
 

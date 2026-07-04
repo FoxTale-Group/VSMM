@@ -4,6 +4,11 @@ qt_policy(SET QTP0005 NEW)
 
 configure_file(constants.hpp.in constants.hpp)
 
+set(QT_QML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml_imports)
+
+list(APPEND QML_IMPORT_PATH ${CMAKE_CURRENT_BINARY_DIR})
+set(QML_IMPORT_PATH ${QML_IMPORT_PATH} CACHE PATH "Qt Creator QML Import Paths" FORCE)
+
 add_subdirectory(httpclient)
 add_subdirectory(config Config)
 add_subdirectory(zip)

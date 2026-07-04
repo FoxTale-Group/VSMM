@@ -5,7 +5,7 @@ import QtQuick
 QtObject {
     id: _ThemeRoot
 
-    readonly property string appLogo: "qrc:/qt/qml/vsmm/assets/logo/vsmm.png"
+    readonly property string appLogo: "qrc:/qt/qml/vsmm/assets/logo/VSMM.png"
 
     readonly property int windowRadius: 10
     readonly property int buttonCornerRadius: 6

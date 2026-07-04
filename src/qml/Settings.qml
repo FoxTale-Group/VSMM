@@ -34,14 +34,17 @@ VsmmWindow {
 
             currentIndex: settingsTabBar.currentIndex
 
-            SettingsTab_General{}
-            SettingsTab_Paths{}
-            SettingsTab_Appearance{}
-            SettingsTab_Advanced{}
+            SettingsTab_General{ id: generalTab }
+            SettingsTab_Paths{ id: pathsTab}
+            SettingsTab_Appearance{ id: appearanceTab}
+            SettingsTab_Advanced{ id: advancedTab}
         }
 
+        // Settings window buttons
         RowLayout {
             Layout.fillWidth: true;
+            Layout.margins: 5
+            spacing: 5
 
             LayoutHorizontalSpacer{}
 
@@ -52,7 +55,10 @@ VsmmWindow {
                 display: AbstractButton.TextOnly
                 Layout.preferredHeight: 30
 
-                onClicked: console.log("Settings apply")
+                onClicked: {
+                    _settingsWindow.saveToConfig()
+                    console.log("Settings apply")
+                }
             }
 
             VsmmButton {
@@ -62,10 +68,32 @@ VsmmWindow {
                 display: AbstractButton.TextOnly
                 Layout.preferredHeight: 30
 
-                onClicked: console.log("settings close")
+                onClicked: {
+                    _settingsWindow.resetToCurrentConfig()
+                    _settingsWindow.close()
+                }
             }
 
             LayoutHorizontalSpacer{}
+        }
+    }
+
+    Component.onCompleted: resetToCurrentConfig()
+
+    function resetToCurrentConfig() {
+        if(Config && Config.config && Config.config.vsmm) {
+            generalTab.deleteOldModVersion = Config.config.vsmm.deleteOldModVersion
+            pathsTab.gameConfigDir = Config.config.vsmm.configGamePath
+        }
+    }
+
+    function saveToConfig() {
+        if(Config && Config.config && Config.config.vsmm) {
+            let cfg = Config.config;
+            cfg.vsmm.deleteOldModVersion = generalTab.deleteOldModVersion
+            cfg.vsmm.configGamePath = pathsTab.gameConfigDir
+
+            Config.config = cfg;
         }
     }
 }

@@ -69,6 +69,7 @@ Testing/
 .cache/
 
 .idea/
+.qtcreator
 
 build_and_run.sh
 run.sh
