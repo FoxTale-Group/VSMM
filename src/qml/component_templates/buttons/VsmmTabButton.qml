@@ -73,7 +73,7 @@ TabButton {
             anchors.horizontalCenter: parent.horizontalCenter
 
             color: _control.bottomBorder
-            Behavior on color {ColorAnimation{duration: 150}}
+            //Behavior on color {ColorAnimation{duration: 150}}
         }
     }
 }

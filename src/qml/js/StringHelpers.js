@@ -13,3 +13,10 @@ function getFileName(path) {
     return getCleanPath(path).split(/[/\\]/).pop();
 }
 
+function isNullOrEmpty(s) {
+    return !s;
+}
+
+function isNullOrWhitespace(s) {
+    return !s || s.trim() === "";
+}

@@ -27,7 +27,7 @@ RowLayout
 
         onClicked: {
             console.log("Add mod button clicked.")
-            openAddModDialog()
+            actionButtons.openAddModDialog()
         }
     }
 
