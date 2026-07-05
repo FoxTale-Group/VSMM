@@ -79,14 +79,14 @@ void Config::parseConfig() {
     using namespace Qt::StringLiterals;
     const QString clientSettingsFilename = "clientsettings.json";
 
-    if (!mConfig["vsmm"_L1].isValid() || mConfig["vsmm"_L1].isNull() ||
-        !mConfig["vsmm"_L1].canConvert<QVariantHash>()) {
+    if (!mConfig[GENERAL_JSON_KEY].isValid() || mConfig[GENERAL_JSON_KEY].isNull() ||
+        !mConfig[GENERAL_JSON_KEY].canConvert<QVariantHash>()) {
         qWarning() << "VSMM config is not a valid";
         setConfigReady(true);
         return;
     }
 
-    auto vsmm = mConfig["vsmm"_L1].toHash();
+    auto vsmm = mConfig[GENERAL_JSON_KEY].toHash();
     auto configGamePath = vsmm["configGamePath"_L1].toString();
     QDir configGameDir{configGamePath};
     if (configGamePath.isEmpty() || !configGameDir.exists()) {

@@ -41,6 +41,7 @@ Rectangle {
                 } else {
                     console.log(name + " is not selected for update anymore")
                 }
+                ModStore.markForUpdate(modid, checked)
             }
         }
 
@@ -245,11 +246,10 @@ Rectangle {
                 pressColor: hasUpdate ? Theme.colors.buttonUpdatePress : "transparent"
 
                 iconColor: hasUpdate ? Theme.colors.buttonUpdateLabel : Theme.colors.labelAlt
-
+                enabled: hasUpdate
                 onClicked: {
-                    if (hasUpdate) {
                         console.log("Updating mod" + name)
-                    }
+                        ModStore.update(modid);
                 }
             }
 

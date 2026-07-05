@@ -23,17 +23,20 @@
 #include <semver/semver.hpp>
 
 namespace {
-QUrl GetModUrlByAlias(QAnyStringView alias) { return QString("https://mods.vintagestory.at/%1").arg(alias); }
-QUrl GetModUrlByAssetId(qint64 assetId) { return QString("https://mods.vintagestory.at/show/mod/%1").arg(assetId); }
+using namespace Qt::StringLiterals;
+QUrl GetModUrlByAlias(QAnyStringView alias) { return u"https://mods.vintagestory.at/%1"_s.arg(alias); }
+QUrl GetModUrlByAssetId(qint64 assetId) { return u"https://mods.vintagestory.at/show/mod/%1"_s.arg(assetId); }
 } // namespace
 
 namespace vsmm {
 
-ModEntry::ModEntry(LocalModInfo info)
+ModEntry::ModEntry(LocalInfo info)
     : mName{std::move(info.mName)}, mVersion{std::move(info.mVersion)}, mAuthor{std::move(info.mAuthor)},
       mModId{std::move(info.mId)} {
     mFileInfo = std::move(info.mFileInfo);
 }
+
+QString ModEntry::toString() const { return u"%1@%2"_s.arg(mModId).arg(QString::fromStdString(mVersion.str())); }
 
 QAnyStringView ModEntry::getId() const { return mModId; }
 
@@ -53,10 +56,10 @@ QAnyStringView ModEntry::getAuthor() const {
 
 const semver::version &ModEntry::getVersion() const { return mVersion; }
 const QFileInfo &ModEntry::getFileInfo() const { return mFileInfo; }
+bool ModEntry::isMarkedForUpdate() const { return mMarkedForUpdate; }
+void ModEntry::setMarkedForUpdate(bool marked) { mMarkedForUpdate = marked; }
 
 void ModEntry::initOnlineInfo(QJsonObject json) {
-    using namespace Qt::StringLiterals;
-
     initName(json);
     initModUrl(json);
     initAuthor(json);
@@ -68,15 +71,12 @@ void ModEntry::initOnlineInfo(QJsonObject json) {
 }
 
 const QUrl &ModEntry::getUrl() const { return mOnlineInfo.mUrl; }
-const semver::version &ModEntry::getLatestVersion() const { return mOnlineInfo.mLatestVersion; }
+const ModEntry::LatestVersion &ModEntry::getLatestVersion() const { return mOnlineInfo.mLatestVersion; }
 const QStringList &ModEntry::getTags() const { return mOnlineInfo.mTags; }
-const QUrl &ModEntry::getLatestVersionUrl() const { return mOnlineInfo.mLatestReleaseUrl; }
 QAnyStringView ModEntry::getType() const { return mOnlineInfo.mType; }
-bool ModEntry::hasUpdate() const { return mHasUpdate; }
+bool ModEntry::hasUpdate() const { return mOnlineInfo.mLatestVersion.mHasUpdate; }
 
 void ModEntry::initName(const QJsonObject &json) {
-    using namespace Qt::StringLiterals;
-
     if (!json["name"].isString()) {
         qWarning() << u"%1: Invalid JSON format: name is not a string"_s.arg(mName);
         return;
@@ -85,8 +85,6 @@ void ModEntry::initName(const QJsonObject &json) {
 }
 
 void ModEntry::initLatestRelease(const QJsonObject &json) {
-    using namespace Qt::StringLiterals;
-
     if (!json["releases"].isArray()) {
         qWarning() << u"%1: Invalid JSON format: releases is not an array"_s.arg(mOnlineInfo.mName);
         return;
@@ -105,9 +103,12 @@ void ModEntry::initLatestRelease(const QJsonObject &json) {
                 mOnlineInfo.mName);
             return;
         }
-        mOnlineInfo.mLatestVersion = semver::version::parse(latestReleaseObj["modversion"].toString().toStdString());
-        if (mOnlineInfo.mLatestVersion > mVersion) {
-            mHasUpdate = true;
+        mOnlineInfo.mLatestVersion.mVersion =
+            semver::version::parse(latestReleaseObj["modversion"].toString().toStdString());
+        if (mOnlineInfo.mLatestVersion.mVersion > mVersion) {
+            mOnlineInfo.mLatestVersion.mFileName = latestReleaseObj["filename"].toString();
+            mOnlineInfo.mLatestVersion.mUrl = latestReleaseObj["mainfile"].toString();
+            mOnlineInfo.mLatestVersion.mHasUpdate = true;
         }
     } catch (const semver::semver_exception &e) {
         qWarning() << u"%1: Cannot parse version: %2"_s.arg(mOnlineInfo.mName).arg(e.what());
@@ -115,8 +116,6 @@ void ModEntry::initLatestRelease(const QJsonObject &json) {
 }
 
 void ModEntry::initAuthor(const QJsonObject &json) {
-    using namespace Qt::StringLiterals;
-
     if (!json["author"].isString()) {
         qWarning() << u"%1: Invalid JSON format: author is not a string"_s.arg(mOnlineInfo.mName);
         return;
@@ -126,8 +125,6 @@ void ModEntry::initAuthor(const QJsonObject &json) {
 }
 
 void ModEntry::initTags(const QJsonObject &json) {
-    using namespace Qt::StringLiterals;
-
     if (!json["tags"].isArray()) {
         qWarning() << u"%1: Invalid JSON format: tags is not a list"_s.arg(mOnlineInfo.mName);
         return;
@@ -142,8 +139,6 @@ void ModEntry::initTags(const QJsonObject &json) {
 }
 
 void ModEntry::initModUrl(const QJsonObject &json) {
-    using namespace Qt::StringLiterals;
-
     if (!json["urlalias"].isNull() && json["urlalias"].isString()) {
         mOnlineInfo.mUrl = GetModUrlByAlias(json["urlalias"].toString());
         return;
@@ -158,8 +153,6 @@ void ModEntry::initModUrl(const QJsonObject &json) {
 }
 
 void ModEntry::initType(const QJsonObject &json) {
-    using namespace Qt::StringLiterals;
-
     if (!json["type"].isString()) {
         qWarning() << u"%1: Invalid JSON format: type is not a string"_s.arg(mOnlineInfo.mName);
         return;

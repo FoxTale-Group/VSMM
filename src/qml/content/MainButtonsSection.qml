@@ -54,7 +54,7 @@ RowLayout
         hoverColor: Theme.colors.highlightButtonHover
         pressColor: Theme.colors.highlightButtonPress
 
-        enabled: ModStore.reloading === false
+        enabled: ModStore.workPending === false
         onClicked: ModStore.reload()
     }
 
@@ -71,7 +71,10 @@ RowLayout
         hoverColor: Theme.colors.highlightButtonHover
         pressColor: Theme.colors.highlightButtonPress
 
-        onClicked: console.log("Updating selected mods...")
+        onClicked: {
+            console.log("Updating selected mods...")
+            ModStore.updateSelected()
+        }
     }
 
     VsmmButton {
@@ -88,7 +91,10 @@ RowLayout
         hoverColor: Theme.colors.buttonUpdateHover
         pressColor: Theme.colors.buttonUpdatePress
 
-        onClicked: console.log("Updating all mods...")
+        onClicked: {
+            console.log("Updating all mods...")
+            ModStore.updateAll()
+        }
     }
 
 }

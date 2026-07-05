@@ -36,7 +36,7 @@ class MODSORTFILTERMODEL_EXPORT ModSortFilterModel : public QSortFilterProxyMode
     void setFilterText(const QString &filterText);
 
   signals:
-    void filterTextChanged();
+    void filterTextChanged(); // NOTIFY filterText — QML bindings only
 
   protected:
     [[nodiscard]] bool lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const override;

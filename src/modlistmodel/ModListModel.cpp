@@ -46,7 +46,7 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
     case AuthorRole:
         return mod.getAuthor().toString();
     case LatestVersionRole:
-        return QString::fromStdString(mod.getLatestVersion().str());
+        return QString::fromStdString(mod.getLatestVersion().mVersion.str());
     case TagsRole:
         return mod.getTags();
     case UrlRole:
@@ -63,6 +63,8 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
             .arg(mod.getId().toString())
             .arg(mImageProvider->getDiff(mod.getId().toString()));
     }
+    case IdRole:
+        return mod.getId().toString();
     default:
         return {};
     }
@@ -74,8 +76,7 @@ QHash<int, QByteArray> ModListModel::roleNames() const {
     return {
         {NameRole, "name"},    {VersionRole, "version"}, {AuthorRole, "author"}, {LatestVersionRole, "latestVersion"},
         {TagsRole, "tags"},    {UrlRole, "url"},         {TypeRole, "type"},     {HasUpdateRole, "hasUpdate"},
-        {IconRole, "modicon"},
-    };
+        {IconRole, "modicon"}, {IdRole, "modid"}};
 }
 
 void ModListModel::setModImageProvider(ModImageProvider *provider) { mImageProvider = provider; }

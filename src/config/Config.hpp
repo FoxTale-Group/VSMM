@@ -32,10 +32,13 @@ class CONFIG_EXPORT Config final : public QObject {
     Q_PROPERTY(QVariantHash config READ getConfig WRITE setConfig NOTIFY configChanged)
     Q_PROPERTY(bool ready READ isReady NOTIFY configReady)
 
-    static constexpr QAnyStringView CONFIG_FILE_NAME = "config.json";
+    static constexpr QLatin1StringView CONFIG_FILE_NAME{"config.json"};
+    static constexpr QLatin1StringView GENERAL_JSON_KEY{"vsmm"};
     const QStringList CLIENT_SETTINGS_VER_SUPPORT = {QStringLiteral("1.16")};
 
   public:
+    static constexpr QLatin1StringView DELETE_OLD_VERSION_JSON_KEY{"deleteOldModVersion"};
+
     Config();
     ~Config() override;
     [[nodiscard]] QVariantHash getConfig() const;
@@ -44,9 +47,13 @@ class CONFIG_EXPORT Config final : public QObject {
     [[nodiscard]] const QList<QDir> &getModsDirs() const;
     [[nodiscard]] bool isReady() const;
 
+    template <typename T> [[nodiscard]] T getGeneral(QLatin1StringView key) const {
+        return mConfig[GENERAL_JSON_KEY].toHash()[key].value<T>();
+    }
+
   signals:
-    void configChanged();
-    void configReady();
+    void configChanged(); // NOTIFY config — QML bindings only
+    void configReady();   // NOTIFY ready — QML bindings only
 
   private:
     void setConfigReady(bool ready);

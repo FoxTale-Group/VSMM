@@ -15,11 +15,11 @@ RowLayout
         model:
             [{
                 label: qsTr("Installed"),
-                value: ModStore.count,
+                value: ModStore.installedModsCount,
                 color: Theme.colors.statCardInstalledBg, textColor: Theme.colors.statCardInstalledText
             }, {
                 label: qsTr("Updates available"),
-                value: ModStore.updates,
+                value: ModStore.updatesCount,
                 color: Theme.colors.statCardUpdatesBg, textColor: Theme.colors.statCardUpdatesText
             }]
 
