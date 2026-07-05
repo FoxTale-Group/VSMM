@@ -36,6 +36,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     QML_ELEMENT
     QML_SINGLETON
 
+    static constexpr QLatin1StringView DOWNLOAD_CONTENT_TYPE{"application/zip"};
     static constexpr QLatin1StringView ONLINE_CONTENT_TYPE{"application/json"};
     static constexpr QLatin1StringView ONLINE_JSON_ROOT_KEY{"mod"};
     static constexpr QLatin1StringView ONLINE_LOGOFILE_JSON_KEY{"logofile"};
@@ -54,15 +55,22 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     void load(QFileInfo &&fileInfo);
 
   signals:
-    void modIconDownloaded(const QString &modId, QImage image);
-    void allModsReloaded();
+    void modIconDownloaded(const QString &modId, QImage image); // used by imgprovider
+    void allModsReloaded();                                     // used by modstore
 
   public slots:
     void onModsReloading();
     void onLoadFromGUI(const QUrl &filePath);
+    void onModUpdateRequested(const ModEntry &mod);
 
   private:
     void load_(QFileInfo &&fileInfo);
+
+    void onModInfoRetrieved(QString modId, QByteArray data);
+    void onModIconRetrieved(QString modId, QByteArray data);
+    void onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion);
+    void incrementModsLoadingInProgress();
+    void decrementModsLoadingInProgress();
 
     [[nodiscard]] static QVariant getLocalInfoFromZip(QFileInfo &&fileInfo);
     [[nodiscard]] static QVariant parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo);
@@ -71,12 +79,9 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     Config *mConfig{nullptr};
     ModStore *mStore{nullptr};
     HttpClient *mHttpClient{nullptr};
-    quint32 mModsLoadingInProgress{0};
+    QAtomicInteger<quint32> mModsLoadingInProgress{0};
     QThreadPool mThreadPoolExtractZips{this};
     QThreadPool mThreadPoolProcessIcon{this};
-
-  private slots:
-    void onModInfoRetrieved(QString modId, QByteArray data);
-    void onModIconRetrieved(QString modId, QByteArray data);
+    QThreadPool mThreadPoolProcessUpdate{this};
 };
 } // namespace vsmm

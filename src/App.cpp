@@ -58,6 +58,8 @@ void App::initQmlEngine() {
     auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmm", "ModListModel");
     modSortFilterModel->setSourceModel(modListModel);
 
+    modStore->setConfig(config);
+
     modManager->setHttpClient(&mHttpClient);
     modManager->setStore(modStore);
     modManager->setConfig(config);

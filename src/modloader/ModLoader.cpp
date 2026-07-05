@@ -21,6 +21,7 @@
 
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QStandardPaths>
 #include <QThread>
 #include <QThreadPool>
 #include <QTimer>
@@ -37,7 +38,10 @@ QUrl GetModUrlApi(QAnyStringView modId) { return u"https://mods.vintagestory.at/
 } // namespace
 
 namespace vsmm {
-ModLoader::ModLoader() { mThreadPoolExtractZips.setMaxThreadCount(std::min(4, QThread::idealThreadCount())); }
+ModLoader::ModLoader() {
+    mThreadPoolExtractZips.setMaxThreadCount(std::min(4, QThread::idealThreadCount()));
+    mThreadPoolProcessUpdate.setMaxThreadCount(std::min(4, QThread::idealThreadCount()));
+}
 
 bool ModLoader::initModsList() {
     static const QStringList modsExts{{"*.zip"}};
@@ -53,6 +57,9 @@ bool ModLoader::initModsList() {
 
     QList<QDir> modsDirs = mConfig->getModsDirs();
     if (modsDirs.isEmpty()) {
+        if (!mModsLoadingInProgress.loadRelaxed()) {
+            emit allModsReloaded();
+        }
         qCritical("No mods dirs found");
         return false;
     }
@@ -68,7 +75,7 @@ bool ModLoader::initModsList() {
         }
     }
 
-    if (!mModsLoadingInProgress) {
+    if (!mModsLoadingInProgress.loadRelaxed()) {
         emit allModsReloaded();
     }
     return true;
@@ -81,11 +88,36 @@ void ModLoader::setStore(ModStore *store) {
     mStore = store;
     connect(mStore, &ModStore::modsReloading, this, &ModLoader::onModsReloading);
     connect(mStore, &ModStore::modAddedFromGUI, this, &ModLoader::onLoadFromGUI);
+    connect(mStore, &ModStore::modUpdateRequested, this, &ModLoader::onModUpdateRequested);
     connect(this, &ModLoader::allModsReloaded, mStore, &ModStore::onModsReloaded);
 }
 
-void ModLoader::load(QFileInfo &&fileInfo) { load_(std::move(fileInfo)); }
-void ModLoader::onLoadFromGUI(const QUrl &filePath) { load_(QFileInfo{filePath.toLocalFile()}); }
+void ModLoader::load(QFileInfo &&fileInfo) {
+    incrementModsLoadingInProgress();
+    load_(std::move(fileInfo));
+}
+void ModLoader::onLoadFromGUI(const QUrl &filePath) {
+    incrementModsLoadingInProgress();
+    load_(QFileInfo{filePath.toLocalFile()});
+}
+void ModLoader::onModUpdateRequested(const ModEntry &mod) {
+    if (!mod.hasUpdate()) {
+        return;
+    }
+
+    incrementModsLoadingInProgress();
+
+    ModEntry::LatestVersion latestVersion = mod.getLatestVersion();
+    mHttpClient->sendGet(
+        latestVersion.mUrl, this, DOWNLOAD_CONTENT_TYPE,
+        [this, latestVersion](QByteArray data) mutable {
+            onModUpdateRetrieved(std::move(data), std::move(latestVersion));
+        },
+        [this, id = mod.getId()](QString error) {
+            qWarning() << u"Failed to retrieve update for %1: %2"_s.arg(id).arg(error);
+            decrementModsLoadingInProgress();
+        });
+}
 
 void ModLoader::onModIconRetrieved(QString modId, QByteArray data) {
     mThreadPoolProcessIcon.start([this, modId = std::move(modId), data = std::move(data)] mutable {
@@ -107,17 +139,44 @@ void ModLoader::onModIconRetrieved(QString modId, QByteArray data) {
     });
 }
 
+void ModLoader::onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion) {
+    mThreadPoolProcessUpdate.start([this, latestVersion = std::move(latestVersion), data = std::move(data)] {
+        QFile modUpdateFile{QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QDir::separator() +
+                            latestVersion.mFileName};
+        if (!modUpdateFile.open(QIODeviceBase::WriteOnly | QIODeviceBase::Truncate)) {
+            qWarning() << "Failed to create file for mod update";
+            decrementModsLoadingInProgress();
+            return;
+        }
+        if (modUpdateFile.write(data) != data.size()) {
+            qWarning() << "Failed to write mod update data to file";
+            decrementModsLoadingInProgress();
+            return;
+        }
+        modUpdateFile.close();
+        QFileInfo fileInfo{modUpdateFile.fileName()};
+        QMetaObject::invokeMethod(this, [this, fileInfo] mutable { load_(std::move(fileInfo)); }, Qt::QueuedConnection);
+    });
+}
+
+void ModLoader::incrementModsLoadingInProgress() { mModsLoadingInProgress.fetchAndAddRelaxed(1); }
+
+void ModLoader::decrementModsLoadingInProgress() {
+    if (mModsLoadingInProgress.fetchAndSubRelaxed(1) == 1) {
+        QMetaObject::invokeMethod(this, [this] { emit allModsReloaded(); }, Qt::QueuedConnection);
+    }
+}
+
 void ModLoader::onModsReloading() { initModsList(); }
 
 void ModLoader::load_(QFileInfo &&fileInfo) {
-    mModsLoadingInProgress++;
-    mThreadPoolExtractZips.start([this, fileInfo_ = std::move(fileInfo)] mutable {
-        auto localInfo = getLocalInfoFromZip(std::move(fileInfo_));
+    mThreadPoolExtractZips.start([this, fileInfo] mutable {
+        auto localInfo = getLocalInfoFromZip(std::move(fileInfo));
 
-        if (localInfo.isValid() && localInfo.canConvert<LocalModInfo>()) {
+        if (localInfo.isValid() && localInfo.canConvert<ModEntry::LocalInfo>()) {
             QMetaObject::invokeMethod(
                 this,
-                [this, modInfo_ = std::move(localInfo).value<LocalModInfo>()] mutable {
+                [this, modInfo_ = std::move(localInfo).value<ModEntry::LocalInfo>()] mutable {
                     // Copy id for info retrieval
                     QString modId = modInfo_.mId;
                     mStore->add(std::move(modInfo_));
@@ -128,30 +187,21 @@ void ModLoader::load_(QFileInfo &&fileInfo) {
                         },
                         [this](const QString &error) {
                             qWarning() << u"Error retrieving mod info: %1"_s.arg(error);
-                            if (!--mModsLoadingInProgress)
-                                emit allModsReloaded();
+                            decrementModsLoadingInProgress();
                         });
                 },
                 Qt::QueuedConnection);
             return;
         }
         qWarning() << std::move(localInfo).value<QString>();
-        QMetaObject::invokeMethod(
-            this,
-            [this] {
-                if (!--mModsLoadingInProgress)
-                    emit allModsReloaded();
-            },
-            Qt::QueuedConnection);
+        QMetaObject::invokeMethod(this, [this] { decrementModsLoadingInProgress(); }, Qt::QueuedConnection);
     });
 }
 
 void ModLoader::onModInfoRetrieved(QString modId, QByteArray data) {
     QJsonObject modObj = createOnlineModEntry(std::move(data), modId);
     if (modObj.isEmpty()) {
-        if (!--mModsLoadingInProgress) {
-            emit allModsReloaded();
-        }
+        decrementModsLoadingInProgress();
         return;
     }
 
@@ -165,9 +215,7 @@ void ModLoader::onModInfoRetrieved(QString modId, QByteArray data) {
         }
     }
     mStore->updateOnline(modId, std::move(modObj));
-    if (!--mModsLoadingInProgress) {
-        emit allModsReloaded();
-    }
+    decrementModsLoadingInProgress();
 }
 
 QVariant ModLoader::getLocalInfoFromZip(QFileInfo &&fileInfo) {
@@ -191,7 +239,7 @@ QVariant ModLoader::getLocalInfoFromZip(QFileInfo &&fileInfo) {
 }
 
 QVariant ModLoader::parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo) {
-    LocalModInfo info;
+    ModEntry::LocalInfo info;
     info.mFileInfo = std::move(fileInfo);
 
     QJsonParseError errorCode{.error = QJsonParseError::NoError};

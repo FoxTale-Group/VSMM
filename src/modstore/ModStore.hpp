@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <Config.hpp>
 #include <ModEntry.hpp>
 #include <ModStoreExport.hpp>
 
@@ -30,30 +31,38 @@ class MODSTORE_EXPORT ModStore : public QObject {
     Q_OBJECT
     QML_ELEMENT
     QML_SINGLETON
-    Q_PROPERTY(int count READ count NOTIFY modsModified)
-    Q_PROPERTY(int updates READ updates NOTIFY modsModified)
-    Q_PROPERTY(bool reloading READ reloading NOTIFY modsModified)
+    Q_PROPERTY(int installedModsCount READ modsCount NOTIFY modsChanged)
+    Q_PROPERTY(int updatesCount READ modUpdatesCount NOTIFY modsChanged)
+    Q_PROPERTY(bool workPending READ isWorkPending NOTIFY workChanged)
 
   public:
     explicit ModStore(QObject *parent = nullptr);
 
-    void add(LocalModInfo localModInfo);
+    void setConfig(Config *config);
+
+    void add(ModEntry::LocalInfo localModInfo);
     void updateOnline(QStringView id, QJsonObject onlineInfo);
     Q_INVOKABLE void reload();
     Q_INVOKABLE void load(const QUrl &filePath);
+    Q_INVOKABLE void update(const QString &id);
+    Q_INVOKABLE void updateAll();
+    Q_INVOKABLE void updateSelected();
+    Q_INVOKABLE void markForUpdate(const QString &id, bool marked);
 
     [[nodiscard]] bool contains(const QString &id) const;
     [[nodiscard]] const ModEntry *find(const QString &id) const;
-    [[nodiscard]] int count() const;
-    [[nodiscard]] int updates() const;
-    [[nodiscard]] int reloading() const;
+    [[nodiscard]] int modsCount() const;
+    [[nodiscard]] int modUpdatesCount() const;
+    [[nodiscard]] bool isWorkPending() const;
 
   signals:
-    void modsModified();
-    void modAdded(const ModEntry &mod);
-    void modUpdated(const ModEntry &mod);
-    void modsReloading();
-    void modAddedFromGUI(const QUrl &filePath);
+    void modsChanged();                           // NOTIFY installedModsCount/updatesCount — QML bindings only
+    void workChanged();                           // NOTIFY workPending — QML bindings only
+    void modAdded(const ModEntry &mod);           // used by modlistmodel
+    void modUpdated(const ModEntry &mod);         // used by modlistmodel
+    void modsReloading();                         // used by modlistmodel, modloader & imgprovider
+    void modAddedFromGUI(const QUrl &filePath);   // used by modloader
+    void modUpdateRequested(const ModEntry &mod); // used by modloader
 
   public slots:
     void onModsReloaded();
@@ -62,10 +71,14 @@ class MODSTORE_EXPORT ModStore : public QObject {
     template <typename Obj, typename Signal, typename... Args>
     void emitSignal(Signal &&signal, Obj *obj, Args &&...args) {
         emit(obj->*signal)(std::forward<Args>(args)...);
-        emit modsModified();
+        emit modsChanged();
     }
 
     QHash<QString, ModEntry> mMods;
-    bool mModsBeingReloaded{true};
+
+    // either update happening or mods are being reloaded
+    bool mWorkPending{true};
+
+    Config *mConfig{nullptr};
 };
 } // namespace vsmm

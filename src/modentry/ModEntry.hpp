@@ -25,29 +25,48 @@
 
 namespace vsmm {
 
-struct LocalModInfo {
-    QString mName, mId, mAuthor;
-    semver::version mVersion{};
-    QFileInfo mFileInfo;
-};
-
 class MODENTRY_EXPORT ModEntry {
   public:
-    explicit ModEntry(LocalModInfo info);
+    struct LatestVersion {
+        QUrl mUrl;
+        semver::version mVersion;
+        QString mFileName;
+        QStringList mSupportedVersions;
+        bool mHasUpdate{false};
+    };
+    struct LocalInfo {
+        QString mName, mId, mAuthor;
+        semver::version mVersion{};
+        QFileInfo mFileInfo;
+        [[nodiscard]] QString toString() const {
+            return QStringLiteral("%1@%2").arg(mId).arg(QString::fromStdString(mVersion.str()));
+        }
+
+        // ReSharper disable once CppNonExplicitConversionOperator
+        operator QString() const { return toString(); }
+    };
+
+    explicit ModEntry(LocalInfo info);
+
+    [[nodiscard]] QString toString() const;
+
+    // ReSharper disable once CppNonExplicitConversionOperator
+    operator QString() const { return toString(); }
 
     [[nodiscard]] QAnyStringView getId() const;
     [[nodiscard]] QAnyStringView getName() const;
     [[nodiscard]] QAnyStringView getAuthor() const;
     [[nodiscard]] const semver::version &getVersion() const;
     [[nodiscard]] const QFileInfo &getFileInfo() const;
+    [[nodiscard]] bool isMarkedForUpdate() const;
+    void setMarkedForUpdate(bool marked);
 
     void initOnlineInfo(QJsonObject json);
 
     // Online
     [[nodiscard]] const QUrl &getUrl() const;
-    [[nodiscard]] const semver::version &getLatestVersion() const;
+    [[nodiscard]] const LatestVersion &getLatestVersion() const;
     [[nodiscard]] const QStringList &getTags() const;
-    [[nodiscard]] const QUrl &getLatestVersionUrl() const;
     [[nodiscard]] QAnyStringView getType() const;
     [[nodiscard]] bool hasUpdate() const;
 
@@ -55,8 +74,8 @@ class MODENTRY_EXPORT ModEntry {
     struct OnlineInfo {
         QString mName, mAuthor, mType;
         QStringList mTags;
-        QUrl mUrl, mLatestReleaseUrl;
-        semver::version mLatestVersion;
+        QUrl mUrl;
+        LatestVersion mLatestVersion;
     };
 
     void initName(const QJsonObject &json);
@@ -72,7 +91,6 @@ class MODENTRY_EXPORT ModEntry {
     QString mModId;
     QFileInfo mFileInfo;
     OnlineInfo mOnlineInfo;
-
-    bool mHasUpdate{false};
+    bool mMarkedForUpdate{false};
 };
 } // namespace vsmm

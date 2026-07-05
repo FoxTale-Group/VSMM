@@ -43,7 +43,8 @@ class MODLISTMODEL_EXPORT ModListModel : public QAbstractListModel {
         UrlRole,
         TypeRole,
         HasUpdateRole,
-        IconRole
+        IconRole,
+        IdRole
     };
 
     explicit ModListModel(QObject *parent = nullptr);

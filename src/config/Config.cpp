@@ -36,6 +36,7 @@ Config::Config() {
     }
 
     QJsonDocument jsonDoc = QJsonDocument::fromJson(mConfigFile.readAll());
+    mConfigFile.close();
     if (!jsonDoc.isObject()) {
         qWarning() << "Config file is not a valid JSON object";
         setConfigReady(true);
@@ -46,16 +47,7 @@ Config::Config() {
     parseConfig();
 }
 
-Config::~Config() {
-    if (!mConfigFile.isOpen() && !mConfigFile.open(QIODevice::WriteOnly | QIODevice::NewOnly | QIODevice::Text)) {
-        qWarning() << "Config could not be saved";
-        return;
-    }
-
-    mConfigFile.reset();
-    mConfigFile.write(QJsonDocument(QJsonObject::fromVariantHash(mConfig)).toJson());
-    qDebug() << "Config file saved";
-}
+Config::~Config() { saveToFile(); }
 
 QVariantHash Config::getConfig() const { return mConfig; }
 void Config::setConfig(const QVariantHash &data) {
@@ -63,6 +55,8 @@ void Config::setConfig(const QVariantHash &data) {
         return;
     }
     mConfig = data;
+    parseConfig();
+    saveToFile();
     emit configChanged();
 }
 
@@ -70,23 +64,38 @@ const QList<QDir> &Config::getModsDirs() const { return mModsDirs; }
 
 bool Config::isReady() const { return mConfigReady; }
 
+void Config::saveToFile() const {
+    QSaveFile newConfigFile{mConfigFile.fileName()};
+    if (!newConfigFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "Config could not be saved";
+        return;
+    }
+    newConfigFile.write(QJsonDocument(QJsonObject::fromVariantHash(mConfig)).toJson());
+    if (!newConfigFile.commit()) {
+        qWarning() << "Config could not be saved";
+        return;
+    }
+    qDebug() << "Config saved";
+}
+
 void Config::setConfigReady(bool ready) {
     mConfigReady = ready;
     emit configReady();
 }
 
 void Config::parseConfig() {
+    mModsDirs.clear();
     using namespace Qt::StringLiterals;
     const QString clientSettingsFilename = "clientsettings.json";
 
-    if (!mConfig["vsmm"_L1].isValid() || mConfig["vsmm"_L1].isNull() ||
-        !mConfig["vsmm"_L1].canConvert<QVariantHash>()) {
+    if (!mConfig[GENERAL_JSON_KEY].isValid() || mConfig[GENERAL_JSON_KEY].isNull() ||
+        !mConfig[GENERAL_JSON_KEY].canConvert<QVariantHash>()) {
         qWarning() << "VSMM config is not a valid";
         setConfigReady(true);
         return;
     }
 
-    auto vsmm = mConfig["vsmm"_L1].toHash();
+    auto vsmm = mConfig[GENERAL_JSON_KEY].toHash();
     auto configGamePath = vsmm["configGamePath"_L1].toString();
     QDir configGameDir{configGamePath};
     if (configGamePath.isEmpty() || !configGameDir.exists()) {

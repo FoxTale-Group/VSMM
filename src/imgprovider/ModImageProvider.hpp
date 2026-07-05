@@ -39,7 +39,7 @@ class IMGPROVIDER_EXPORT ModImageProvider : public QQuickImageProvider {
     bool hasImage(const QString &id) const;
 
   signals:
-    void imageAdded(const QString &id);
+    void imageAdded(const QString &id); // used by modlistmodel
 
   public slots:
     void onImageReceived(const QString &id, QImage image);
