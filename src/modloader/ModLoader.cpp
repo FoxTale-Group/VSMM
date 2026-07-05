@@ -57,6 +57,9 @@ bool ModLoader::initModsList() {
 
     QList<QDir> modsDirs = mConfig->getModsDirs();
     if (modsDirs.isEmpty()) {
+        if (!mModsLoadingInProgress.loadRelaxed()) {
+            emit allModsReloaded();
+        }
         qCritical("No mods dirs found");
         return false;
     }

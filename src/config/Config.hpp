@@ -22,6 +22,7 @@
 #include <QDir>
 #include <QFile>
 #include <QJsonObject>
+#include <QSaveFile>
 #include <qqmlintegration.h>
 
 namespace vsmm {
@@ -56,6 +57,7 @@ class CONFIG_EXPORT Config final : public QObject {
     void configReady();   // NOTIFY ready — QML bindings only
 
   private:
+    void saveToFile() const;
     void setConfigReady(bool ready);
     void parseConfig();
     void readModsPaths(const QJsonObject &clientSettings);

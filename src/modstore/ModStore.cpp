@@ -98,9 +98,6 @@ void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
 }
 
 void ModStore::reload() {
-    if (mMods.isEmpty()) {
-        return;
-    }
     mWorkPending = true;
     mMods.clear();
     emit workChanged();
