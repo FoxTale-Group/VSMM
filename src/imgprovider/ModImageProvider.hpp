@@ -27,15 +27,10 @@ class IMGPROVIDER_EXPORT ModImageProvider : public QQuickImageProvider {
     Q_OBJECT
 
   public:
-    struct ImageEntry {
-        QImage image;
-        qint64 diff{0};
-    };
-
     ModImageProvider();
 
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
-    qint64 getDiff(const QString &id) const;
+    qint64 getCacheKey(const QString &id) const;
     bool hasImage(const QString &id) const;
 
   signals:
@@ -46,7 +41,7 @@ class IMGPROVIDER_EXPORT ModImageProvider : public QQuickImageProvider {
     void onModsReloading();
 
   private:
-    QHash<QString, ImageEntry> mImages;
+    QHash<QString, QImage> mImages;
     mutable QMutex mMutex;
 };
 } // namespace vsmm

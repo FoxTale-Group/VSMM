@@ -26,7 +26,7 @@ QImage ModImageProvider::requestImage(const QString &id, QSize *size, const QSiz
     {
         QMutexLocker locker(&mMutex);
         QString key = id.section('?', 0, 0);
-        image = mImages.value(key).image;
+        image = mImages.value(key);
     }
     if (size)
         *size = image.size();
@@ -36,9 +36,9 @@ QImage ModImageProvider::requestImage(const QString &id, QSize *size, const QSiz
     return image;
 }
 
-qint64 ModImageProvider::getDiff(const QString &id) const {
+qint64 ModImageProvider::getCacheKey(const QString &id) const {
     QMutexLocker locker(&mMutex);
-    return mImages.value(id).diff;
+    return mImages.value(id).cacheKey();
 }
 
 bool ModImageProvider::hasImage(const QString &id) const {
@@ -50,10 +50,9 @@ void ModImageProvider::onImageReceived(const QString &id, QImage image) {
     {
         QMutexLocker locker(&mMutex);
         if (const auto it = mImages.find(id); it != mImages.end()) {
-            it->image = std::move(image);
-            it->diff++;
+            *it = std::move(image);
         } else {
-            mImages.insert(id, {.image = std::move(image)});
+            mImages.insert(id, std::move(image));
         }
     }
     emit imageAdded(id);
