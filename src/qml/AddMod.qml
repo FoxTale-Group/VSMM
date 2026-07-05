@@ -11,6 +11,11 @@ import "js/StringHelpers.js" as StrUtils
 VsmmWindow {
     id: _addModWindow
 
+    property string modPath: ""
+
+    width: 400
+    height: 300
+
     dialog: true
     resizable: false
     modality: Qt.ApplicationModal
@@ -19,7 +24,7 @@ VsmmWindow {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
-        spacing: 20
+        spacing: 5
 
         Label {
             text: qsTr("Install New Mod")
@@ -63,8 +68,9 @@ VsmmWindow {
 
                 onDropped: (drop) => {
                     if (drop.hasUrls) {
-                        let rawUrl = drop.urls[0].toString()
-                        _addModWindow.sendFile(rawUrl)
+                        _addModWindow.modPath = drop.urls[0].toString()
+                        modPathLabel.text = qsTr("Selected mod: ") + StrUtils.getFileName(_addModWindow.modPath)
+                        modPathLabel.color = Theme.colors.label
                     }
                 }
             }
@@ -80,16 +86,46 @@ VsmmWindow {
             }
         }
 
-        VsmmButton {
-            text: qsTr("Add")
-            icon.source: ""
+        Label {
+            id: modPathLabel
+            text: ""
+            color: Theme.colors.label
+            horizontalAlignment: Text.AlignHCenter
+            Layout.alignment: Qt.AlignHCenter
+        }
 
-            display: AbstractButton.TextOnly
-            Layout.preferredHeight: 30
+        RowLayout {
+            Layout.fillWidth: true;
+            Layout.margins: 0
+            spacing: 0
 
-            onClicked: {
-                console.log("Settings apply")
+            LayoutHorizontalSpacer{}
+
+            VsmmButton {
+                text: qsTr("Add")
+                icon.source: ""
+
+                display: AbstractButton.TextOnly
+                Layout.preferredHeight: 30
+
+                onClicked: {
+                    console.log("Add mod")
+                    sendFile(_addModWindow.modPath)
+                }
             }
+            LayoutHorizontalSpacer{}
+        }
+
+        Component.onCompleted: {
+            _addModWindow.modPath = ""
+            modPathLabel.text = qsTr("Selected mod: ")
+            modPathLabel.color = Theme.colors.label
+        }
+
+        Component.onDestruction: {
+            _addModWindow.modPath = ""
+            modPathLabel.text = qsTr("Selected mod: ")
+            modPathLabel.color = Theme.colors.label
         }
     }
 
@@ -102,8 +138,9 @@ VsmmWindow {
         nameFilters: [qsTr("Vintage Story Mod Archive (*.zip)"), qsTr("All Files (*)")]
 
         onAccepted: {
-            let rawUrl = systemFilePicker.selectedFile.toString()
-            _addModWindow.sendFile(rawUrl)
+            _addModWindow.modPath = systemFilePicker.selectedFile.toString()
+            modPathLabel.text = qsTr("Selected mod: ") + StrUtils.getFileName(_addModWindow.modPath)
+            modPathLabel.color = Theme.colors.label
         }
     }
 
@@ -118,7 +155,12 @@ VsmmWindow {
             addModWindow.close()
 
         } else {
-            console.log("Error: Only .zip files are allowed!")
+            if(StrUtils.isNullOrWhitespace(path)){
+                modPathLabel.text = qsTr("No file is selected")
+                modPathLabel.color = Theme.colors.textWarning
+            }
+            modPathLabel.text = qsTr("Only .zip files are allowed!")
+            modPathLabel.color = Theme.colors.textError
         }
     }
 }
