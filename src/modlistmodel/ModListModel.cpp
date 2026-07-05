@@ -61,7 +61,7 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
         }
         return QStringLiteral("image://modicon/%1?diff=%2")
             .arg(mod.getId().toString())
-            .arg(mImageProvider->getDiff(mod.getId().toString()));
+            .arg(mImageProvider->getCacheKey(mod.getId().toString()));
     }
     case IdRole:
         return mod.getId().toString();
