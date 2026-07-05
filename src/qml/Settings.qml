@@ -62,6 +62,7 @@ VsmmWindow {
 
                 onClicked: {
                     _settingsWindow.saveToConfig()
+                    settingsChanged = false
                     console.log("Settings applied")
                 }
             }
@@ -78,6 +79,7 @@ VsmmWindow {
                 onClicked: {
                     _settingsWindow.saveToConfig()
                     console.log("Settings applied")
+                    settingsChanged = false
                     _settingsWindow.close()
                 }
             }
@@ -106,6 +108,7 @@ VsmmWindow {
             pathsTab.gameConfigDir = Config.config.vsmm.configGamePath
             pathsTab.gameExePath = Config.config.vsmm.gameExe
         }
+        settingsChanged = false
     }
 
     function saveToConfig() {
