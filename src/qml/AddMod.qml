@@ -80,18 +80,30 @@ VsmmWindow {
             }
         }
 
-        FileDialog {
-            id: systemFilePicker
-            title: qsTr("Select Mod Archive")
+        VsmmButton {
+            text: qsTr("Add")
+            icon.source: ""
 
-            currentFolder: StandardPaths.writableLocation(StandardPaths.DownloadLocation)
+            display: AbstractButton.TextOnly
+            Layout.preferredHeight: 30
 
-            nameFilters: [qsTr("Vintage Story Mod Archive (*.zip)"), qsTr("All Files (*)")]
-
-            onAccepted: {
-                let rawUrl = systemFilePicker.selectedFile.toString()
-                _addModWindow.sendFile(rawUrl)
+            onClicked: {
+                console.log("Settings apply")
             }
+        }
+    }
+
+    FileDialog {
+        id: systemFilePicker
+        title: qsTr("Select Mod Archive")
+
+        currentFolder: StandardPaths.writableLocation(StandardPaths.DownloadLocation)
+
+        nameFilters: [qsTr("Vintage Story Mod Archive (*.zip)"), qsTr("All Files (*)")]
+
+        onAccepted: {
+            let rawUrl = systemFilePicker.selectedFile.toString()
+            _addModWindow.sendFile(rawUrl)
         }
     }
 

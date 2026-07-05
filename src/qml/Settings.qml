@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import vsmm
+import "js/StringHelpers.js" as StrUtils
 
 VsmmWindow {
     id: _settingsWindow
@@ -14,6 +15,8 @@ VsmmWindow {
     dialog: true; movable: false; resizable: false;
     modality: Qt.ApplicationModal
 
+    property bool settingsChanged: false
+
     ColumnLayout {
         anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20; anchors.topMargin: 5; anchors.bottomMargin: 10;
         spacing: 0
@@ -24,7 +27,7 @@ VsmmWindow {
             VsmmTabButton { text: qsTr("General")}
             VsmmTabButton { text: qsTr("Paths")}
             VsmmTabButton { text: qsTr("Appearance")}
-            VsmmTabButton { text: qsTr("Advanced")}
+            //VsmmTabButton { text: qsTr("Advanced")}
         }
 
         StackLayout {
@@ -34,10 +37,10 @@ VsmmWindow {
 
             currentIndex: settingsTabBar.currentIndex
 
-            SettingsTab_General{ id: generalTab }
-            SettingsTab_Paths{ id: pathsTab}
-            SettingsTab_Appearance{ id: appearanceTab}
-            SettingsTab_Advanced{ id: advancedTab}
+            SettingsTab_General{ id: generalTab; onSettingsEdited: (edited) => _settingsWindow.settingsChanged = edited}
+            SettingsTab_Paths{ id: pathsTab; onSettingsEdited: (edited) => _settingsWindow.settingsChanged = edited}
+            SettingsTab_Appearance{ id: appearanceTab; onSettingsEdited: (edited) => _settingsWindow.settingsChanged = edited}
+            //SettingsTab_Advanced{ id: advancedTab}
         }
 
         // Settings window buttons
@@ -49,21 +52,38 @@ VsmmWindow {
             LayoutHorizontalSpacer{}
 
             VsmmButton {
-                text: qsTr("Apply")
-                icon.source: ""
+                text: settingsChanged ? "* " + qsTr("Save") : qsTr("Save")
+
+                defaultColor: settingsChanged ? Theme.colors.buttonDefault : Theme.colors.buttonInactive
+                enabled: settingsChanged
 
                 display: AbstractButton.TextOnly
                 Layout.preferredHeight: 30
 
                 onClicked: {
                     _settingsWindow.saveToConfig()
-                    console.log("Settings apply")
+                    console.log("Settings applied")
+                }
+            }
+
+            VsmmButton {
+                text: qsTr("Save & Close")
+
+                defaultColor: settingsChanged ? Theme.colors.buttonDefault : Theme.colors.buttonInactive
+                enabled: settingsChanged
+
+                display: AbstractButton.TextOnly
+                Layout.preferredHeight: 30
+
+                onClicked: {
+                    _settingsWindow.saveToConfig()
+                    console.log("Settings applied")
+                    _settingsWindow.close()
                 }
             }
 
             VsmmButton {
                 text: qsTr("Close")
-                icon.source: ""
 
                 display: AbstractButton.TextOnly
                 Layout.preferredHeight: 30
@@ -84,14 +104,23 @@ VsmmWindow {
         if(Config && Config.config && Config.config.vsmm) {
             generalTab.deleteOldModVersion = Config.config.vsmm.deleteOldModVersion
             pathsTab.gameConfigDir = Config.config.vsmm.configGamePath
+            pathsTab.gameExePath = Config.config.vsmm.gameExe
         }
     }
 
     function saveToConfig() {
         if(Config && Config.config && Config.config.vsmm) {
             let cfg = Config.config;
+
             cfg.vsmm.deleteOldModVersion = generalTab.deleteOldModVersion
-            cfg.vsmm.configGamePath = pathsTab.gameConfigDir
+
+            if(!StrUtils.isNullOrWhitespace(pathsTab.gameConfigDir)) {
+                cfg.vsmm.configGamePath = pathsTab.gameConfigDir
+            }
+
+            if(!StrUtils.isNullOrWhitespace(pathsTab.gameExePath)) {
+                cfg.vsmm.gameExe = pathsTab.gameExePath
+            }
 
             Config.config = cfg;
         }

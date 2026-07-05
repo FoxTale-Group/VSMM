@@ -7,13 +7,23 @@ import vsmm
 
 VsmmTabPanel {
     id: _SettingsTab_Appearance
-    content: Rectangle {
-        anchors.fill: parent; anchors.margins: 10; color: "transparent"
+
+    signal settingsEdited(edited: bool)
+
+    content: ColumnLayout {
+        anchors.fill: parent
+        spacing: 5
 
         Label {
-            text: qsTr("Theme and UI Options Go Here")
-            anchors.centerIn: parent
+            text: qsTr("Application Language")
             color: Theme.colors.label
         }
+
+        Label {
+            text: qsTr("Theme")
+            color: Theme.colors.label
+        }
+
+        LayoutVerticalSpacer{}
     }
 }

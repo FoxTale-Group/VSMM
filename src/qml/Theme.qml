@@ -18,13 +18,19 @@ QtObject {
         readonly property color windowTitle:      "#7e7e7e"
 
         // Default text labels and icons
-        readonly property color icon: "white"
-        readonly property color text: "white"
+        readonly property color icon:              "white"
+        readonly property color text:              "white"
+        readonly property color textSelection:     "lightblue"
+        readonly property color textSelected:      "black"
+        readonly property color textWarning:       "yellow"
+        readonly property color textError:         "red"
+        readonly property color link:            "#1da7d5"
 
-        readonly property color label: "white"
-        readonly property color labelAlt: "#999999"
-        readonly property color labelVersion: "#888888"
-
+        readonly property color label:            "white"
+        readonly property color labelAlt:       "#999999"
+        readonly property color labelVersion:   "#888888"
+        readonly property color labelHighlight: "green"
+        
         // Divider
         readonly property color divider: "#333333"
 
@@ -47,6 +53,7 @@ QtObject {
         readonly property color tabButtonHoverBorder:    tabButtonHover
 
         // Default button colors
+        readonly property color buttonInactive: "#323232"
         readonly property color buttonDefault: "#595959"
         readonly property color buttonHover:   "#3e3e3e"
         readonly property color buttonPress:   "#2a2a2a"
