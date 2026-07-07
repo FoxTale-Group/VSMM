@@ -1,20 +1,26 @@
 name: Release
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+    inputs:
+      releaseType:
+        description: 'Type of release to create'
+        required: true
+        type: choice
+        options:
+          - alpha
+          - beta
+          - rc
+          - stable
 
 env:
   DEFAULT_BUILD_TYPE: Release
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref_name }},
+  group: ${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   prepare-release-version:
-    if: github.ref_name == 'main' || github.ref_name == 'next'
     permissions:
       contents: write
       pull-requests: read
@@ -41,17 +47,17 @@ jobs:
       - name: Determine release channel
         id: channel
         run: |
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          if [ "${{ inputs.releaseType }}" = "stable" ]; then
             echo "isPrerelease=false" >> "$GITHUB_OUTPUT"
             echo "version=${{ steps.semver.outputs.next }}" >> "$GITHUB_OUTPUT"
             echo "versionStrict=${{ steps.semver.outputs.nextStrict }}" >> "$GITHUB_OUTPUT"
           else
-            # Per-version sequential RC: find the highest existing vX.Y.Z-rc.N tag and add 1
-            lastRc=$(git tag -l "${{ steps.semver.outputs.next }}-rc.*" | sed 's/.*-rc\.//' | sort -n | tail -n1)
-            rc=$(( ${lastRc:-0} + 1 ))
+            # Per-version sequential RC: find the highest existing vX.Y.Z-(alpha|beta|rc).N tag and add 1
+            lastRelease=$(git tag -l "${{ steps.semver.outputs.next }}-${{ inputs.releaseType }}.*" | sed 's/.*-${{ inputs.releaseType }}\.//' | sort -n | tail -n1)
+            releaseNum=$(( ${lastRelease:-0} + 1 ))
             echo "isPrerelease=true" >> "$GITHUB_OUTPUT"
-            echo "version=${{ steps.semver.outputs.next }}-rc.${rc}" >> "$GITHUB_OUTPUT"
-            echo "versionStrict=${{ steps.semver.outputs.nextStrict }}-rc.${rc}" >> "$GITHUB_OUTPUT"
+            echo "version=${{ steps.semver.outputs.next }}-${{ inputs.releaseType }}.${releaseNum}" >> "$GITHUB_OUTPUT"
+            echo "versionStrict=${{ steps.semver.outputs.nextStrict }}-${{ inputs.releaseType }}.${releaseNum}" >> "$GITHUB_OUTPUT"
           fi
     outputs:
       bumpVersion: ${{ steps.semver.outputs.bump }}
@@ -60,7 +66,7 @@ jobs:
       isPrerelease: ${{ steps.channel.outputs.isPrerelease }}
   create-package:
     needs: [prepare-release-version]
-    if: (github.ref_name == 'main' || github.ref_name == 'next') && needs.prepare-release-version.outputs.bumpVersion != 'none'
+    if: needs.prepare-release-version.outputs.bumpVersion != 'none'
 
     permissions:
       contents: write
@@ -71,7 +77,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y libzip-dev ninja-build
+          sudo apt install -y ninja-build qt6-{base,declarative}-dev libzip-dev
       - name: Fetch repository
         uses: actions/checkout@v7
         with:
@@ -89,21 +95,6 @@ jobs:
           args: --tag ${{ needs.prepare-release-version.outputs.releaseVersion }} --unreleased
         env:
           GITHUB_TOKEN: ${{ github.token }}
-      - name: Create release commit with tag
-        uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          commit_message: 'chore(release): ${{ needs.prepare-release-version.outputs.releaseVersionStrict }}'
-          branch: ${{ github.ref_name }}
-          commit_options: '--no-verify --signoff'
-          file_pattern: 'CMakeLists.txt'
-          tag_name: ${{ needs.prepare-release-version.outputs.releaseVersion }}
-          tagging_message: 'Release ${{ needs.prepare-release-version.outputs.releaseVersionStrict }}'
-          disable_globbing: true
-          create_git_tag_only: false
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4.3.1
-        with:
-          version: '6.11.1'
       - name: Configure
         id: configure
         run: |
@@ -115,13 +106,26 @@ jobs:
         run: |
           cmake --build ${{ steps.configure.outputs.buildDir }}
           cd ${{ steps.configure.outputs.buildDir }} && ninja package && cd ${{ github.workspace }}
+      - name: Create release commit with tag
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: 'chore(release): ${{ needs.prepare-release-version.outputs.releaseVersionStrict }}'
+          branch: ${{ github.ref_name }}
+          commit_options: '--no-verify --signoff'
+          file_pattern: 'CMakeLists.txt'
+          tag_name: ${{ needs.prepare-release-version.outputs.releaseVersion }}
+          tagging_message: 'Release ${{ needs.prepare-release-version.outputs.releaseVersionStrict }}'
+          disable_globbing: true
+          create_git_tag_only: false
       - name: Create release
         uses: ncipollo/release-action@v1.21.0
         with:
           name: ${{ needs.prepare-release-version.outputs.releaseVersion }}
-          artifacts: '${{ steps.configure.outputs.buildDir }}/pkg/*.xz,${{ steps.configure.outputs.buildDir }}/pkg/*.gz,${{ steps.configure.outputs.buildDir }}/pkg/*.rpm,${{ steps.configure.outputs.buildDir }}/pkg/*.deb'
+          artifacts: '${{ env.PACKAGE_PATH }}/*.xz,${{ env.PACKAGE_PATH }}/*.gz,${{ env.PACKAGE_PATH }}/*.rpm,${{ env.PACKAGE_PATH }}/*.deb'
           body: ${{ steps.generate-changelog.outputs.content }}
           tag: ${{ needs.prepare-release-version.outputs.releaseVersion }}
           prerelease: ${{ needs.prepare-release-version.outputs.isPrerelease }}
           makeLatest: ${{ needs.prepare-release-version.outputs.isPrerelease == 'false' }}
           immutableCreate: true
+        env:
+          PACKAGE_PATH: '${{ steps.configure.outputs.buildDir }}/pkg'

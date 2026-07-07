@@ -19,9 +19,20 @@ body = """
 {% for commit in commits %}
 - {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message | upper_first }}\
 {% if commit.remote.username %} by @{{ commit.remote.username }}{% endif %}\
-{% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}](https://github.com/FoxTale-Group/VSMM/pull/{{ commit.remote.pr_number }})){% endif %}\
+{% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/pull/{{ commit.remote.pr_number }})){% endif %}\
 {% endfor %}
 {% endfor %}\n
+{%- if github -%}
+{% if github.contributors | filter(attribute="is_first_time", value=true) | length != 0 %}
+  ## ❤️ New Contributors
+{% endif %}\
+{% for contributor in github.contributors | filter(attribute="is_first_time", value=true) %}
+  * @{{ contributor.username }} made their first contribution
+    {%- if contributor.pr_number %} in \
+      [#{{ contributor.pr_number }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/pull/{{ contributor.pr_number }}) \
+    {%- endif %}
+{%- endfor -%}
+{%- endif %}
 """
 trim = true
 footer = ""
@@ -40,8 +51,8 @@ filter_commits = true             # only keep commits matched by a parser below
 topo_order = false
 sort_commits = "newest"
 
-# Only consider version tags (matches stable + -rc tags)
-tag_pattern = "v[0-9]*"
+# Only consider stable version tags and ignore prerelease tags (-alpha/-beta/-rc)
+tag_pattern = "v[0-9]+\\.[0-9]+\\.[0-9]+$"
 
 commit_parsers = [
   { message = '^\w+\((ci|build|chore|docs|style)\)', skip = true },
@@ -56,7 +67,6 @@ commit_parsers = [
   { message = "^ci",        skip = true },
   { message = "^build",     skip = true },
   { message = "^chore",     skip = true },
-  { message = "^Release",   skip = true },   # the auto release commit
   { message = ".*",         skip = true },   # anything unmatched
 ]
 

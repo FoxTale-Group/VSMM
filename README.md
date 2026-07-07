@@ -57,13 +57,13 @@ glance which mods have updates available — all inside a custom, frameless, dar
 - [cpp-semver](https://github.com/easz/cpp-semver) - fetched automatically via CMake `FetchContent`
 
 
-Install requred build dependencies using your distribution package manager.
+Install required build dependencies using your distribution package manager.
 ```bash
 # For Arch:
 sudo pacman -S cmake ninja qt6-base qt6-declarative libzip 
 
 # For Ubuntu:
-sudo apt install cmake ninja-build qt6-{base,declarative}-dev libzip-dev qml6-module-qtquick-controls qml6-module-qtquick-window
+sudo apt install cmake ninja-build qt6-{base,declarative}-dev libzip-dev
 
 # For Fedora:
 sudo dnf install cmake ninja-build libzip-devel qt6-qtbase-devel qt6-qtquickcontrols2-devel
