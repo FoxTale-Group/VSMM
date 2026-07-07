@@ -1,0 +1,10 @@
+name: Build Windows Installer
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Test Output
+        run: echo "Hello, World!"
