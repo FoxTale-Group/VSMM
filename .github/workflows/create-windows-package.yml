@@ -1,0 +1,78 @@
+name: Windows Release
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  create-windows-package:
+    runs-on: windows-latest
+    env:
+      BUILD_DIR: build-win
+    steps:
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4.3.1
+        with:
+          version: '6.10.0'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          cache: true
+          cache-key-prefix: 'qt-v6.10.0'
+
+      - name: Install NSIS
+        run: choco install nsis
+
+      - name: Install libzip with vcpkg
+        run: vcpkg install libzip:x64-windows
+
+      - name: Fetch Repository
+        uses: actions/checkout@v7
+
+      - name: Update project version in CMakeLists.txt
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.version }}"
+          # The parentheses around Get-Content are MANDATORY to prevent file locking
+          (Get-Content CMakeLists.txt) -replace '(set\(VSMM_RELEASE_VERSION )"[^"]*"', ('$1"{0}"' -f $version) | Set-Content CMakeLists.txt
+
+      - name: Configure CMake Build
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VS_PATH=%%i"
+          call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat"
+          cmake -B ${{ env.BUILD_DIR }} -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_TOOLCHAIN_FILE="%VCPKG_INSTALLATION_ROOT%\scripts\buildsystems\vcpkg.cmake" -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
+
+      - name: Build
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VS_PATH=%%i"
+          call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat"
+          cmake --build ${{ env.BUILD_DIR }} --config ${{ env.BUILD_TYPE }}
+
+      - name: Create package
+        working-directory: ${{ github.workspace }}\${{ env.BUILD_DIR }}
+        run: cpack -C Release
+
+      - name: Upload NSIS Crash Log
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: NSIS-Crash-Log
+          path: ${{ env.BUILD_DIR }}\pkg\_CPack_Packages\win64\NSIS\NSISOutput.log
+          retention-days: 3
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-packages-windows
+          path: |
+            ${{ env.BUILD_DIR }}/pkg/*.exe
+            ${{ env.BUILD_DIR }}/pkg/*.zip
+          if-no-files-found: error
+          retention-days: 1

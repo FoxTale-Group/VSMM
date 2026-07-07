@@ -7,7 +7,11 @@ project(VSMM
 set(APP_DISPLAY_NAME "Vintage Story Mod Manager")
 set(CMAKE_CXX_STANDARD 23)
 
-find_package(libzip REQUIRED)
+if (MSVC)
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+endif ()
+
+find_package(libzip CONFIG REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Core Quick Qml Network QuickControls2)
 
 qt_standard_project_setup()

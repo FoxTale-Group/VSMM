@@ -1,4 +1,4 @@
-name: Build & Test
+name: Build Linux & Test
 on:
   pull_request:
     branches:
@@ -9,7 +9,7 @@ env:
   DEFAULT_BUILD_TYPE: Debug
 
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-26.04
     steps:
       - name: Install dependencies
@@ -34,7 +34,7 @@ jobs:
             ${{ runner.os }}-deps-
       - name: Configure
         run: |
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE="${{ inputs.releaseType || env.DEFAULT_BUILD_TYPE }}" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_GENERATOR=Ninja
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE="${{ env.DEFAULT_BUILD_TYPE }}" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_GENERATOR=Ninja
       - name: Build
         run: |
           cmake --build ${{github.workspace}}/build

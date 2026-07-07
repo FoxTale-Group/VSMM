@@ -63,8 +63,14 @@ jobs:
     uses: ./.github/workflows/create-linux-package.yml
     with:
       version: ${{ needs.prepare-release-version.outputs.releaseVersionStrict }}
+  create-package-windows:
+    if: needs.prepare-release-version.outputs.bumpVersion != 'none'
+    needs: [ prepare-release-version ]
+    uses: ./.github/workflows/create-windows-package.yml
+    with:
+      version: ${{ needs.prepare-release-version.outputs.releaseVersionStrict }}
   create-release:
-    needs: [prepare-release-version, create-package-linux]
+    needs: [prepare-release-version, create-package-linux, create-package-windows]
     if: needs.prepare-release-version.outputs.bumpVersion != 'none'
 
     runs-on: ubuntu-latest
@@ -118,7 +124,7 @@ jobs:
         with:
           token: ${{ steps.create-token.outputs.token }}
           name: ${{ needs.prepare-release-version.outputs.releaseVersion }}
-          artifacts: 'pkg/*.xz,pkg/*.gz,pkg/*.rpm,pkg/*.deb'
+          artifacts: 'pkg/*.xz,pkg/*.gz,pkg/*.rpm,pkg/*.deb,pkg/*.exe,pkg/*.zip'
           body: ${{ steps.generate-changelog.outputs.content }}
           tag: ${{ needs.prepare-release-version.outputs.releaseVersion }}
           prerelease: ${{ needs.prepare-release-version.outputs.isPrerelease }}
