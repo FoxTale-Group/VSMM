@@ -1,0 +1,49 @@
+name: Linux Release
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  create-package:
+    runs-on: ubuntu-26.04 # change to ubuntu-latest when it's 26.04
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y ninja-build qt6-{base,declarative}-dev libzip-dev
+      - name: Fetch repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Update project version in CMakeLists.txt
+        run: |
+          version='${{ inputs.version }}'
+          sed -i -E "s/(set\(VSMM_RELEASE_VERSION )\"[^\"]*\"/\1\"${version}\"/" CMakeLists.txt
+      - name: Configure
+        id: configure
+        run: |
+          echo "buildDir=${{ env.BUILD_DIR }}" >> ${GITHUB_OUTPUT}
+          cmake -B ${{ env.BUILD_DIR }} -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" -DCMAKE_GENERATOR=Ninja
+        env:
+          BUILD_DIR: '${{ github.workspace }}/build'
+      - name: Build & Package
+        run: |
+          cmake --build ${{ steps.configure.outputs.buildDir }}
+          cd ${{ steps.configure.outputs.buildDir }} && ninja package && cd ${{ github.workspace }}
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-packages-linux
+          path: |
+            ${{ steps.configure.outputs.buildDir }}/pkg/*.tar.xz
+            ${{ steps.configure.outputs.buildDir }}/pkg/*.tar.gz
+            ${{ steps.configure.outputs.buildDir }}/pkg/*.deb
+            ${{ steps.configure.outputs.buildDir }}/pkg/*.rpm
+          if-no-files-found: error
+          retention-days: 1

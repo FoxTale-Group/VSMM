@@ -14,7 +14,7 @@ qt_add_qml_module(${PROJECT_NAME}
         URI ${PROJECT_NAME}
         VERSION ${PROJECT_VERSION}
         SOURCES ${SOURCES})
-install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib)
+install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib/vsmm)
 
 generate_export_header(${PROJECT_NAME} EXPORT_FILE_NAME "${PROJECT_NAME}Export.hpp")
 

@@ -12,19 +12,12 @@ on:
           - rc
           - stable
 
-env:
-  DEFAULT_BUILD_TYPE: Release
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   prepare-release-version:
-    permissions:
-      contents: write
-      pull-requests: read
-
     runs-on: ubuntu-latest
     steps:
       - name: Fetch repository
@@ -52,7 +45,7 @@ jobs:
             echo "version=${{ steps.semver.outputs.next }}" >> "$GITHUB_OUTPUT"
             echo "versionStrict=${{ steps.semver.outputs.nextStrict }}" >> "$GITHUB_OUTPUT"
           else
-            # Per-version sequential RC: find the highest existing vX.Y.Z-(alpha|beta|rc).N tag and add 1
+            # Per-version sequential: find the highest existing vX.Y.Z-(alpha|beta|rc).N tag and add 1
             lastRelease=$(git tag -l "${{ steps.semver.outputs.next }}-${{ inputs.releaseType }}.*" | sed 's/.*-${{ inputs.releaseType }}\.//' | sort -n | tail -n1)
             releaseNum=$(( ${lastRelease:-0} + 1 ))
             echo "isPrerelease=true" >> "$GITHUB_OUTPUT"
@@ -64,26 +57,31 @@ jobs:
       releaseVersion: ${{ steps.channel.outputs.version }} # with v prefix
       releaseVersionStrict: ${{ steps.channel.outputs.versionStrict }} # without v prefix
       isPrerelease: ${{ steps.channel.outputs.isPrerelease }}
-  create-package:
+  create-package-linux:
+    if: needs.prepare-release-version.outputs.bumpVersion != 'none'
     needs: [prepare-release-version]
+    uses: ./.github/workflows/create-linux-package.yml
+    with:
+      version: ${{ needs.prepare-release-version.outputs.releaseVersionStrict }}
+  create-release:
+    needs: [prepare-release-version, create-package-linux]
     if: needs.prepare-release-version.outputs.bumpVersion != 'none'
 
-    permissions:
-      contents: write
-      pull-requests: read   # git-cliff GitHub integration resolves PR numbers/authors
-
-    runs-on: ubuntu-26.04 # change to ubuntu-latest when it's 26.04
+    runs-on: ubuntu-latest
     steps:
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y ninja-build qt6-{base,declarative}-dev libzip-dev
+      - name: Create GitHub App token
+        id: create-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.RELEASE_BOT_CLIENTID }}
+          private-key: ${{ secrets.RELEASE_BOT_KEY }}
       - name: Fetch repository
         uses: actions/checkout@v7
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
-      - name: Bump project version in CMakeLists.txt
+          token: ${{ steps.create-token.outputs.token }}
+      - name: Update project version in CMakeLists.txt
         run: |
           version='${{ needs.prepare-release-version.outputs.releaseVersionStrict }}'
           sed -i -E "s/(set\(VSMM_RELEASE_VERSION )\"[^\"]*\"/\1\"${version}\"/" CMakeLists.txt
@@ -94,21 +92,13 @@ jobs:
           config: cliff.toml
           args: --tag ${{ needs.prepare-release-version.outputs.releaseVersion }} --unreleased
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-      - name: Configure
-        id: configure
-        run: |
-          echo "buildDir=${{ env.BUILD_DIR }}" >> ${GITHUB_OUTPUT}
-          cmake -B ${{ env.BUILD_DIR }} -DCMAKE_BUILD_TYPE="${{ env.DEFAULT_BUILD_TYPE }}" -DCMAKE_GENERATOR=Ninja
-        env:
-          BUILD_DIR: '${{ github.workspace }}/build'
-      - name: Build & Package
-        run: |
-          cmake --build ${{ steps.configure.outputs.buildDir }}
-          cd ${{ steps.configure.outputs.buildDir }} && ninja package && cd ${{ github.workspace }}
+          GITHUB_TOKEN: ${{ steps.create-token.outputs.token }}
       - name: Create release commit with tag
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
+          commit_user_name: '${{ steps.create-token.outputs.app-slug }}[bot]'
+          commit_user_email: '301098493+${{ steps.create-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+          commit_author: '${{ steps.create-token.outputs.app-slug }}[bot] <301098493+${{ steps.create-token.outputs.app-slug }}[bot]@users.noreply.github.com>'
           commit_message: 'chore(release): ${{ needs.prepare-release-version.outputs.releaseVersionStrict }}'
           branch: ${{ github.ref_name }}
           commit_options: '--no-verify --signoff'
@@ -117,15 +107,20 @@ jobs:
           tagging_message: 'Release ${{ needs.prepare-release-version.outputs.releaseVersionStrict }}'
           disable_globbing: true
           create_git_tag_only: false
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ github.workspace }}/pkg
+          pattern: 'release-packages-*'
+          merge-multiple: true
       - name: Create release
         uses: ncipollo/release-action@v1.21.0
         with:
+          token: ${{ steps.create-token.outputs.token }}
           name: ${{ needs.prepare-release-version.outputs.releaseVersion }}
-          artifacts: '${{ env.PACKAGE_PATH }}/*.xz,${{ env.PACKAGE_PATH }}/*.gz,${{ env.PACKAGE_PATH }}/*.rpm,${{ env.PACKAGE_PATH }}/*.deb'
+          artifacts: 'pkg/*.xz,pkg/*.gz,pkg/*.rpm,pkg/*.deb'
           body: ${{ steps.generate-changelog.outputs.content }}
           tag: ${{ needs.prepare-release-version.outputs.releaseVersion }}
           prerelease: ${{ needs.prepare-release-version.outputs.isPrerelease }}
           makeLatest: ${{ needs.prepare-release-version.outputs.isPrerelease == 'false' }}
           immutableCreate: true
-        env:
-          PACKAGE_PATH: '${{ steps.configure.outputs.buildDir }}/pkg'
