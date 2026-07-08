@@ -113,7 +113,7 @@ void ModLoader::onModUpdateRequested(const ModEntry &mod) {
         [this, latestVersion](QByteArray data) mutable {
             onModUpdateRetrieved(std::move(data), std::move(latestVersion));
         },
-        [this, id = mod.getId()](QString error) {
+        [this, id = mod.getId()](const QString &error) {
             qWarning() << u"Failed to retrieve update for %1: %2"_s.arg(id).arg(error);
             decrementModsLoadingInProgress();
         });

@@ -38,63 +38,65 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
     }
 
     // Check if there is already a mod with the same id
-    for (auto it = mMods.begin(); it != mMods.end(); ++it) {
-        if (it.key() != localModInfo.mId) {
-            continue;
+    if (const auto it = mMods.find(localModInfo.mId); it != mMods.end()) {
+        if (it->getVersion() >= localModInfo.mVersion) {
+            qInfo() << u"Mod %1 already has newer version in mods folder %2."_s.arg(localModInfo)
+                           .arg(it->getFileInfo().absolutePath());
+            return;
+        }
+        qInfo() << u"Got newer version of mod %1. Replacing..."_s.arg(localModInfo);
+
+        QString modPath = it->getFileInfo().absolutePath();
+        QString newModFilePath = modPath + QDir::separator() + localModInfo.mFileInfo.fileName();
+        // remove old mod and copy new one
+        auto removeOldVersion = mConfig->getGeneral<bool>(Config::DELETE_OLD_VERSION_JSON_KEY);
+        if (removeOldVersion && !QFile::moveToTrash(it->getFileInfo().absoluteFilePath())) {
+            qWarning() << u"Failed to move mod %1 to trash."_s.arg(*it);
         }
 
-        auto &currentMod = *it;
-        if (currentMod.getVersion() < localModInfo.mVersion) {
-            qInfo() << u"Got newer version of mod %1. Replacing..."_s.arg(localModInfo);
+        // Dont copy mod if it's already in the mods folder
+        if (!modPath.startsWith(localModInfo.mFileInfo.absolutePath()) &&
+            !QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
+            qWarning() << u"Failed to copy mod %1 to %2."_s.arg(localModInfo).arg(newModFilePath);
+            if (qsizetype extPos = newModFilePath.indexOf(".zip"_L1); extPos != -1) {
+                newModFilePath.insert(extPos, QString::fromStdString("_" + localModInfo.mVersion.str()));
 
-            QString modPath = currentMod.getFileInfo().absolutePath();
-            QString newModFilePath = modPath + QDir::separator() + localModInfo.mFileInfo.fileName();
-            // remove old mod and copy new one
-            auto removeOldVersion = mConfig->getGeneral<bool>(Config::DELETE_OLD_VERSION_JSON_KEY);
-            if (removeOldVersion && !QFile::moveToTrash(currentMod.getFileInfo().absoluteFilePath())) {
-                qWarning() << u"Failed to move mod %1 to trash."_s.arg(currentMod);
-            }
-
-            // Dont copy mod if it's already in the mods folder
-            if (!modPath.startsWith(localModInfo.mFileInfo.absolutePath()) &&
-                !QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
-                qWarning() << u"Failed to copy mod %1 to %2."_s.arg(localModInfo).arg(newModFilePath);
-                if (qsizetype extPos = newModFilePath.indexOf(".zip"_L1); extPos != -1) {
-                    newModFilePath.insert(extPos, QString::fromStdString("_" + localModInfo.mVersion.str()));
-
-                    // Last try to copy file to mods folder with suffixed version
-                    if (!QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
-                        qWarning() << u"Failed to copy mod %1 to %2."_s.arg(localModInfo).arg(newModFilePath);
-                        return;
-                    }
+                // Last try to copy file to mods folder with suffixed version
+                if (!QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
+                    qWarning() << u"Failed to copy mod %1 to %2."_s.arg(localModInfo).arg(newModFilePath);
+                    return;
                 }
             }
 
             // update file info for newly copied mod
             localModInfo.mFileInfo = QFileInfo{newModFilePath};
-            currentMod = ModEntry{std::move(localModInfo)};
+            *it = ModEntry{std::move(localModInfo)};
 
-            emitSignal(&ModStore::modUpdated, this, currentMod);
+            emitSignal(&ModStore::modUpdated, this, *it);
             return;
         }
+    }
 
-        qInfo() << u"Mod %1 already has newer version in mods folder %2."_s.arg(localModInfo).arg(currentMod);
+    if (mConfig->getModsDirs().isEmpty()) {
         return;
     }
 
-    const QString id = localModInfo.mId;
-    const auto it = mMods.emplace(id, std::move(localModInfo));
+    // TODO: For now add only to first dir
+    QFile::copy(localModInfo.mFileInfo.absoluteFilePath(),
+                mConfig->getModsDirs().first().absolutePath() + QDir::separator() + localModInfo.mFileInfo.fileName());
+
+    QString id = localModInfo.mId;
+    const auto it = mMods.emplace(std::move(id), std::move(localModInfo));
     emitSignal(&ModStore::modAdded, this, *it);
 }
 
 void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
-    auto it = mMods.find(id);
+    const auto it = mMods.find(id);
     if (it == mMods.end()) {
         return;
     }
-    auto &mod = *it;
-    mod.initOnlineInfo(std::move(onlineInfo));
-    emitSignal(&ModStore::modUpdated, this, mod);
+    it->initOnlineInfo(std::move(onlineInfo));
+    emitSignal(&ModStore::modUpdated, this, *it);
 }
 
 void ModStore::reload() {

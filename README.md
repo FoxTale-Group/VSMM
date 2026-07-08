@@ -39,7 +39,7 @@ glance which mods have updates available — all inside a custom, frameless, dar
 [Latest release](https://github.com/FoxTale-Group/VSMM/releases/latest)
 
 ### Runtime Dependencies
-- Qt 6.11
+- Qt 6.10
 - libzip
 
 (this section is work in progress)
@@ -51,10 +51,9 @@ glance which mods have updates available — all inside a custom, frameless, dar
 ### Requirements
 
 - A C++23-capable compiler
-- [CMake](https://cmake.org/) ≥ 4.3 and [Ninja](https://ninja-build.org/)
+- [CMake](https://cmake.org/) ≥ 4.2 and [Ninja](https://ninja-build.org/)
 - [Qt 6](https://www.qt.io/) - `Core`, `Quick`, `Qml`, `Network`, `QuickControls2`
 - [libzip](https://libzip.org/)
-- [cpp-semver](https://github.com/easz/cpp-semver) - fetched automatically via CMake `FetchContent`
 
 
 Install required build dependencies using your distribution package manager.
@@ -81,7 +80,7 @@ cmake -G Ninja -S . -B build-dir -DCMAKE_BUILD_TYPE=Release && cmake --build bui
 ```
 > [!NOTE]
 > For an optimized build, use `-DCMAKE_BUILD_TYPE=Release` and a matching build directory.
-> Use `-DCMAKE_BUILD_TYPE=Release` for more detailed verbose logs.
+> Use `-DCMAKE_BUILD_TYPE=Debug` for more detailed verbose logs.
 > You can name your `build-dir` whatever you like.
 
 > [!TIP]
@@ -124,9 +123,7 @@ full list of features, ideas, and bugs.
 
 ## Contributing
 
-Contributions are welcome! Please open an issue to discuss significant changes
-before submitting a pull request. The codebase splits cleanly into a C++ backend
-(`src/`) and a QML frontend (`src/qml/`).
+Contributions are welcome! Check [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## License
 
