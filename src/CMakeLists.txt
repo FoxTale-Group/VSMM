@@ -84,7 +84,7 @@ elseif (WIN32)
 endif ()
 
 # CPACK METADATA
-set(CPACK_PACKAGE_NAME "Vintage_Story_Mod_Manager")
+set(CPACK_PACKAGE_NAME "vintagestory-mod-manager")
 set(CPACK_PACKAGE_VERSION "${VSMM_RELEASE_VERSION}")
 set(CPACK_PACKAGE_VENDOR "FoxTale Group - VSMM Team")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A custom mod manager for Vintage Story")
