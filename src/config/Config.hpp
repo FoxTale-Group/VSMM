@@ -26,7 +26,7 @@
 #include <qqmlintegration.h>
 
 namespace vsmm {
-class CONFIG_EXPORT Config final : public QObject {
+class CONFIG_EXPORT Config : public QObject {
     Q_OBJECT
     QML_NAMED_ELEMENT(Config)
     QML_SINGLETON

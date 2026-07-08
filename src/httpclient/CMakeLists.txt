@@ -9,7 +9,7 @@ target_include_directories(${PROJECT_NAME}
         INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
         PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
 target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Core Qt6::Network)
-install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib)
+install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib/vsmm)
 
 generate_export_header(${PROJECT_NAME} EXPORT_FILE_NAME "${PROJECT_NAME}Export.hpp")
 
