@@ -42,9 +42,9 @@ set(PROJECT_DEPENDENCIES_AND_LIBRARIES
         ModListModel
         ModLoader
         ModSortFilterModel
-        HttpClient )
+        HttpClient)
 add_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES_AND_LIBRARIES})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_DEPENDENCIES_AND_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_DEPENDENCIES_AND_LIBRARIES} Qt6::QuickControls2)
 
 # Include target dir
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
