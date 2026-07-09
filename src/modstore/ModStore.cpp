@@ -25,6 +25,10 @@
 namespace vsmm {
 ModStore::ModStore(QObject *parent) : QObject{parent} {}
 void ModStore::setConfig(Config *config) { mConfig = config; }
+void ModStore::setGameMngr(GameMngr *gameMngr) {
+    mGameMngr = gameMngr;
+    connect(mGameMngr, &GameMngr::modsDirsChanged, this, &ModStore::onModsDirChanged);
+}
 
 void ModStore::add(ModEntry::LocalInfo localModInfo) {
     using namespace Qt::StringLiterals;
@@ -35,6 +39,10 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
 
     if (!mConfig) {
         qFatal() << "Config is not set.";
+    }
+
+    if (!mGameMngr) {
+        qFatal() << "GameMngr is not set.";
     }
 
     // Check if there is already a mod with the same id
@@ -77,13 +85,13 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
         }
     }
 
-    if (mConfig->getModsDirs().isEmpty()) {
+    if (mGameMngr->getModsDirs().isEmpty()) {
         return;
     }
 
     // TODO: For now add only to first dir
-    QFile::copy(localModInfo.mFileInfo.absoluteFilePath(),
-                mConfig->getModsDirs().first().absolutePath() + QDir::separator() + localModInfo.mFileInfo.fileName());
+    QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), mGameMngr->getModsDirs().first().absolutePath() +
+                                                               QDir::separator() + localModInfo.mFileInfo.fileName());
 
     QString id = localModInfo.mId;
     const auto it = mMods.emplace(std::move(id), std::move(localModInfo));
@@ -179,4 +187,6 @@ void ModStore::onModsReloaded() {
     });
     qDebug() << "Mods reloaded";
 }
+
+void ModStore::onModsDirChanged() { reload(); }
 } // namespace vsmm
