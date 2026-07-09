@@ -20,7 +20,10 @@
 
 #include <QDir>
 #include <QJsonArray>
+#include <QLoggingCategory>
 #include <QStandardPaths>
+
+Q_STATIC_LOGGING_CATEGORY(cConfig, "config");
 
 namespace vsmm {
 Config::Config() {
@@ -28,149 +31,116 @@ Config::Config() {
     mConfigFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + QDir::separator() +
                             CONFIG_FILE_NAME.toString());
 
-    qDebug() << mConfigFile.fileName();
-
     if (!mConfigFile.open(QIODevice::ReadWrite | QIODevice::ExistingOnly | QIODevice::Text)) {
-        setConfigReady(true);
+        qCWarning(cConfig, "Could not open config file");
         return;
     }
 
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(mConfigFile.readAll());
+    QJsonParseError jsonError;
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(mConfigFile.readAll(), &jsonError);
+
+    if (jsonError.error != QJsonParseError::NoError) {
+        qCFatal(cConfig) << jsonError.errorString();
+        return;
+    }
+
     mConfigFile.close();
     if (!jsonDoc.isObject()) {
-        qWarning() << "Config file is not a valid JSON object";
-        setConfigReady(true);
+        qCWarning(cConfig, "Config file is not a valid JSON object");
         return;
     }
 
     mConfig = jsonDoc.object().toVariantHash();
-    parseConfig();
 }
 
 Config::~Config() { saveToFile(); }
 
-QVariantHash Config::getConfig() const { return mConfig; }
-void Config::setConfig(const QVariantHash &data) {
-    if (mConfig == data) {
+QString Config::getPath(QLatin1StringView key) const { return mConfig[PATHS_JSON_KEY].toHash()[key].toString(); }
+
+QVariantHash Config::getGeneral() const { return mConfig[GENERAL_JSON_KEY].toHash(); }
+QVariantHash Config::getPaths() const { return mConfig[PATHS_JSON_KEY].toHash(); }
+QVariantHash Config::getAppearance() const { return mConfig[APPEARANCE_JSON_KEY].toHash(); }
+
+void Config::setGeneral(const QVariantHash &data) {
+    if (mConfig[GENERAL_JSON_KEY].toHash() == data) {
         return;
     }
-    mConfig = data;
-    parseConfig();
+
+    mConfig[GENERAL_JSON_KEY] = QVariant::fromValue(data);
     saveToFile();
-    emit configChanged();
+    emit generalChanged();
+    qCDebug(cConfig) << "emitted generalChanged";
 }
 
-const QList<QDir> &Config::getModsDirs() const { return mModsDirs; }
+void Config::setPaths(const QVariantHash &data) {
+    using namespace Qt::StringLiterals;
+    constexpr QLatin1StringView CONFIG_DIR_KEY_NAME{"gameConfig"};
 
-bool Config::isReady() const { return mConfigReady; }
+    if (mConfig[PATHS_JSON_KEY].toHash() == data) {
+        return;
+    }
+
+    const QDir oldConfigDir = getPath(CONFIG_DIR_KEY_NAME);
+
+    mConfig[PATHS_JSON_KEY] = QVariant::fromValue(data);
+    saveToFile();
+    emit pathsChanged();
+    qCDebug(cConfig) << "emitted pathsChanged";
+
+    // Check if config dir path changed
+    if (oldConfigDir != mConfig[PATHS_JSON_KEY].toHash()[CONFIG_DIR_KEY_NAME].toString()) {
+        emit gameConfigPathChanged();
+        qCDebug(cConfig) << "emitted gameConfigPathChanged";
+    }
+}
+
+void Config::setAppearance(const QVariantHash &data) {
+    if (mConfig[APPEARANCE_JSON_KEY].toHash() == data) {
+        return;
+    }
+
+    mConfig[APPEARANCE_JSON_KEY] = QVariant::fromValue(data);
+    saveToFile();
+    emit appearanceChanged();
+    qCDebug(cConfig) << "emitted appearanceChanged";
+}
 
 void Config::saveToFile() const {
     QSaveFile newConfigFile{mConfigFile.fileName()};
     if (!newConfigFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "Config could not be saved";
+        qCWarning(cConfig, "Failed to open config file for writing");
         return;
     }
     newConfigFile.write(QJsonDocument(QJsonObject::fromVariantHash(mConfig)).toJson());
     if (!newConfigFile.commit()) {
-        qWarning() << "Config could not be saved";
+        qCWarning(cConfig, "Failed to write config file");
         return;
     }
-    qDebug() << "Config saved";
+    qCInfo(cConfig, "Config saved");
 }
 
-void Config::setConfigReady(bool ready) {
-    mConfigReady = ready;
-    emit configReady();
-}
-
-void Config::parseConfig() {
-    mModsDirs.clear();
+void Config::validate() {
     using namespace Qt::StringLiterals;
-    const QString clientSettingsFilename = "clientsettings.json";
 
     if (!mConfig[GENERAL_JSON_KEY].isValid() || mConfig[GENERAL_JSON_KEY].isNull() ||
         !mConfig[GENERAL_JSON_KEY].canConvert<QVariantHash>()) {
-        qWarning() << "VSMM config is not a valid";
-        setConfigReady(true);
+        qCCritical(cConfig, "VSMM config is not a valid");
         return;
     }
 
-    auto vsmm = mConfig[GENERAL_JSON_KEY].toHash();
-    auto configGamePath = vsmm["configGamePath"_L1].toString();
+    auto general = mConfig[PATHS_JSON_KEY].toHash();
+    auto configGamePath = general["gameConfig"_L1].toString();
     QDir configGameDir{configGamePath};
     if (configGamePath.isEmpty() || !configGameDir.exists()) {
-        qWarning() << "Config game path does not exist";
-        setConfigReady(true);
+        qCCritical(cConfig, "Config game path does not exist");
         return;
     }
 
-    if (!configGameDir.exists(clientSettingsFilename)) {
-        qWarning() << "Client settings file does not exist";
-        setConfigReady(true);
-        return;
-    }
-
-    QFile clientSettingsFile{configGamePath + QDir::separator() + clientSettingsFilename};
-    if (!clientSettingsFile.open(QIODevice::ReadOnly | QIODevice::Text | QIODevice::ExistingOnly)) {
-        qWarning() << u"Failed to open client settings file"_s.arg(clientSettingsFile.fileName());
-        setConfigReady(true);
-        return;
-    }
-
-    QJsonDocument clientSettingsDoc = QJsonDocument::fromJson(clientSettingsFile.readAll());
-    if (!clientSettingsDoc.isObject()) {
-        qWarning() << "Client settings file is not a valid JSON object";
-        setConfigReady(true);
-        return;
-    }
-
-    auto clientSettings = clientSettingsDoc.object();
-    if (const auto &[valid, reason] = checkClientSettingsVer(clientSettings); !valid) {
-        qWarning() << u"Detected unsupported clientsettings: %1"_s.arg(reason);
-        setConfigReady(true);
-        return;
-    }
-
-    readModsPaths(clientSettings);
-    emit configChanged();
-    setConfigReady(true);
-}
-
-void Config::readModsPaths(const QJsonObject &clientSettings) {
-    using namespace Qt::StringLiterals;
-    if (!clientSettings["stringListSettings"_L1].isObject()) {
-        qWarning() << "Failed to locate stringListSettings in client settings file";
-        return;
-    }
-
-    auto stringListSettings = clientSettings["stringListSettings"_L1].toObject();
-    if (!stringListSettings["modPaths"_L1].isArray()) {
-        qWarning() << "Invalid modPaths";
-        return;
-    }
-
-    for (const auto &path : stringListSettings["modPaths"_L1].toArray()) {
-        if (path == "Mods" || path.isNull() || path.isUndefined() || path.toStringView().isEmpty()) {
-            continue;
-        }
-
-        mModsDirs.append(path.toString());
-    }
-}
-
-QPair<bool, QString> Config::checkClientSettingsVer(const QJsonObject &clientSettings) const {
-    using namespace Qt::StringLiterals;
-    if (!clientSettings["stringSettings"_L1].isObject()) {
-        return {false, u"Invalid stringSettings"_s};
-    }
-
-    auto stringSettings = clientSettings["stringSettings"_L1].toObject();
-    if (auto clSettingsVersion = stringSettings["settingsVersion"_L1].toStringView();
-        !CLIENT_SETTINGS_VER_SUPPORT.contains(clSettingsVersion)) {
-        return {false, u"Unsupported clientsettings version %1"_s.arg(clSettingsVersion)};
-    }
-
-    return {true, {}};
+    emit generalChanged();
+    emit appearanceChanged();
+    emit pathsChanged();
+    emit gameConfigPathChanged();
+    qCDebug(cConfig) << "emitted QML signals & gameConfigPathChanged";
 }
 
 } // namespace vsmm

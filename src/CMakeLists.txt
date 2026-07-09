@@ -22,6 +22,7 @@ add_subdirectory(imgprovider)
 add_subdirectory(modlistmodel ModListModel)
 add_subdirectory(modloader ModLoader)
 add_subdirectory(modsortfiltermodel ModSortFilterModel)
+add_subdirectory(gamemngr GameMngr)
 
 # Set main app executable sources
 if (UNIX AND NOT APPLE)
@@ -42,9 +43,10 @@ set(PROJECT_DEPENDENCIES_AND_LIBRARIES
         ModListModel
         ModLoader
         ModSortFilterModel
-        HttpClient )
+        HttpClient
+        GameMngr)
 add_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES_AND_LIBRARIES})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_DEPENDENCIES_AND_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_DEPENDENCIES_AND_LIBRARIES} Qt6::QuickControls2)
 
 # Include target dir
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
@@ -68,7 +70,8 @@ qt_add_qml_module(${PROJECT_NAME}
             ModStore
             ModListModel
             ModLoader
-            ModSortFilterModel)
+            ModSortFilterModel
+            GameMngr)
 
 # -- CPACK --
 

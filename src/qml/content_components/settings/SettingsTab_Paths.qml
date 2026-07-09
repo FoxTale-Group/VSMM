@@ -83,7 +83,7 @@ VsmmTabPanel {
                             onTextChanged: {
                                 _SettingsTab_Paths.gameConfigDir = text
 
-                                if(_SettingsTab_Paths.gameConfigDir !== Config.config.vsmm.configGamePath &&
+                                if(_SettingsTab_Paths.gameConfigDir !== Config.paths.gameConfig &&
                                         !StrUtils.isNullOrWhitespace(_SettingsTab_Paths.gameConfigDir))
                                 {
                                     _SettingsTab_Paths.settingsEdited(true)
@@ -123,7 +123,7 @@ VsmmTabPanel {
                     font.pixelSize: 12; font.bold: true; color: Theme.colors.labelHighlight;
                 }
                 TextEdit {
-                    text: Config.config.vsmm.configGamePath
+                    text: Config.paths.gameConfig ?? ""
 
                     readOnly: true; selectByMouse: true
                     wrapMode: Text.WordWrap
@@ -187,7 +187,7 @@ VsmmTabPanel {
                             onTextChanged: {
                                 _SettingsTab_Paths.gameExePath = text
 
-                                if(_SettingsTab_Paths.gameExePath !== Config.config.vsmm.gameExe &&
+                                if(_SettingsTab_Paths.gameExePath !== Config.paths.gameExe &&
                                         !StrUtils.isNullOrWhitespace(_SettingsTab_Paths.gameExePath)) {
                                     _SettingsTab_Paths.settingsEdited(true)
                                 } else {
@@ -229,7 +229,7 @@ VsmmTabPanel {
                     font.pixelSize: 12; font.bold: true; color: Theme.colors.labelHighlight
                 }
                 TextEdit {
-                    text: Config.config.vsmm.gameExe
+                    text: Config.paths.gameExe ?? ""
 
                     readOnly: true; selectByMouse: true; wrapMode: Text.WordWrap
 

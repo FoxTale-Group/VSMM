@@ -19,6 +19,7 @@
 #pragma once
 
 #include <Config.hpp>
+#include <GameMngr.hpp>
 #include <ModEntry.hpp>
 #include <ModStoreExport.hpp>
 
@@ -39,6 +40,7 @@ class MODSTORE_EXPORT ModStore : public QObject {
     explicit ModStore(QObject *parent = nullptr);
 
     void setConfig(Config *config);
+    void setGameMngr(GameMngr *gameMngr);
 
     void add(ModEntry::LocalInfo localModInfo);
     void updateOnline(QStringView id, QJsonObject onlineInfo);
@@ -67,6 +69,9 @@ class MODSTORE_EXPORT ModStore : public QObject {
   public slots:
     void onModsReloaded();
 
+  private slots:
+    void onModsDirChanged();
+
   private:
     template <typename Obj, typename Signal, typename... Args>
     void emitSignal(Signal &&signal, Obj *obj, Args &&...args) {
@@ -80,5 +85,6 @@ class MODSTORE_EXPORT ModStore : public QObject {
     bool mWorkPending{true};
 
     Config *mConfig{nullptr};
+    GameMngr *mGameMngr{nullptr};
 };
 } // namespace vsmm

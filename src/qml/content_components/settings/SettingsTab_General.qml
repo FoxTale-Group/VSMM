@@ -27,7 +27,7 @@ VsmmTabPanel {
                 onCheckedChanged: {
                     _SettingsTab_General.deleteOldModVersion = checked
                     console.log("deleteOldModVersions: " + _SettingsTab_General.deleteOldModVersion)
-                    if(_SettingsTab_General.deleteOldModVersion !== Config.config.vsmm.deleteOldModVersion) {
+                    if(_SettingsTab_General.deleteOldModVersion !== Config.general.deleteOldModVersion) {
                         _SettingsTab_General.settingsEdited(true)
                     } else {
                         _SettingsTab_General.settingsEdited(false)

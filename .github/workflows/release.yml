@@ -36,7 +36,7 @@ jobs:
           noVersionBumpBehavior: 'current'
           skipInvalidTags: true
           maxTagsToFetch: '30'
-          scopeList: 'ui,loader,store,network,search,settings,backend'
+          scopeList: 'ui,loader,store,network,search,settings,backend,gamemngr'
       - name: Determine release channel
         id: channel
         run: |

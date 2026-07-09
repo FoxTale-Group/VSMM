@@ -30,41 +30,50 @@ class CONFIG_EXPORT Config : public QObject {
     Q_OBJECT
     QML_NAMED_ELEMENT(Config)
     QML_SINGLETON
-    Q_PROPERTY(QVariantHash config READ getConfig WRITE setConfig NOTIFY configChanged)
-    Q_PROPERTY(bool ready READ isReady NOTIFY configReady)
+    Q_PROPERTY(QVariantHash general READ getGeneral WRITE setGeneral NOTIFY generalChanged)
+    Q_PROPERTY(QVariantHash paths READ getPaths WRITE setPaths NOTIFY pathsChanged)
+    Q_PROPERTY(QVariantHash appearance READ getAppearance WRITE setAppearance NOTIFY appearanceChanged)
 
     static constexpr QLatin1StringView CONFIG_FILE_NAME{"config.json"};
-    static constexpr QLatin1StringView GENERAL_JSON_KEY{"vsmm"};
-    const QStringList CLIENT_SETTINGS_VER_SUPPORT = {QStringLiteral("1.16")};
+    static constexpr QLatin1StringView GENERAL_JSON_KEY{"general"};
+    static constexpr QLatin1StringView APPEARANCE_JSON_KEY{"appearance"};
+    static constexpr QLatin1StringView PATHS_JSON_KEY{"paths"};
 
   public:
     static constexpr QLatin1StringView DELETE_OLD_VERSION_JSON_KEY{"deleteOldModVersion"};
 
     Config();
     ~Config() override;
-    [[nodiscard]] QVariantHash getConfig() const;
-    void setConfig(const QVariantHash &data);
+    void validate();
 
-    [[nodiscard]] const QList<QDir> &getModsDirs() const;
-    [[nodiscard]] bool isReady() const;
+    [[nodiscard]] QString getPath(QLatin1StringView key) const;
 
     template <typename T> [[nodiscard]] T getGeneral(QLatin1StringView key) const {
         return mConfig[GENERAL_JSON_KEY].toHash()[key].value<T>();
     }
+    template <typename T> [[nodiscard]] T getAppearance(QLatin1StringView key) const {
+        return mConfig[APPEARANCE_JSON_KEY].toHash()[key].value<T>();
+    }
 
   signals:
-    void configChanged(); // NOTIFY config — QML bindings only
-    void configReady();   // NOTIFY ready — QML bindings only
+    void generalChanged();    // NOTIFY config — QML bindings only
+    void pathsChanged();      // NOTIFY config — QML bindings only
+    void appearanceChanged(); // NOTIFY config — QML bindings only
+
+    void gameConfigPathChanged(); // used by gamemngr
 
   private:
+    [[nodiscard]] QVariantHash getGeneral() const;
+    [[nodiscard]] QVariantHash getPaths() const;
+    [[nodiscard]] QVariantHash getAppearance() const;
+
+    void setGeneral(const QVariantHash &data);
+    void setPaths(const QVariantHash &data);
+    void setAppearance(const QVariantHash &data);
+
     void saveToFile() const;
-    void setConfigReady(bool ready);
-    void parseConfig();
-    void readModsPaths(const QJsonObject &clientSettings);
-    [[nodiscard]] QPair<bool, QString> checkClientSettingsVer(const QJsonObject &clientSettings) const;
     QVariantHash mConfig;
     QFile mConfigFile;
-    QList<QDir> mModsDirs;
     bool mConfigReady{false};
 };
 } // namespace vsmm

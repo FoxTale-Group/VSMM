@@ -52,27 +52,30 @@ void App::initQmlEngine() {
     mQmlEngine.loadFromModule("vsmm", "Main");
 
     auto config = mQmlEngine.singletonInstance<Config *>("vsmm", "Config");
-    auto modManager = mQmlEngine.singletonInstance<ModLoader *>("vsmm", "ModLoader");
+    auto gameMngr = mQmlEngine.singletonInstance<GameMngr *>("vsmm", "GameMngr");
+    auto modLoader = mQmlEngine.singletonInstance<ModLoader *>("vsmm", "ModLoader");
     auto modSortFilterModel = mQmlEngine.singletonInstance<ModSortFilterModel *>("vsmm", "ModSortFilterModel");
     auto modStore = mQmlEngine.singletonInstance<ModStore *>("vsmm", "ModStore");
     auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmm", "ModListModel");
-    modSortFilterModel->setSourceModel(modListModel);
-
-    modStore->setConfig(config);
-
-    modManager->setHttpClient(&mHttpClient);
-    modManager->setStore(modStore);
-    modManager->setConfig(config);
 
     modListModel->setStore(modStore);
     modListModel->setModImageProvider(mModImageProvider);
 
-    connect(modManager, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
+    modSortFilterModel->setSourceModel(modListModel);
+
+    gameMngr->setConfig(config);
+
+    modStore->setConfig(config);
+    modStore->setGameMngr(gameMngr);
+
+    modLoader->setHttpClient(&mHttpClient);
+    modLoader->setStore(modStore);
+    modLoader->setGameMngr(gameMngr);
+
+    connect(modLoader, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
     connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
     connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
 
-    if (!modManager->initModsList()) {
-        qWarning() << "Failed to initialize mods list";
-    }
+    config->validate();
 }
 } // namespace vsmm

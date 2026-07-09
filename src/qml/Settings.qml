@@ -103,29 +103,30 @@ VsmmWindow {
     Component.onCompleted: resetToCurrentConfig()
 
     function resetToCurrentConfig() {
-        if(Config && Config.config && Config.config.vsmm) {
-            generalTab.deleteOldModVersion = Config.config.vsmm.deleteOldModVersion
-            pathsTab.gameConfigDir = Config.config.vsmm.configGamePath
-            pathsTab.gameExePath = Config.config.vsmm.gameExe
+        if(Config) {
+            generalTab.deleteOldModVersion = Config.general.deleteOldModVersion ?? true
+            pathsTab.gameConfigDir = Config.paths.gameConfig ?? ""
+            pathsTab.gameExePath = Config.paths.gameExe ?? ""
         }
         settingsChanged = false
     }
 
     function saveToConfig() {
-        if(Config && Config.config && Config.config.vsmm) {
-            let cfg = Config.config;
+        if(Config) {
+            let generalCfg = Config.general;
+            generalCfg.deleteOldModVersion = generalTab.deleteOldModVersion;
+            Config.general = generalCfg;
 
-            cfg.vsmm.deleteOldModVersion = generalTab.deleteOldModVersion
-
+            let pathsCfg = Config.paths;
             if(!StrUtils.isNullOrWhitespace(pathsTab.gameConfigDir)) {
-                cfg.vsmm.configGamePath = pathsTab.gameConfigDir
+                pathsCfg.gameConfig = pathsTab.gameConfigDir
             }
 
             if(!StrUtils.isNullOrWhitespace(pathsTab.gameExePath)) {
-                cfg.vsmm.gameExe = pathsTab.gameExePath
+                pathsCfg.gameExe = pathsTab.gameExePath
             }
 
-            Config.config = cfg;
+            Config.paths = pathsCfg;
         }
     }
 }

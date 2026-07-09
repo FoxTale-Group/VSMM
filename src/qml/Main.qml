@@ -39,7 +39,10 @@ VsmmWindow {
                 hoverColor:     Theme.colors.buttonLaunchHover
                 pressColor:     Theme.colors.buttonLaunchPress
 
-                onClicked: {console.log("Launching game...")}
+                onClicked: {
+                    console.info("Launching game...")
+                    GameMngr.launchGame();
+                }
             }
 
             VsmmButton {

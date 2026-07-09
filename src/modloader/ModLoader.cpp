@@ -46,16 +46,11 @@ ModLoader::ModLoader() {
 bool ModLoader::initModsList() {
     static const QStringList modsExts{{"*.zip"}};
 
-    if (!mConfig) {
-        qFatal("Config is not set");
+    if (!mGameMngr) {
+        qFatal("GameMngr is not set");
     }
 
-    if (!mConfig->isReady()) {
-        qCritical("Config is not ready");
-        return false;
-    }
-
-    QList<QDir> modsDirs = mConfig->getModsDirs();
+    QList<QDir> modsDirs = mGameMngr->getModsDirs();
     if (modsDirs.isEmpty()) {
         if (!mModsLoadingInProgress.loadRelaxed()) {
             emit allModsReloaded();
@@ -82,7 +77,7 @@ bool ModLoader::initModsList() {
 }
 
 void ModLoader::setHttpClient(HttpClient *httpClient) { mHttpClient = httpClient; }
-void ModLoader::setConfig(Config *config) { mConfig = config; }
+void ModLoader::setGameMngr(GameMngr *gameMngr) { mGameMngr = gameMngr; }
 
 void ModLoader::setStore(ModStore *store) {
     mStore = store;
