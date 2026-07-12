@@ -1,0 +1,166 @@
+import QtQml
+import QtCore
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.impl
+import QtQuick.Layouts
+import QtQuick.Dialogs
+import vsmm
+import "js/StringHelpers.js" as StrUtils
+
+VsmmWindow {
+    id: _addModWindow
+
+    property string modPath: ""
+
+    width: 400
+    height: 300
+
+    dialog: true
+    resizable: false
+    modality: Qt.ApplicationModal
+    windowTitle: qsTr("Install mod")
+
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 20
+        spacing: 5
+
+        Label {
+            text: qsTr("Install New Mod")
+            font.pixelSize: 24
+            font.bold: true
+            color: Theme.colors.label
+        }
+
+        // Drag and drop area
+        Rectangle {
+            id: dropZone
+            Layout.fillWidth: true; Layout.fillHeight: true
+            radius: 12; border.width: 2
+
+            color: dropArea.containsDrag ? Theme.colors.dropAreaDragBg : Theme.colors.dropAreaBg
+            border.color: dropArea.containsDrag ? Theme.colors.dropAreaDragFg : Theme.colors.dropAreaBorder
+
+
+            ColumnLayout {
+                anchors.centerIn: parent; spacing: 10
+
+                IconImage {
+                    source: Theme.icons.iDropItem
+                    color: dropArea.containsDrag ? Theme.colors.dropAreaDragFg : Theme.colors.dropAreaIcon
+                    sourceSize: Qt.size(64, 64)
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                Label {
+                    id: dragAndDropLabel
+                    text: qsTr("Drag & Drop .zip file here\n...or click to browse")
+                    color: Theme.colors.label
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.alignment: Qt.AlignHCenter
+                }
+            }
+
+            DropArea {
+                id: dropArea
+                anchors.fill: parent
+
+                onDropped: (drop) => {
+                    if (drop.hasUrls) {
+                        _addModWindow.modPath = drop.urls[0].toString()
+                        modPathLabel.text = qsTr("Selected mod: ") + StrUtils.getFileName(_addModWindow.modPath)
+                        modPathLabel.color = Theme.colors.label
+                    }
+                }
+            }
+
+            // Open file picker dialog
+            MouseArea {
+                anchors.fill: parent
+                onClicked: systemFilePicker.open()
+
+                HoverHandler {
+                    cursorShape: Qt.PointingHandCursor
+                }
+            }
+        }
+
+        Label {
+            id: modPathLabel
+            text: ""
+            color: Theme.colors.label
+            horizontalAlignment: Text.AlignHCenter
+            Layout.alignment: Qt.AlignHCenter
+        }
+
+        RowLayout {
+            Layout.fillWidth: true;
+            Layout.margins: 0
+            spacing: 0
+
+            LayoutHorizontalSpacer{}
+
+            VsmmButton {
+                text: qsTr("Add")
+                icon.source: ""
+
+                display: AbstractButton.TextOnly
+                Layout.preferredHeight: 30
+
+                onClicked: {
+                    console.log("Add mod")
+                    sendFile(_addModWindow.modPath)
+                }
+            }
+            LayoutHorizontalSpacer{}
+        }
+
+        Component.onCompleted: {
+            _addModWindow.modPath = ""
+            modPathLabel.text = qsTr("Selected mod: ")
+            modPathLabel.color = Theme.colors.label
+        }
+
+        Component.onDestruction: {
+            _addModWindow.modPath = ""
+            modPathLabel.text = qsTr("Selected mod: ")
+            modPathLabel.color = Theme.colors.label
+        }
+    }
+
+    FileDialog {
+        id: systemFilePicker
+        title: qsTr("Select Mod Archive")
+
+        currentFolder: StandardPaths.writableLocation(StandardPaths.DownloadLocation)
+
+        nameFilters: [qsTr("Vintage Story Mod Archive (*.zip)"), qsTr("All Files (*)")]
+
+        onAccepted: {
+            _addModWindow.modPath = systemFilePicker.selectedFile.toString()
+            modPathLabel.text = qsTr("Selected mod: ") + StrUtils.getFileName(_addModWindow.modPath)
+            modPathLabel.color = Theme.colors.label
+        }
+    }
+
+    function sendFile(path) {
+        if (path.endsWith(".zip")) {
+            let fileName = StrUtils.getFileName(path)
+
+            console.log("Sending to C++: " + path)
+            console.log("Showing in UI: " + fileName)
+
+            ModStore.load(path)
+            addModWindow.close()
+
+        } else {
+            if(StrUtils.isNullOrWhitespace(path)){
+                modPathLabel.text = qsTr("No file is selected")
+                modPathLabel.color = Theme.colors.textWarning
+            }
+            modPathLabel.text = qsTr("Only .zip files are allowed!")
+            modPathLabel.color = Theme.colors.textError
+        }
+    }
+}

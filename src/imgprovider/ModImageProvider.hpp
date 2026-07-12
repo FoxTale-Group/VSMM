@@ -18,24 +18,30 @@
 
 #pragma once
 
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-
-#include <HttpClient.hpp>
-#include <ModImageProvider.hpp>
+#include <ImgProviderExport.hpp>
+#include <QMutex>
+#include <QQuickImageProvider>
 
 namespace vsmm {
-class App final : public QGuiApplication {
+class IMGPROVIDER_EXPORT ModImageProvider : public QQuickImageProvider {
+    Q_OBJECT
+
   public:
-    App(int &argc, char *argv[]);
-    ~App() override = default;
+    ModImageProvider();
+
+    QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
+    qint64 getCacheKey(const QString &id) const;
+    bool hasImage(const QString &id) const;
+
+  signals:
+    void imageAdded(const QString &id); // used by modlistmodel
+
+  public slots:
+    void onImageReceived(const QString &id, QImage image);
+    void onModsReloading();
 
   private:
-    void initQmlEngine();
-
-  private:
-    HttpClient mHttpClient{this};
-    ModImageProvider *mModImageProvider{nullptr}; // ownership passed to QML engine
-    QQmlApplicationEngine mQmlEngine{this};
+    QHash<QString, QImage> mImages;
+    mutable QMutex mMutex;
 };
 } // namespace vsmm

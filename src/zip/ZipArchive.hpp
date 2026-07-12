@@ -18,24 +18,30 @@
 
 #pragma once
 
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-
-#include <HttpClient.hpp>
-#include <ModImageProvider.hpp>
+#include <QString>
+#include <ZipArchiveExport.hpp>
+#include <zip.h>
 
 namespace vsmm {
-class App final : public QGuiApplication {
+class ZIPARCHIVE_EXPORT ZipArchive {
   public:
-    App(int &argc, char *argv[]);
-    ~App() override = default;
+    using FileIndex = zip_int64_t;
+    using FileContentSize = zip_int64_t;
+
+    explicit ZipArchive(QString file);
+    ZipArchive(ZipArchive &) = delete;
+    ZipArchive &operator=(ZipArchive &) = delete;
+
+    ZipArchive(ZipArchive &&other) noexcept;
+    ZipArchive &operator=(ZipArchive &&other) noexcept;
+
+    [[nodiscard]] QPair<bool, int> open();
+    [[nodiscard]] FileIndex getFileIndex(QUtf8StringView fileName) const;
+    [[nodiscard]] QByteArray getFileContent(FileIndex fileIndex) const;
+    ~ZipArchive();
 
   private:
-    void initQmlEngine();
-
-  private:
-    HttpClient mHttpClient{this};
-    ModImageProvider *mModImageProvider{nullptr}; // ownership passed to QML engine
-    QQmlApplicationEngine mQmlEngine{this};
+    QString mFile;
+    zip_t *mZipFile{nullptr};
 };
 } // namespace vsmm

@@ -1,0 +1,98 @@
+name: Build Windows Debug Package
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows-debug-package:
+    runs-on: windows-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg_cache
+      SCCACHE_DIR: ${{ github.workspace }}/sccache_cache
+      SCCACHE_GHA_ENABLED: "true"
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4.3.1
+        with:
+          version: '6.10.0'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          cache: true
+          cache-key-prefix: 'qt-v6.10.0'
+
+      - name: Install NSIS using Chocolatey
+        run: choco install nsis
+
+      - name: Create vcpkg cache directory
+        run: New-Item -ItemType Directory -Force -Path ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v6
+        with:
+         path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+         key: ${{ runner.os }}-vcpkg-${{ hashFiles('.github/workflows/build-windows-installer-debug.yml') }} # Reset cache when workflow is changed
+         restore-keys: |
+            ${{ runner.os }}-vcpkg-
+
+      - name: Install libzip using vcpkg
+        run: vcpkg install libzip:x64-windows
+
+      - name: Run sccache-cache if non-release action
+        if: github.event_name != 'release'
+        uses: mozilla-actions/sccache-action@v0.0.10
+        with:
+          version: "v0.10.0"
+
+      - name: Create sccache directory
+        run: New-Item -ItemType Directory -Force -Path ${{ env.SCCACHE_DIR }}
+
+      - name: Cache C++ Object Files
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          # The key uses the exact commit SHA, but restore-keys allows it to
+          # safely pull the cache from the previous run even if the SHA changes.
+          key: ${{ runner.os }}-sccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
+
+      - name: Configure CMake Build
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VS_PATH=%%i"
+          call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat"
+          cmake -B build-win -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_TOOLCHAIN_FILE="%VCPKG_INSTALLATION_ROOT%\scripts\buildsystems\vcpkg.cmake" -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
+
+      - name: Build
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VS_PATH=%%i"
+          call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat"
+          cmake --build build-win --config Debug
+
+      - name: Generate Installer using CPack
+        working-directory: ${{ github.workspace }}\build-win
+        run: cpack -C Debug
+
+      - name: Upload NSIS Crash Log if failed
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: NSIS-Crash-Log
+          path: build-win\pkg\_CPack_Packages\win64\NSIS\NSISOutput.log
+          retention-days: 3
+
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: VSMM-Windows-Release
+          path: |
+            build-win/pkg/*.exe
+            build-win/pkg/*.zip
+          retention-days: 7
+          compression-level: 0
+          archive: true

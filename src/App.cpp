@@ -1,6 +1,6 @@
 /*
- * VS Mod Manager - A mod management tool for Vintage Story
- * Copyright (C) 2026 Amaroq & StardustVulpine
+ * VSMM - A mod management tool for Vintage Story
+ * Copyright (C) 2026 FoxTale-Group VSMM Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,77 +17,65 @@
  */
 
 #include "App.hpp"
-#include <config.hpp>
+#include <Config.hpp>
 #include <QCommandLineParser>
-#include <QCommandLineOption>
-#include <qqmlcontext.h>
-#include <QStandardPaths>
 #include <QIcon>
+#include <QStandardPaths>
+#include <constants.hpp>
+#include <qqmlcontext.h>
 
-#include "ModListModel.hpp"
-#include "ModSortFilterModel.hpp"
-#include "ModLoader.hpp"
+#include <ModListModel.hpp>
+#include <ModLoader.hpp>
+#include <ModSortFilterModel.hpp>
 
-namespace vsmodchecker {
-    App::App(int &argc, char *argv[]) :
-        QGuiApplication{argc, argv},
-        mNetworkManager{this}, mNetworkDiskCache{this}, mQmlEngine{this}
-    {
-        setApplicationDisplayName(APP_DISPLAY_NAME);
-        setApplicationName(APP_DISPLAY_NAME);
-        setApplicationVersion(APP_VERSION);
-        setWindowIcon(QIcon(":/qt/qml/vsmodchecker/assets/logo/VSMM.png"));
+namespace vsmm {
+App::App(int &argc, char *argv[]) : QGuiApplication{argc, argv} {
+    setApplicationDisplayName(APP_DISPLAY_NAME);
+    setApplicationName(APP_DISPLAY_NAME);
+    setApplicationVersion(APP_VERSION);
+    setWindowIcon(QIcon(":/qt/qml/vsmm/assets/logo/VSMM.png"));
 
-        QCommandLineParser parser;
-        parser.addHelpOption();
-        parser.addVersionOption();
+    QCommandLineParser parser;
+    parser.addHelpOption();
+    parser.addVersionOption();
+    parser.process(*this);
 
-        QCommandLineOption modsDirOption("mods-dir", "Path to mods directory", "path", QString());
-        parser.addOption(modsDirOption);
+    connect(&mQmlEngine, &QQmlApplicationEngine::objectCreationFailed,
+            [](const QUrl &url) { qFatal() << QString("QML object creation failed %1").arg(url.toString()); });
 
-        parser.process(*this);
+    initQmlEngine();
+}
 
-        QString modsDir = parser.value(modsDirOption);
-        if (modsDir.isEmpty()) {
-            modsDir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) +
-                QDir::separator() + "VintagestoryData" + QDir::separator() + "Mods";
-        }
+void App::initQmlEngine() {
+    mModImageProvider = new ModImageProvider();
+    mQmlEngine.addImageProvider("modicon", mModImageProvider);
+    mQmlEngine.loadFromModule("vsmm", "Main");
 
-        connect(&mQmlEngine, &QQmlApplicationEngine::objectCreationFailed, [](const QUrl &url) {
-            qFatal() << QString("QML object creation failed %1").arg(url.toString());
-        });
+    auto config = mQmlEngine.singletonInstance<Config *>("vsmm", "Config");
+    auto gameMngr = mQmlEngine.singletonInstance<GameMngr *>("vsmm", "GameMngr");
+    auto modLoader = mQmlEngine.singletonInstance<ModLoader *>("vsmm", "ModLoader");
+    auto modSortFilterModel = mQmlEngine.singletonInstance<ModSortFilterModel *>("vsmm", "ModSortFilterModel");
+    auto modStore = mQmlEngine.singletonInstance<ModStore *>("vsmm", "ModStore");
+    auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmm", "ModListModel");
 
-        mNetworkDiskCache.setCacheDirectory(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
-        mNetworkManager.setCache(&mNetworkDiskCache);
+    modListModel->setStore(modStore);
+    modListModel->setModImageProvider(mModImageProvider);
 
-        initQmlEngine(modsDir);
-    }
+    modSortFilterModel->setSourceModel(modListModel);
 
-    void App::initQmlEngine(const QString &modsPath) {
-        mQmlEngine.loadFromModule("vsmodchecker", "Main");
-        mModImageProvider = new ModImageProvider();
-        mQmlEngine.addImageProvider("modicon", mModImageProvider);
+    gameMngr->setConfig(config);
 
-        auto modManager = mQmlEngine.singletonInstance<ModLoader *>("vsmodchecker", "ModLoader");
-        auto modSortFilterModel = mQmlEngine.singletonInstance<ModSortFilterModel *>("vsmodchecker", "ModSortFilterModel");
-        auto modStore = mQmlEngine.singletonInstance<ModStore *>("vsmodchecker", "ModStore");
-        auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmodchecker", "ModListModel");
-        modSortFilterModel->setSourceModel(modListModel);
+    modStore->setConfig(config);
+    modStore->setGameMngr(gameMngr);
 
-        modManager->setNetworkManager(&mNetworkManager);
-        modManager->setStore(modStore);
+    modLoader->setHttpClient(&mHttpClient);
+    modLoader->setStore(modStore);
+    modLoader->setGameMngr(gameMngr);
 
-        modListModel->setStore(modStore);
-        modListModel->setModImageProvider(mModImageProvider);
+    connect(modLoader, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
+    connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
+    connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
 
-        connect(modManager, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
-        connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
-        connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
-
-        if (!modManager->setModsPath(modsPath)) {
-            qWarning() << "Mods directory not found; starting with an empty mod list";
-        } else if (!modManager->initModsList()) {
-            qWarning() << "Failed to initialize mods list";
-        }
-    }
-} // vsmodchecker
+    config->validate();
+}
+} // namespace vsmm

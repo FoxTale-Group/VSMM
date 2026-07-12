@@ -1,7 +1,8 @@
-![Static Badge](https://img.shields.io/badge/Status-Early_Dev-orange?style=for-the-badge)
-![Static Badge](https://img.shields.io/badge/Backend-C%2B%2B23-blue?style=for-the-badge&logo=cplusplus)
-![Static Badge](https://img.shields.io/badge/GUI-Qt%206-dark_green?style=for-the-badge&logo=qt&logoColor=white)
-![Static Badge](https://img.shields.io/badge/CMake-4.3%2B-red?style=for-the-badge&logo=cmake)
+![Project State](https://img.shields.io/badge/Status-Early_Dev-orange)
+![Stable Release](https://img.shields.io/github/v/release/FoxTale-Group/VSMM?logo=github&label=Stable&color=blue)
+![Pre-Release](https://img.shields.io/github/v/release/FoxTale-Group/VSMM?include_prereleases&logo=github&label=Pre-Release&color=orange)
+![Windows Build](https://github.com/FoxTale-Group/VSMM/actions/workflows/build-windows.yml/badge.svg?branch=next)
+![Linux Build](https://github.com/FoxTale-Group/VSMM/actions/workflows/build.yml/badge.svg?branch=next)
 
 # Vintage Story Mod Manager (VSMM)
 
@@ -11,21 +12,20 @@ VSMM scans your local mods folder, cross-references each installed mod against t
 official [Vintage Story mod API](https://mods.vintagestory.at/), and shows you at a
 glance which mods have updates available — all inside a custom, frameless, dark-themed UI.
 
-> **Status:** Early Development.
-> 
-> Core scanning, update-checking, and the mod list are working; several actions are still being built (see [Roadmap](#roadmap)).
-
----
-
 ## Features
 
 - **Automatic scanning** of your local `Mods` folder
-- **Update detection** — compares installed versions against the latest release
+- **Update detection** - compares installed versions against the latest release
   via semantic versioning
 - **Rich mod list** with icons, authors, tags, and update badges
+- **Updating mods** - with option to update all/selected/single mod.
 - **Instant search, sort, and filter**
 - **Add mods from the GUI**
 - **Custom frameless dark UI** built with Qt Quick / QML
+
+> [!WARNING]
+> Vintage Story Mod Manager is currently Under Development. Some things may not work, some may not be implemented yet.
+> Keep that in mind when using unfinished versions of our app.
 
 ## Screenshots
 
@@ -39,10 +39,8 @@ glance which mods have updates available — all inside a custom, frameless, dar
 [Latest release](https://github.com/FoxTale-Group/VSMM/releases/latest)
 
 ### Runtime Dependencies
-- Qt 6.11
+- Qt 6.10
 - libzip
-
-(this section is work in progress)
 
 ---
 
@@ -51,10 +49,9 @@ glance which mods have updates available — all inside a custom, frameless, dar
 ### Requirements
 
 - A C++23-capable compiler
-- [CMake](https://cmake.org/) ≥ 4.3 and [Ninja](https://ninja-build.org/)
+- [CMake](https://cmake.org/) ≥ 4.2 and [Ninja](https://ninja-build.org/)
 - [Qt 6](https://www.qt.io/) - `Core`, `Quick`, `Qml`, `Network`, `QuickControls2`
 - [libzip](https://libzip.org/)
-- [cpp-semver](https://github.com/easz/cpp-semver) - fetched automatically via CMake `FetchContent`
 
 
 Install required build dependencies using your distribution package manager.
@@ -72,7 +69,7 @@ sudo dnf install cmake ninja-build libzip-devel qt6-qtbase-devel qt6-qtquickcont
 ### Building
 
 ```bash
-# Clone this repository from `main` branch:
+# Clone this repository:
 git clone https://github.com/FoxTale-Group/VSMM.git
 cd VSMM
 
@@ -81,7 +78,7 @@ cmake -G Ninja -S . -B build-dir -DCMAKE_BUILD_TYPE=Release && cmake --build bui
 ```
 > [!NOTE]
 > For an optimized build, use `-DCMAKE_BUILD_TYPE=Release` and a matching build directory.
-> Use `-DCMAKE_BUILD_TYPE=Release` for more detailed verbose logs.
+> Use `-DCMAKE_BUILD_TYPE=Debug` for more detailed verbose logs.
 > You can name your `build-dir` whatever you like.
 
 > [!TIP]
@@ -91,28 +88,29 @@ cmake -G Ninja -S . -B build-dir -DCMAKE_BUILD_TYPE=Release && cmake --build bui
 ### Running
 
 ```bash
-# Uses the default mods directory (~/.config/VintagestoryData/Mods)
-./build-dir/bin/VSModChecker
-
-# Or point it at a specific mods folder
-./build-dir/bin/VSModChecker --mods-dir /path/to/Mods
+./build-dir/bin/VSMM
 ```
+
+> [!IMPORTANT]
+> After starting go to app settings and setup path to `VintagestoryData` folder.
 
 ---
 
 ## Roadmap
 
+**1.0 Release:**
 - [x] Scan local mods folder
 - [x] Fetch info + update status from the mod API
 - [x] Display icons, tags, and update badges
 - [x] Search / sort
-- [x] Add a mod from the GUI
-- [x] Check for updates
+- [x] Adding new mods from the GUI
+- [x] Update mods (https://github.com/FoxTale-Group/VSMM/issues/19)
+- [x] Config / Settings (https://github.com/FoxTale-Group/VSMM/issues/16)
+- [x] Launching Game (https://github.com/FoxTale-Group/VSMM/issues/20)
+- [x] Per-mod actions (https://github.com/FoxTale-Group/VSMM/issues/26)
 - [ ] More filter/search options (https://github.com/FoxTale-Group/VSMM/issues/15)
-- [ ] Update mods (https://github.com/FoxTale-Group/VSMM/issues/19)
-- [ ] Config / Settings (https://github.com/FoxTale-Group/VSMM/issues/16)
-- [ ] Launch Game (https://github.com/FoxTale-Group/VSMM/issues/20)
-- [ ] Per-mod actions (https://github.com/FoxTale-Group/VSMM/issues/26)
+
+**1.1 Release:**
 - [ ] Enable / disable mods (https://github.com/FoxTale-Group/VSMM/issues/23)
 - [ ] Mod profiles (https://github.com/FoxTale-Group/VSMM/issues/21)
 
@@ -124,9 +122,7 @@ full list of features, ideas, and bugs.
 
 ## Contributing
 
-Contributions are welcome! Please open an issue to discuss significant changes
-before submitting a pull request. The codebase splits cleanly into a C++ backend
-(`src/`) and a QML frontend (`qml/`).
+Contributions are welcome! Check [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## License
 

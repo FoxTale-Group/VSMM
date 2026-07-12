@@ -18,24 +18,31 @@
 
 #pragma once
 
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-
-#include <HttpClient.hpp>
-#include <ModImageProvider.hpp>
+#include <ModSortFilterModelExport.hpp>
+#include <QSortFilterProxyModel>
+#include <qqmlintegration.h>
 
 namespace vsmm {
-class App final : public QGuiApplication {
+class MODSORTFILTERMODEL_EXPORT ModSortFilterModel : public QSortFilterProxyModel {
+    Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
+    Q_PROPERTY(QString filterText READ getFilterText WRITE setFilterText NOTIFY filterTextChanged)
+
   public:
-    App(int &argc, char *argv[]);
-    ~App() override = default;
+    explicit ModSortFilterModel(QObject *parent = nullptr);
+
+    [[nodiscard]] QString getFilterText() const;
+    void setFilterText(const QString &filterText);
+
+  signals:
+    void filterTextChanged(); // NOTIFY filterText — QML bindings only
+
+  protected:
+    [[nodiscard]] bool lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const override;
+    [[nodiscard]] bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
 
   private:
-    void initQmlEngine();
-
-  private:
-    HttpClient mHttpClient{this};
-    ModImageProvider *mModImageProvider{nullptr}; // ownership passed to QML engine
-    QQmlApplicationEngine mQmlEngine{this};
+    QString mFilterText;
 };
 } // namespace vsmm
