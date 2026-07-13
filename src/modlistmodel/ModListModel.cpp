@@ -65,6 +65,8 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
     }
     case IdRole:
         return mod.getId().toString();
+    case FavoriteRole:
+        return mod.isFavorite();
     default:
         return {};
     }
@@ -73,10 +75,12 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
 }
 
 QHash<int, QByteArray> ModListModel::roleNames() const {
-    return {
-        {NameRole, "name"},    {VersionRole, "version"}, {AuthorRole, "author"}, {LatestVersionRole, "latestVersion"},
-        {TagsRole, "tags"},    {UrlRole, "url"},         {TypeRole, "type"},     {HasUpdateRole, "hasUpdate"},
-        {IconRole, "modicon"}, {IdRole, "modid"}};
+    return {{NameRole, "name"},        {VersionRole, "version"},
+            {AuthorRole, "author"},    {LatestVersionRole, "latestVersion"},
+            {TagsRole, "tags"},        {UrlRole, "url"},
+            {TypeRole, "type"},        {HasUpdateRole, "hasUpdate"},
+            {IconRole, "modicon"},     {IdRole, "modid"},
+            {FavoriteRole, "isFavoriteMod"}};
 }
 
 void ModListModel::setModImageProvider(ModImageProvider *provider) { mImageProvider = provider; }
