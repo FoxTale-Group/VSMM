@@ -1,8 +1,9 @@
-![Project State](https://img.shields.io/badge/Status-Early_Dev-orange)
-![Stable Release](https://img.shields.io/github/v/release/FoxTale-Group/VSMM?logo=github&label=Stable&color=blue)
-![Pre-Release](https://img.shields.io/github/v/release/FoxTale-Group/VSMM?include_prereleases&logo=github&label=Pre-Release&color=orange)
-![Windows Build](https://github.com/FoxTale-Group/VSMM/actions/workflows/build-windows.yml/badge.svg?branch=next)
-![Linux Build](https://github.com/FoxTale-Group/VSMM/actions/workflows/build.yml/badge.svg?branch=next)
+![Project State](https://img.shields.io/badge/Status-Early_Dev-orange?style=flat-square)
+![Stable Release](https://img.shields.io/github/v/release/FoxTale-Group/VSMM?style=flat-square&logo=github&label=Stable&color=blue)
+![Pre-Release](https://img.shields.io/github/v/release/FoxTale-Group/VSMM?include_prereleases&style=flat-square&logo=github&label=Pre-Release&color=orange)
+
+![Windows Build](https://github.com/FoxTale-Group/VSMM/actions/workflows/build-windows.yml/badge.svg?branch=main)
+![Linux Build](https://github.com/FoxTale-Group/VSMM/actions/workflows/build.yml/badge.svg?branch=main)
 
 # Vintage Story Mod Manager (VSMM)
 
