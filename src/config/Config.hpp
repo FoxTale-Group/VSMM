@@ -38,6 +38,7 @@ class CONFIG_EXPORT Config : public QObject {
     static constexpr QLatin1StringView GENERAL_JSON_KEY{"general"};
     static constexpr QLatin1StringView APPEARANCE_JSON_KEY{"appearance"};
     static constexpr QLatin1StringView PATHS_JSON_KEY{"paths"};
+    static constexpr QLatin1StringView FAVORITES_JSON_KEY{"favorites"};
 
   public:
     static constexpr QLatin1StringView DELETE_OLD_VERSION_JSON_KEY{"deleteOldModVersion"};
@@ -47,6 +48,7 @@ class CONFIG_EXPORT Config : public QObject {
     void validate();
 
     [[nodiscard]] QString getPath(QLatin1StringView key) const;
+    [[nodiscard]] QStringList getFavorites() const;
 
     template <typename T> [[nodiscard]] T getGeneral(QLatin1StringView key) const {
         return mConfig[GENERAL_JSON_KEY].toHash()[key].value<T>();
@@ -54,6 +56,8 @@ class CONFIG_EXPORT Config : public QObject {
     template <typename T> [[nodiscard]] T getAppearance(QLatin1StringView key) const {
         return mConfig[APPEARANCE_JSON_KEY].toHash()[key].value<T>();
     }
+
+    void setFavorites(QStringList favorites);
 
   signals:
     void generalChanged();    // NOTIFY config — QML bindings only

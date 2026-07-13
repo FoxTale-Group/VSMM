@@ -56,19 +56,21 @@ RowLayout {
     }
 
     VsmmModEntryButton {
-        property bool favorited: false
-
-        icon.source: favorited ? Theme.icons.iFavoriteFilled : Theme.icons.iFavorite
-        iconColor: favorited ? Theme.colors.modFavButton : Theme.colors.icon
+        icon.source: isFavoriteMod ? Theme.icons.iFavoriteFilled : Theme.icons.iFavorite
+        iconColor: isFavoriteMod ? Theme.colors.modFavButton : Theme.colors.icon
 
         Layout.preferredHeight: 35
         Layout.preferredWidth: 35
 
-        tooltipText: qsTr("Add '%1' to favorites").arg(name)
+        tooltipText: !isFavoriteMod ? qsTr("Add '%1' to favorites").arg(name) : qsTr("Remove '%1' from favorites").arg(name)
 
         onClicked: {
-            favorited = !favorited
-            console.log("Added '" + name + "' to favorites")
+            if (!isFavoriteMod) {
+                console.info("Added '" + name + "' to favorites")
+            } else {
+                console.info("Removed '" + name + "' from favorites")
+            }
+            ModStore.setFavorite(modid, !isFavoriteMod);
         }
     }
 

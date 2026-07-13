@@ -24,7 +24,14 @@
 
 namespace vsmm {
 ModStore::ModStore(QObject *parent) : QObject{parent} {}
-void ModStore::setConfig(Config *config) { mConfig = config; }
+void ModStore::setConfig(Config *config) {
+    mConfig = config;
+
+    // Get favorites from cfg
+    for (auto &modId : mConfig->getFavorites()) {
+        mFavoriteMods.insert(std::move(modId));
+    }
+}
 void ModStore::setGameMngr(GameMngr *gameMngr) {
     mGameMngr = gameMngr;
     connect(mGameMngr, &GameMngr::modsDirsChanged, this, &ModStore::onModsDirChanged);
@@ -80,6 +87,10 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
             localModInfo.mFileInfo = QFileInfo{newModFilePath};
             *it = ModEntry{std::move(localModInfo)};
 
+            if (mFavoriteMods.contains(it->getId().toString())) {
+                it->setFavorite(true);
+            }
+
             emitSignal(&ModStore::modUpdated, this, *it);
             return;
         }
@@ -95,6 +106,9 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
 
     QString id = localModInfo.mId;
     const auto it = mMods.emplace(std::move(id), std::move(localModInfo));
+    if (mFavoriteMods.contains(it->getId().toString())) {
+        it->setFavorite(true);
+    }
     emitSignal(&ModStore::modAdded, this, *it);
 }
 
@@ -153,10 +167,25 @@ void ModStore::updateSelected() {
 }
 
 void ModStore::markForUpdate(const QString &id, bool marked) {
-    const auto it = mMods.find(id);
-    if (it != mMods.end()) {
+    if (const auto it = mMods.find(id); it != mMods.end()) {
         it->setMarkedForUpdate(marked);
     }
+}
+
+void ModStore::setFavorite(const QString &id, bool favorite) {
+    const auto it = mMods.find(id);
+    if (it == mMods.end()) {
+        return;
+    }
+
+    if (favorite) {
+        mFavoriteMods.insert(id);
+    } else {
+        mFavoriteMods.removeIf([&id](const auto &val) { return val == id; });
+    }
+    it->setFavorite(favorite);
+    mConfig->setFavorites(mFavoriteMods.values());
+    emit modUpdated(*it);
 }
 
 bool ModStore::contains(const QString &id) const { return mMods.contains(id); }

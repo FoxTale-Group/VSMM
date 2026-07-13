@@ -53,13 +53,15 @@ class MODENTRY_EXPORT ModEntry {
     // ReSharper disable once CppNonExplicitConversionOperator
     operator QString() const { return toString(); }
 
-    [[nodiscard]] QAnyStringView getId() const;
-    [[nodiscard]] QAnyStringView getName() const;
-    [[nodiscard]] QAnyStringView getAuthor() const;
+    [[nodiscard]] QStringView getId() const;
+    [[nodiscard]] QStringView getName() const;
+    [[nodiscard]] QStringView getAuthor() const;
     [[nodiscard]] const semver::version &getVersion() const;
     [[nodiscard]] const QFileInfo &getFileInfo() const;
     [[nodiscard]] bool isMarkedForUpdate() const;
+    [[nodiscard]] bool isFavorite() const;
     void setMarkedForUpdate(bool marked);
+    void setFavorite(bool favorite);
 
     void initOnlineInfo(QJsonObject json);
 
@@ -67,7 +69,7 @@ class MODENTRY_EXPORT ModEntry {
     [[nodiscard]] const QUrl &getUrl() const;
     [[nodiscard]] const LatestVersion &getLatestVersion() const;
     [[nodiscard]] const QStringList &getTags() const;
-    [[nodiscard]] QAnyStringView getType() const;
+    [[nodiscard]] QStringView getType() const;
     [[nodiscard]] bool hasUpdate() const;
 
   private:
@@ -92,5 +94,6 @@ class MODENTRY_EXPORT ModEntry {
     QFileInfo mFileInfo;
     OnlineInfo mOnlineInfo;
     bool mMarkedForUpdate{false};
+    bool mFavorite{false};
 };
 } // namespace vsmm

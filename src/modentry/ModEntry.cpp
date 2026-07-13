@@ -38,16 +38,16 @@ ModEntry::ModEntry(LocalInfo info)
 
 QString ModEntry::toString() const { return u"%1@%2"_s.arg(mModId).arg(QString::fromStdString(mVersion.str())); }
 
-QAnyStringView ModEntry::getId() const { return mModId; }
+QStringView ModEntry::getId() const { return mModId; }
 
-QAnyStringView ModEntry::getName() const {
+QStringView ModEntry::getName() const {
     if (mOnlineInfo.mName.isEmpty()) {
         return mName;
     }
     return mOnlineInfo.mName;
 }
 
-QAnyStringView ModEntry::getAuthor() const {
+QStringView ModEntry::getAuthor() const {
     if (mOnlineInfo.mAuthor.isEmpty()) {
         return mAuthor;
     }
@@ -57,7 +57,9 @@ QAnyStringView ModEntry::getAuthor() const {
 const semver::version &ModEntry::getVersion() const { return mVersion; }
 const QFileInfo &ModEntry::getFileInfo() const { return mFileInfo; }
 bool ModEntry::isMarkedForUpdate() const { return mMarkedForUpdate; }
+bool ModEntry::isFavorite() const { return mFavorite; }
 void ModEntry::setMarkedForUpdate(bool marked) { mMarkedForUpdate = marked; }
+void ModEntry::setFavorite(bool favorite) { mFavorite = favorite; }
 
 void ModEntry::initOnlineInfo(QJsonObject json) {
     initName(json);
@@ -73,7 +75,7 @@ void ModEntry::initOnlineInfo(QJsonObject json) {
 const QUrl &ModEntry::getUrl() const { return mOnlineInfo.mUrl; }
 const ModEntry::LatestVersion &ModEntry::getLatestVersion() const { return mOnlineInfo.mLatestVersion; }
 const QStringList &ModEntry::getTags() const { return mOnlineInfo.mTags; }
-QAnyStringView ModEntry::getType() const { return mOnlineInfo.mType; }
+QStringView ModEntry::getType() const { return mOnlineInfo.mType; }
 bool ModEntry::hasUpdate() const { return mOnlineInfo.mLatestVersion.mHasUpdate; }
 
 void ModEntry::initName(const QJsonObject &json) {

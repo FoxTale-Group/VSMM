@@ -56,6 +56,11 @@ Config::Config() {
 Config::~Config() { saveToFile(); }
 
 QString Config::getPath(QLatin1StringView key) const { return mConfig[PATHS_JSON_KEY].toHash()[key].toString(); }
+QStringList Config::getFavorites() const { return mConfig[FAVORITES_JSON_KEY].toStringList(); }
+void Config::setFavorites(QStringList favorites) {
+    mConfig[FAVORITES_JSON_KEY] = QVariant::fromValue(std::move(favorites));
+    saveToFile();
+}
 
 QVariantHash Config::getGeneral() const { return mConfig[GENERAL_JSON_KEY].toHash(); }
 QVariantHash Config::getPaths() const { return mConfig[PATHS_JSON_KEY].toHash(); }

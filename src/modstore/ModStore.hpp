@@ -50,6 +50,7 @@ class MODSTORE_EXPORT ModStore : public QObject {
     Q_INVOKABLE void updateAll();
     Q_INVOKABLE void updateSelected();
     Q_INVOKABLE void markForUpdate(const QString &id, bool marked);
+    Q_INVOKABLE void setFavorite(const QString &id, bool favorite);
 
     [[nodiscard]] bool contains(const QString &id) const;
     [[nodiscard]] const ModEntry *find(const QString &id) const;
@@ -86,5 +87,6 @@ class MODSTORE_EXPORT ModStore : public QObject {
 
     Config *mConfig{nullptr};
     GameMngr *mGameMngr{nullptr};
+    QSet<QString> mFavoriteMods;
 };
 } // namespace vsmm
