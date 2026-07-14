@@ -105,6 +105,7 @@ VsmmWindow {
     function resetToCurrentConfig() {
         if(Config) {
             generalTab.deleteOldModVersion = Config.general.deleteOldModVersion ?? true
+            generalTab.includeModPrerelease = Config.general.includeModPrerelease ?? false
             pathsTab.gameConfigDir = Config.paths.gameConfig ?? ""
             pathsTab.gameExePath = Config.paths.gameExe ?? ""
         }

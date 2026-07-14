@@ -42,6 +42,7 @@ class CONFIG_EXPORT Config : public QObject {
 
   public:
     static constexpr QLatin1StringView DELETE_OLD_VERSION_JSON_KEY{"deleteOldModVersion"};
+    static constexpr QLatin1StringView INCLUDE_MOD_PRERELEASE_JSON_KEY{"includeModPrerelease"};
 
     Config();
     ~Config() override;

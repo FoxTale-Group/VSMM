@@ -20,7 +20,6 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QLoggingCategory>
-#include <QProcess>
 
 Q_STATIC_LOGGING_CATEGORY(cGameMngr, "gamemngr");
 
@@ -30,19 +29,26 @@ namespace vsmm {
 void GameMngr::setConfig(Config *config) {
     mConfig = config;
     connect(mConfig, &Config::gameConfigPathChanged, this, &GameMngr::parseClientCfg);
+    readGameVersion();
 }
 const QList<QDir> &GameMngr::getModsDirs() const { return mModsDirs; }
 
-void GameMngr::launchGame() const {
+const semver::version &GameMngr::getGameVersion() const { return mGameVersion; }
+
+void GameMngr::launchGame() {
     if (mConfig->getPath(CONFIG_GAMEEXE_JSON_KEY).isEmpty()) {
         qCCritical(cGameMngr) << u"config paths.%1 value is empty"_s.arg(CONFIG_GAMEEXE_JSON_KEY);
         return;
     }
 
-    QFileInfo gameExe{mConfig->getPath(CONFIG_GAMEEXE_JSON_KEY)};
+    // Clear arguments
+    mGameProcess.setArguments({});
 
     qint64 pid{-1};
-    QProcess::startDetached(gameExe.absoluteFilePath(), {}, gameExe.absolutePath(), &pid);
+    if (!mGameProcess.startDetached(&pid)) {
+        qCCritical(cGameMngr, "Failed to start game exe");
+        return;
+    }
 
     qCDebug(cGameMngr) << u"Process started as %1"_s.arg(pid);
 }
@@ -85,6 +91,28 @@ void GameMngr::parseClientCfg() {
 
     readModsPaths(clientSettings);
     emit modsDirsChanged();
+}
+
+void GameMngr::readGameVersion() {
+    if (mConfig->getPath(CONFIG_GAMEEXE_JSON_KEY).isEmpty()) {
+        qCCritical(cGameMngr) << u"config paths.%1 value is empty"_s.arg(CONFIG_GAMEEXE_JSON_KEY);
+        return;
+    }
+
+    QFileInfo gameExe{mConfig->getPath(CONFIG_GAMEEXE_JSON_KEY)};
+
+    mGameProcess.setProgram(gameExe.absoluteFilePath());
+    mGameProcess.setWorkingDirectory(gameExe.absolutePath());
+    mGameProcess.setArguments({"--version"});
+
+    mGameProcess.start();
+    if (!mGameProcess.waitForFinished()) {
+        qCCritical(cGameMngr, "Failed to start game exe");
+        return;
+    }
+
+    mGameVersion = semver::version::parse(mGameProcess.readAllStandardOutput().trimmed().toStdString());
+    qCDebug(cGameMngr) << u"Game version detected: %1"_s.arg(mGameVersion.str());
 }
 
 void GameMngr::readModsPaths(const QJsonObject &clientSettings) {

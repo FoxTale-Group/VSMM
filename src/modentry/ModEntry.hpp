@@ -63,7 +63,7 @@ class MODENTRY_EXPORT ModEntry {
     void setMarkedForUpdate(bool marked);
     void setFavorite(bool favorite);
 
-    void initOnlineInfo(QJsonObject json);
+    void initOnlineInfo(QJsonObject json, const semver::version &gameVersion, bool cfgIncludePrerelease);
 
     // Online
     [[nodiscard]] const QUrl &getUrl() const;
@@ -81,11 +81,14 @@ class MODENTRY_EXPORT ModEntry {
     };
 
     void initName(const QJsonObject &json);
-    void initLatestRelease(const QJsonObject &json);
+    void initLatestRelease(const QJsonObject &json, const semver::version &gameVersion, bool cfgIncludePrerelease);
     void initAuthor(const QJsonObject &json);
     void initTags(const QJsonObject &json);
     void initModUrl(const QJsonObject &json);
     void initType(const QJsonObject &json);
+
+    [[nodiscard]] QPair<QJsonObject, semver::version>
+    getLatestVersion(QJsonArray releases, const semver::version &gameVersion, bool cfgIncludePrerelease) const;
 
     QString mName;
     semver::version mVersion;

@@ -117,7 +117,8 @@ void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
     if (it == mMods.end()) {
         return;
     }
-    it->initOnlineInfo(std::move(onlineInfo));
+    const auto includePrerelease = mConfig->getGeneral<bool>(Config::INCLUDE_MOD_PRERELEASE_JSON_KEY);
+    it->initOnlineInfo(std::move(onlineInfo), mGameMngr->getGameVersion(), includePrerelease);
     emitSignal(&ModStore::modUpdated, this, *it);
 }
 
