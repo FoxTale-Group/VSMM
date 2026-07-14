@@ -35,6 +35,7 @@ class MODSTORE_EXPORT ModStore : public QObject {
     Q_PROPERTY(int installedModsCount READ modsCount NOTIFY modsChanged)
     Q_PROPERTY(int updatesCount READ modUpdatesCount NOTIFY modsChanged)
     Q_PROPERTY(bool workPending READ isWorkPending NOTIFY workChanged)
+    Q_PROPERTY(bool modsSelected READ modsSelected NOTIFY modSelected)
 
   public:
     explicit ModStore(QObject *parent = nullptr);
@@ -59,6 +60,7 @@ class MODSTORE_EXPORT ModStore : public QObject {
     [[nodiscard]] bool isWorkPending() const;
 
   signals:
+    void modSelected();                           // NOTIFY modsSelected — QML bindings only
     void modsChanged();                           // NOTIFY installedModsCount/updatesCount — QML bindings only
     void workChanged();                           // NOTIFY workPending — QML bindings only
     void modAdded(const ModEntry &mod);           // used by modlistmodel
@@ -79,6 +81,8 @@ class MODSTORE_EXPORT ModStore : public QObject {
         emit(obj->*signal)(std::forward<Args>(args)...);
         emit modsChanged();
     }
+
+    [[nodiscard]] bool modsSelected() const;
 
     QHash<QString, ModEntry> mMods;
 

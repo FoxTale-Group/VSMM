@@ -9,6 +9,7 @@ VsmmTabPanel {
     id: _SettingsTab_General
 
     property bool deleteOldModVersion: false
+    property bool includeModPrerelease: false
 
     signal settingsEdited(edited: bool)
 
@@ -49,10 +50,16 @@ VsmmTabPanel {
             spacing: 2
 
             CheckBox {
-                checked: false
+                checked: _SettingsTab_General.includeModPrerelease
 
                 onCheckedChanged: {
-
+                    _SettingsTab_General.includeModPrerelease = checked
+                    console.log("includeModPrerelease: " + _SettingsTab_General.includeModPrerelease)
+                    if(_SettingsTab_General.includeModPrerelease !== Config.general.includeModPrerelease) {
+                        _SettingsTab_General.settingsEdited(true)
+                    } else {
+                        _SettingsTab_General.settingsEdited(false)
+                    }
                 }
             }
 

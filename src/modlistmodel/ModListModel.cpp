@@ -75,16 +75,16 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
 }
 
 QHash<int, QByteArray> ModListModel::roleNames() const {
-    return {{NameRole, "name"},
-            {VersionRole, "version"},
-            {AuthorRole, "author"},
-            {LatestVersionRole, "latestVersion"},
-            {TagsRole, "tags"},
-            {UrlRole, "url"},
-            {TypeRole, "type"},
-            {HasUpdateRole, "hasUpdate"},
-            {IconRole, "modicon"},
-            {IdRole, "modid"},
+    return {{NameRole, "modName"},
+            {VersionRole, "modVersion"},
+            {AuthorRole, "modAuthor"},
+            {LatestVersionRole, "modLatestVersion"},
+            {TagsRole, "modTags"},
+            {UrlRole, "modUrl"},
+            {TypeRole, "modSide"},
+            {HasUpdateRole, "modHasUpdate"},
+            {IconRole, "modThumbnail"},
+            {IdRole, "modId"},
             {FavoriteRole, "isFavoriteMod"}};
 }
 

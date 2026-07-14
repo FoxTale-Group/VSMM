@@ -17,7 +17,7 @@ Rectangle {
     radius: 8
     color: Theme.colors.modIconBg
 
-    property string coverUrl: modicon
+    property string coverUrl: modThumbnail
 
     // Fallback icon with background
     Rectangle {

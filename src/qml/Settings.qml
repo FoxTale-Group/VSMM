@@ -116,6 +116,7 @@ VsmmWindow {
         if(Config) {
             let generalCfg = Config.general;
             generalCfg.deleteOldModVersion = generalTab.deleteOldModVersion;
+            generalCfg.includeModPrerelease = generalTab.includeModPrerelease;
             Config.general = generalCfg;
 
             let pathsCfg = Config.paths;

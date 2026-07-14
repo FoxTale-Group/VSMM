@@ -170,6 +170,7 @@ void ModStore::updateSelected() {
 void ModStore::markForUpdate(const QString &id, bool marked) {
     if (const auto it = mMods.find(id); it != mMods.end()) {
         it->setMarkedForUpdate(marked);
+        emit modSelected();
     }
 }
 
@@ -219,4 +220,7 @@ void ModStore::onModsReloaded() {
 }
 
 void ModStore::onModsDirChanged() { reload(); }
+bool ModStore::modsSelected() const {
+    return std::ranges::any_of(mMods.begin(), mMods.end(), [](const auto &mod) { return mod.isMarkedForUpdate(); });
+}
 } // namespace vsmm
