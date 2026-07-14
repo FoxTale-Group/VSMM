@@ -1,0 +1,33 @@
+# PKGBUILD - vsmm (Source Build)
+pkgname=vintage-story-mod-manager
+pkgver=0.0.1
+pkgrel=1
+pkgdesc="A custom mod manager for Vintage Story"
+arch=('x86_64')
+url="https://github.com/FoxTale-Group/VSMM"
+license=('GPL-3.0')
+depends=('qt6-base' 'qt6-declarative' 'libzip' 'hicolor-icon-theme')
+provides=('vsmm')
+conflicts=('vsmm-bin')
+makedepends=('cmake' 'ninja')
+
+source=("$pkgname-$pkgver-Linux.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "VSMM-$pkgver"
+
+    # Run standard CMake
+    cmake -B build -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr
+
+    cmake --build build
+}
+
+package() {
+    cd "VSMM-$pkgver"
+
+    # Installs the built binaries and assets into the Arch package fakeroot
+    DESTDIR="$pkgdir" cmake --install build
+}

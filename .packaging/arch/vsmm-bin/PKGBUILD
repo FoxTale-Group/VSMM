@@ -1,0 +1,17 @@
+pkgname=vintage-story-mod-manager-bin
+pkgver=@@VERSION@@
+pkgrel=1
+pkgdesc="A custom mod manager for Vintage Story (Pre-compiled)"
+arch=('x86_64')
+url="https://github.com/FoxTale-Group/VSMM"
+license=('GPL3')
+depends=('qt6-base' 'qt6-declarative' 'libzip' 'hicolor-icon-theme')
+provides=('vsmm' 'vintage-story-mod-manager')
+conflicts=('vsmm' 'vintage-story-mod-manager')
+source=("https://github.com/FoxTale-Group/VSMM/releases/download/v$pkgver/VSMM-$pkgver-Linux.tar.xz")
+sha256sums=('@@HASH@@')
+
+package() {
+    cd "VSMM-$pkgver-Linux"
+    cp -a "usr" "$pkgdir/"
+}
