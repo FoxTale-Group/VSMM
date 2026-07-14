@@ -18,9 +18,8 @@
 
 #include "ModEntry.hpp"
 #include <QJsonArray>
+#include <optional>
 #include <utility>
-
-#include <semver/semver.hpp>
 
 namespace {
 using namespace Qt::StringLiterals;
@@ -36,7 +35,7 @@ ModEntry::ModEntry(LocalInfo info)
     mFileInfo = std::move(info.mFileInfo);
 }
 
-QString ModEntry::toString() const { return u"%1@%2"_s.arg(mModId).arg(QString::fromStdString(mVersion.str())); }
+QString ModEntry::toString() const { return u"%1@%2"_s.arg(mModId).arg(QString::fromStdString(mVersion.to_string())); }
 
 QStringView ModEntry::getId() const { return mModId; }
 
@@ -54,19 +53,19 @@ QStringView ModEntry::getAuthor() const {
     return mOnlineInfo.mAuthor;
 }
 
-const semver::version &ModEntry::getVersion() const { return mVersion; }
+const semver::version<> &ModEntry::getVersion() const { return mVersion; }
 const QFileInfo &ModEntry::getFileInfo() const { return mFileInfo; }
 bool ModEntry::isMarkedForUpdate() const { return mMarkedForUpdate; }
 bool ModEntry::isFavorite() const { return mFavorite; }
 void ModEntry::setMarkedForUpdate(bool marked) { mMarkedForUpdate = marked; }
 void ModEntry::setFavorite(bool favorite) { mFavorite = favorite; }
 
-void ModEntry::initOnlineInfo(QJsonObject json) {
+void ModEntry::initOnlineInfo(QJsonObject json, const semver::version<> &gameVersion, bool cfgIncludePrerelease) {
     initName(json);
     initModUrl(json);
     initAuthor(json);
     initTags(json);
-    initLatestRelease(json);
+    initLatestRelease(json, gameVersion, cfgIncludePrerelease);
     initType(json);
 
     qDebug() << u"Retrieved mod info for %1"_s.arg(mOnlineInfo.mName);
@@ -79,60 +78,53 @@ QStringView ModEntry::getType() const { return mOnlineInfo.mType; }
 bool ModEntry::hasUpdate() const { return mOnlineInfo.mLatestVersion.mHasUpdate; }
 
 void ModEntry::initName(const QJsonObject &json) {
-    if (!json["name"].isString()) {
+    if (!json["name"_L1].isString()) {
         qWarning() << u"%1: Invalid JSON format: name is not a string"_s.arg(mName);
         return;
     }
     mOnlineInfo.mName = json["name"].toString().trimmed();
 }
 
-void ModEntry::initLatestRelease(const QJsonObject &json) {
-    if (!json["releases"].isArray()) {
+void ModEntry::initLatestRelease(const QJsonObject &json, const semver::version<> &gameVersion,
+                                 bool cfgIncludePrerelease) {
+    if (!json["releases"_L1].isArray()) {
         qWarning() << u"%1: Invalid JSON format: releases is not an array"_s.arg(mOnlineInfo.mName);
         return;
     }
 
-    auto jsonReleaseArr = json["releases"].toArray();
+    auto jsonReleaseArr = json["releases"_L1].toArray();
     if (jsonReleaseArr.isEmpty()) {
         qWarning() << u"%1: Invalid JSON format: releases array is empty"_s.arg(mOnlineInfo.mName);
         return;
     }
 
-    auto latestReleaseObj = jsonReleaseArr.first().toObject();
-    try {
-        if (!latestReleaseObj["modversion"].isString()) {
-            qWarning() << u"%1: Invalid JSON format: releases array entry modversion is not string"_s.arg(
-                mOnlineInfo.mName);
-            return;
-        }
-        mOnlineInfo.mLatestVersion.mVersion =
-            semver::version::parse(latestReleaseObj["modversion"].toString().toStdString());
-        if (mOnlineInfo.mLatestVersion.mVersion > mVersion) {
-            mOnlineInfo.mLatestVersion.mFileName = latestReleaseObj["filename"].toString();
-            mOnlineInfo.mLatestVersion.mUrl = latestReleaseObj["mainfile"].toString();
-            mOnlineInfo.mLatestVersion.mHasUpdate = true;
-        }
-    } catch (const semver::semver_exception &e) {
-        qWarning() << u"%1: Cannot parse version: %2"_s.arg(mOnlineInfo.mName).arg(e.what());
+    auto latestRelease = getLatestVersion(std::move(jsonReleaseArr), gameVersion, cfgIncludePrerelease);
+    if (latestRelease.first.empty()) {
+        return;
     }
+
+    mOnlineInfo.mLatestVersion.mVersion = std::move(latestRelease.second);
+    mOnlineInfo.mLatestVersion.mFileName = latestRelease.first["filename"_L1].toString();
+    mOnlineInfo.mLatestVersion.mUrl = latestRelease.first["mainfile"_L1].toString();
+    mOnlineInfo.mLatestVersion.mHasUpdate = true;
 }
 
 void ModEntry::initAuthor(const QJsonObject &json) {
-    if (!json["author"].isString()) {
+    if (!json["author"_L1].isString()) {
         qWarning() << u"%1: Invalid JSON format: author is not a string"_s.arg(mOnlineInfo.mName);
         return;
     }
 
-    mAuthor = json["author"].toString();
+    mAuthor = json["author"_L1].toString();
 }
 
 void ModEntry::initTags(const QJsonObject &json) {
-    if (!json["tags"].isArray()) {
+    if (!json["tags"_L1].isArray()) {
         qWarning() << u"%1: Invalid JSON format: tags is not a list"_s.arg(mOnlineInfo.mName);
         return;
     }
 
-    for (const auto &tag : json["tags"].toArray()) {
+    for (const auto &tag : json["tags"_L1].toArray()) {
         if (tag.isNull()) {
             continue;
         }
@@ -141,25 +133,79 @@ void ModEntry::initTags(const QJsonObject &json) {
 }
 
 void ModEntry::initModUrl(const QJsonObject &json) {
-    if (!json["urlalias"].isNull() && json["urlalias"].isString()) {
-        mOnlineInfo.mUrl = GetModUrlByAlias(json["urlalias"].toString());
+    if (!json["urlalias"_L1].isNull() && json["urlalias"_L1].isString()) {
+        mOnlineInfo.mUrl = GetModUrlByAlias(json["urlalias"_L1].toString());
         return;
     }
 
-    if (!json["assetid"].isDouble()) {
+    if (!json["assetid"_L1].isDouble()) {
         qWarning() << u"%1: Invalid JSON format: assetid is not a number"_s.arg(mOnlineInfo.mName);
         return;
     }
 
-    mOnlineInfo.mUrl = GetModUrlByAssetId(json["assetid"].toInteger());
+    mOnlineInfo.mUrl = GetModUrlByAssetId(json["assetid"_L1].toInteger());
 }
 
 void ModEntry::initType(const QJsonObject &json) {
-    if (!json["type"].isString()) {
+    if (!json["type"_L1].isString()) {
         qWarning() << u"%1: Invalid JSON format: type is not a string"_s.arg(mOnlineInfo.mName);
         return;
     }
 
-    mOnlineInfo.mType = json["type"].toString();
+    mOnlineInfo.mType = json["type"_L1].toString();
 }
+
+QPair<QJsonObject, semver::version<>>
+ModEntry::getLatestVersion(QJsonArray releases, const semver::version<> &gameVersion, bool cfgIncludePrerelease) const {
+    const auto tryParse = [this](const QString &version) -> std::optional<semver::version<>> {
+        semver::version<> returnVersion;
+        if (const auto result = semver::parse(version.toStdString(), returnVersion); !result) {
+            qCritical() << u"%1: Cannot parse version '%2'"_s.arg(mOnlineInfo.mName, version);
+            return std::nullopt;
+        }
+        return returnVersion;
+    };
+
+    const bool includePrerelease = !mVersion.prerelease_tag().empty() || cfgIncludePrerelease;
+    for (const auto &release : releases) {
+        if (!release["modversion"_L1].isString()) {
+            qCritical() << u"%1: Invalid JSON format: no modversion"_s.arg(mOnlineInfo.mName);
+            continue;
+        }
+
+        const auto releaseVersion = tryParse(release["modversion"_L1].toString());
+
+        if (!releaseVersion) {
+            continue;
+        }
+
+        // releases are sorted from latest -> oldest
+        if (*releaseVersion <= mVersion) {
+            break;
+        }
+
+        // only include prerelease if mod is already a prerelease, or it is set in app cfg explicitly
+        if (!releaseVersion->prerelease_tag().empty() && !includePrerelease) {
+            continue;
+        }
+        if (!release["tags"_L1].isArray()) {
+            qCritical() << u"%1: Invalid JSON format: release tags is not an array"_s.arg(mOnlineInfo.mName);
+            continue;
+        }
+
+        for (const auto &tag : release["tags"_L1].toArray()) {
+            const auto supported = tryParse(tag.toString());
+            if (!supported) {
+                continue;
+            }
+
+            // treat patch numbers as compatible
+            if (supported->major() == gameVersion.major() && supported->minor() == gameVersion.minor()) {
+                return {release.toObject(), *releaseVersion};
+            }
+        }
+    }
+    return {};
+}
+
 } // namespace vsmm

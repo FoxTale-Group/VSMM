@@ -20,7 +20,10 @@
 #include <Config.hpp>
 #include <GameMngrExport.hpp>
 #include <QObject>
+#include <QProcess>
 #include <qqmlintegration.h>
+
+#include <semver.hpp>
 
 namespace vsmm {
 class GAMEMNGR_EXPORT GameMngr : public QObject {
@@ -37,17 +40,21 @@ class GAMEMNGR_EXPORT GameMngr : public QObject {
     GameMngr() = default;
     void setConfig(Config *config);
     [[nodiscard]] const QList<QDir> &getModsDirs() const;
-    Q_INVOKABLE void launchGame() const;
+    [[nodiscard]] const semver::version<> &getGameVersion() const;
+    Q_INVOKABLE void launchGame();
 
   signals:
     void modsDirsChanged(); // used by modstore
 
   private:
+    void readGameVersion();
     void readModsPaths(const QJsonObject &clientSettings);
     [[nodiscard]] QPair<bool, QString> checkClientSettingsVer(const QJsonObject &clientSettings) const;
 
     Config *mConfig{nullptr};
     QList<QDir> mModsDirs;
+    semver::version<> mGameVersion;
+    QProcess mGameProcess{this};
 
   private slots:
     void parseClientCfg();

@@ -74,7 +74,7 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
             !QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
             qWarning() << u"Failed to copy mod %1 to %2."_s.arg(localModInfo).arg(newModFilePath);
             if (qsizetype extPos = newModFilePath.indexOf(".zip"_L1); extPos != -1) {
-                newModFilePath.insert(extPos, QString::fromStdString("_" + localModInfo.mVersion.str()));
+                newModFilePath.insert(extPos, QString::fromStdString("_" + localModInfo.mVersion.to_string()));
 
                 // Last try to copy file to mods folder with suffixed version
                 if (!QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
@@ -117,7 +117,8 @@ void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
     if (it == mMods.end()) {
         return;
     }
-    it->initOnlineInfo(std::move(onlineInfo));
+    const auto includePrerelease = mConfig->getGeneral<bool>(Config::INCLUDE_MOD_PRERELEASE_JSON_KEY);
+    it->initOnlineInfo(std::move(onlineInfo), mGameMngr->getGameVersion(), includePrerelease);
     emitSignal(&ModStore::modUpdated, this, *it);
 }
 
