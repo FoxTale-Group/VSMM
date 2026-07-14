@@ -23,7 +23,7 @@
 #include <QProcess>
 #include <qqmlintegration.h>
 
-#include <semver/semver.hpp>
+#include <semver.hpp>
 
 namespace vsmm {
 class GAMEMNGR_EXPORT GameMngr : public QObject {
@@ -40,7 +40,7 @@ class GAMEMNGR_EXPORT GameMngr : public QObject {
     GameMngr() = default;
     void setConfig(Config *config);
     [[nodiscard]] const QList<QDir> &getModsDirs() const;
-    [[nodiscard]] const semver::version &getGameVersion() const;
+    [[nodiscard]] const semver::version<> &getGameVersion() const;
     Q_INVOKABLE void launchGame();
 
   signals:
@@ -53,7 +53,7 @@ class GAMEMNGR_EXPORT GameMngr : public QObject {
 
     Config *mConfig{nullptr};
     QList<QDir> mModsDirs;
-    semver::version mGameVersion;
+    semver::version<> mGameVersion;
     QProcess mGameProcess{this};
 
   private slots:

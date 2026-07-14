@@ -33,7 +33,7 @@ void GameMngr::setConfig(Config *config) {
 }
 const QList<QDir> &GameMngr::getModsDirs() const { return mModsDirs; }
 
-const semver::version &GameMngr::getGameVersion() const { return mGameVersion; }
+const semver::version<> &GameMngr::getGameVersion() const { return mGameVersion; }
 
 void GameMngr::launchGame() {
     if (mConfig->getPath(CONFIG_GAMEEXE_JSON_KEY).isEmpty()) {
@@ -111,8 +111,11 @@ void GameMngr::readGameVersion() {
         return;
     }
 
-    mGameVersion = semver::version::parse(mGameProcess.readAllStandardOutput().trimmed().toStdString());
-    qCDebug(cGameMngr) << u"Game version detected: %1"_s.arg(mGameVersion.str());
+    if (const auto result = semver::parse(mGameProcess.readAllStandardOutput().trimmed().toStdString(), mGameVersion);
+        !result) {
+        qCCritical(cGameMngr, "Failed to parse game version");
+    }
+    qCDebug(cGameMngr) << u"Game version detected: %1"_s.arg(mGameVersion.to_string());
 }
 
 void GameMngr::readModsPaths(const QJsonObject &clientSettings) {

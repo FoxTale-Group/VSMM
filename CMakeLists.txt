@@ -18,10 +18,10 @@ qt_standard_project_setup()
 
 include(FetchContent)
 FetchContent_Declare(
-        cpp-semver
-        GIT_REPOSITORY https://github.com/z4kn4fein/cpp-semver.git
-        GIT_TAG v0.4.0)
-FetchContent_MakeAvailable(cpp-semver)
+        semver
+        GIT_REPOSITORY https://github.com/Neargye/semver.git
+        GIT_TAG v1.0.0-rc)
+FetchContent_MakeAvailable(semver)
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     add_compile_definitions(DEBUG)

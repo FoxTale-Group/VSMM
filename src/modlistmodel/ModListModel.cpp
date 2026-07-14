@@ -42,11 +42,11 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
     case NameRole:
         return mod.getName().toString();
     case VersionRole:
-        return QString::fromStdString(mod.getVersion().str());
+        return QString::fromStdString(mod.getVersion().to_string());
     case AuthorRole:
         return mod.getAuthor().toString();
     case LatestVersionRole:
-        return QString::fromStdString(mod.getLatestVersion().mVersion.str());
+        return QString::fromStdString(mod.getLatestVersion().mVersion.to_string());
     case TagsRole:
         return mod.getTags();
     case UrlRole:
@@ -75,11 +75,16 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
 }
 
 QHash<int, QByteArray> ModListModel::roleNames() const {
-    return {{NameRole, "name"},        {VersionRole, "version"},
-            {AuthorRole, "author"},    {LatestVersionRole, "latestVersion"},
-            {TagsRole, "tags"},        {UrlRole, "url"},
-            {TypeRole, "type"},        {HasUpdateRole, "hasUpdate"},
-            {IconRole, "modicon"},     {IdRole, "modid"},
+    return {{NameRole, "name"},
+            {VersionRole, "version"},
+            {AuthorRole, "author"},
+            {LatestVersionRole, "latestVersion"},
+            {TagsRole, "tags"},
+            {UrlRole, "url"},
+            {TypeRole, "type"},
+            {HasUpdateRole, "hasUpdate"},
+            {IconRole, "modicon"},
+            {IdRole, "modid"},
             {FavoriteRole, "isFavoriteMod"}};
 }
 

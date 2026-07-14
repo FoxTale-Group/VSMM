@@ -29,7 +29,7 @@
 #include <algorithm>
 
 #include <ZipArchive.hpp>
-#include <semver/semver.hpp>
+#include <semver.hpp>
 #include <utility>
 
 namespace {
@@ -247,9 +247,7 @@ QVariant ModLoader::parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&
         auto lowercaseKey = key.toString().toLower();
 
         if (lowercaseKey == LOCAL_JSON_VERSION_KEY) {
-            try {
-                info.mVersion = semver::version::parse(value.toString().toStdString());
-            } catch (const semver::semver_exception &) {
+            if (const auto result = semver::parse(value.toString().toStdString(), info.mVersion); !result) {
                 return u"Failed to parse modinfo.json from zip file: %1"_s.arg(info.mFileInfo.absoluteFilePath());
             }
         } else if (lowercaseKey == LOCAL_JSON_MODID_KEY && value.isString()) {
@@ -261,7 +259,7 @@ QVariant ModLoader::parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&
         }
     }
 
-    if (info.mId.isEmpty() || info.mVersion == semver::version{} || info.mAuthor.isEmpty() || info.mName.isEmpty()) {
+    if (info.mId.isEmpty() || info.mAuthor.isEmpty() || info.mName.isEmpty()) {
         return u"Failed to parse modinfo.json from zip file: %1"_s.arg(info.mFileInfo.absoluteFilePath());
     }
 

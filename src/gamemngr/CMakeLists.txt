@@ -8,7 +8,7 @@ add_dependencies(Config)
 target_include_directories(${PROJECT_NAME}
                             PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
                             INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Core Qt6::Quick Qt6::Qml Config semver)
+target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Core Qt6::Quick Qt6::Qml Config semver::semver)
 qt_add_qml_module(${PROJECT_NAME}
         URI ${PROJECT_NAME}
         VERSION ${PROJECT_VERSION}
