@@ -51,6 +51,20 @@ void App::initQmlEngine() {
     mQmlEngine.addImageProvider("modicon", mModImageProvider);
     mQmlEngine.loadFromModule("vsmm", "Main");
 
+#if defined(Q_OS_LINUX)
+    mQmlEngine.rootContext()->setContextProperty("IS_LINUX", true);
+    mQmlEngine.rootContext()->setContextProperty("IS_WINDOWS", false);
+    mQmlEngine.rootContext()->setContextProperty("IS_MACOS", false);
+#elif defined(Q_OS_WINDOWS)
+    mQmlEngine.rootContext()->setContextProperty("IS_LINUX", false);
+    mQmlEngine.rootContext()->setContextProperty("IS_WINDOWS", true);
+    mQmlEngine.rootContext()->setContextProperty("IS_MACOS", false);
+#elif defined(Q_OS_MACOS)
+    mQmlEngine.rootContext()->setContextProperty("IS_LINUX", false);
+    mQmlEngine.rootContext()->setContextProperty("IS_WINDOWS", false);
+    mQmlEngine.rootContext()->setContextProperty("IS_MACOS", true);
+#endif
+
     auto config = mQmlEngine.singletonInstance<Config *>("vsmm", "Config");
     auto gameMngr = mQmlEngine.singletonInstance<GameMngr *>("vsmm", "GameMngr");
     auto modLoader = mQmlEngine.singletonInstance<ModLoader *>("vsmm", "ModLoader");

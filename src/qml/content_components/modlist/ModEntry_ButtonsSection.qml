@@ -25,33 +25,19 @@ RowLayout {
         Layout.preferredHeight: 35
         Layout.preferredWidth: 35
 
-        tooltipText: hasUpdate ? qsTr("Download update for '%1'").arg(name) : ""
+        tooltipText: modHasUpdate ? qsTr("Download update for '%1'").arg(modName) : ""
 
         defaultColor: "transparent"
-        hoverColor: hasUpdate ? Theme.colors.buttonUpdateHover : "transparent"
-        pressColor: hasUpdate ? Theme.colors.buttonUpdatePress : "transparent"
+        hoverColor: modHasUpdate ? Theme.colors.buttonUpdateHover : "transparent"
+        pressColor: modHasUpdate ? Theme.colors.buttonUpdatePress : "transparent"
 
-        iconColor: hasUpdate ? Theme.colors.buttonUpdateLabel : Theme.colors.labelVersion
+        iconColor: modHasUpdate ? Theme.colors.buttonUpdateLabel : Theme.colors.labelVersion
 
-        enabled: hasUpdate
-
-        onClicked: {
-            console.log("Updating mod" + name)
-            ModStore.update(modid)
-        }
-    }
-
-    VsmmModEntryButton {
-        icon.source: Theme.icons.iCheckUpdate
-
-        Layout.preferredHeight: 35
-        Layout.preferredWidth: 35
-
-        tooltipText: qsTr("Check update for '%1'").arg(name)
+        enabled: modHasUpdate
 
         onClicked: {
-            // TODO: Implement check for update for single mod
-            console.log("Checking update for " + name)
+            console.log("Updating mod" + modName)
+            ModStore.update(modId)
         }
     }
 
@@ -62,15 +48,15 @@ RowLayout {
         Layout.preferredHeight: 35
         Layout.preferredWidth: 35
 
-        tooltipText: !isFavoriteMod ? qsTr("Add '%1' to favorites").arg(name) : qsTr("Remove '%1' from favorites").arg(name)
+        tooltipText: !isFavoriteMod ? qsTr("Add '%1' to favorites").arg(modName) : qsTr("Remove '%1' from favorites").arg(modName)
 
         onClicked: {
             if (!isFavoriteMod) {
-                console.info("Added '" + name + "' to favorites")
+                console.info("Added '" + modName + "' to favorites")
             } else {
-                console.info("Removed '" + name + "' from favorites")
+                console.info("Removed '" + modName + "' from favorites")
             }
-            ModStore.setFavorite(modid, !isFavoriteMod);
+            ModStore.setFavorite(modId, !isFavoriteMod);
         }
     }
 
@@ -80,11 +66,11 @@ RowLayout {
         Layout.preferredHeight: 35
         Layout.preferredWidth: 35
 
-        tooltipText: qsTr("Open '%1' mod page").arg(name)
+        tooltipText: qsTr("Open '%1' mod page").arg(modName)
 
         onClicked: {
-            console.info("Opening " + name + " modpage: " + url)
-            Qt.openUrlExternally(url)
+            console.info("Opening " + modName + " modpage: " + modUrl)
+            Qt.openUrlExternally(modUrl)
         }
     }
 
@@ -97,13 +83,13 @@ RowLayout {
         Layout.preferredHeight: 35
         Layout.preferredWidth: 35
 
-        tooltipText: qsTr("Delete mod '%1'").arg(name)
+        tooltipText: qsTr("Delete mod '%1'").arg(modName)
 
         hoverColor: Theme.colors.modDelButtonHover
         pressColor: Theme.colors.modDelButtonPress
 
         onClicked: {
-            console.info("Deleting " + name)
+            console.info("Deleting " + modName)
             // TODO: Implement mod deleting functionality
         }
     }

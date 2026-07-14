@@ -36,13 +36,12 @@ Rectangle {
             padding: 0
 
             onCheckedChanged: {
-                // TODO: Implement selecting and saving mod to update queue
                 if (_selectForUpdate.checked) {
-                    console.log(name + " is selected for update")
+                    console.log(modName + " is selected for update")
                 } else {
-                    console.log(name + " is not selected for update anymore")
+                    console.log(modName + " is not selected for update anymore")
                 }
-                ModStore.markForUpdate(modid, checked)
+                ModStore.markForUpdate(modId, checked)
             }
         }
 
@@ -58,7 +57,7 @@ Rectangle {
 
                 // Mod Name
                 Label {
-                    text: name
+                    text: modName
                     font.pixelSize: 14
                     font.weight: Font.Medium
                     color: Theme.colors.label
@@ -68,7 +67,7 @@ Rectangle {
 
                 // Mod Author
                 Label {
-                    text: qsTr("by %1").arg(author)
+                    text: qsTr("by %1").arg(modAuthor)
                     font.pixelSize: 12
                     color: Theme.colors.labelAlt
                 }
@@ -82,14 +81,14 @@ Rectangle {
 
                 // Mod version
                 Label {
-                    text: qsTr("v%1").arg(version)
+                    text: qsTr("v%1").arg(modVersion)
                     font.pixelSize: 11
                     color: Theme.colors.labelVersion
                 }
 
                 // Update available badge
                 Rectangle {
-                    visible: hasUpdate
+                    visible: modHasUpdate
                     radius: 6
                     color: Theme.colors.modUpdateBadgeBg
                     implicitWidth: _updateLabel.width + 16
@@ -98,14 +97,14 @@ Rectangle {
                     Label {
                         id: _updateLabel
                         anchors.centerIn: parent
-                        text: qsTr("v%1 available").arg(latestVersion)
+                        text: qsTr("v%1 available").arg(modLatestVersion)
                         font.pixelSize: 11
                         color: Theme.colors.modUpdateBadgeText
                     }
                 }
                 // Latest version badge
                 Rectangle {
-                    visible: !hasUpdate
+                    visible: !modHasUpdate
                     radius: 6
                     color: Theme.colors.modLatestBadgeBg
                     implicitWidth: _latestLabel.width + 16
@@ -128,7 +127,7 @@ Rectangle {
                 clip: true
 
                 Repeater {
-                    model: tags
+                    model: modTags
                     delegate: Label {
                         text: modelData
                         font.pixelSize: 10
