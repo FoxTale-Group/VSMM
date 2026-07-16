@@ -20,6 +20,7 @@
 #include <Config.hpp>
 #include <QCommandLineParser>
 #include <QIcon>
+#include <QQuickStyle>
 #include <QStandardPaths>
 #include <constants.hpp>
 #include <qqmlcontext.h>
@@ -47,6 +48,11 @@ App::App(int &argc, char *argv[]) : QGuiApplication{argc, argv} {
 }
 
 void App::initQmlEngine() {
+    // Must run before any QML control is created. Controls the VSMMStyle style doesn't
+    // provide (everything except Button, for now) fall back to Basic.
+    QQuickStyle::setStyle("VSMMStyle");
+    QQuickStyle::setFallbackStyle("Basic");
+
     mModImageProvider = new ModImageProvider();
     mQmlEngine.addImageProvider("modicon", mModImageProvider);
     mQmlEngine.loadFromModule("vsmm", "Main");

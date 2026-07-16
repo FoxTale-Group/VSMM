@@ -28,16 +28,15 @@ VsmmWindow {
 
         Label {
             text: qsTr("Install New Mod")
-            font.pixelSize: 24
+            font.pixelSize: Theme.fonts.headline
             font.bold: true
-            color: Theme.colors.label
         }
 
         // Drag and drop area
         Rectangle {
             id: dropZone
             Layout.fillWidth: true; Layout.fillHeight: true
-            radius: 12; border.width: 2
+            radius: Theme.radius.panel; border.width: 2
 
             color: dropArea.containsDrag ? Theme.colors.dropAreaDragBg : Theme.colors.dropAreaBg
             border.color: dropArea.containsDrag ? Theme.colors.dropAreaDragFg : Theme.colors.dropAreaBorder
@@ -47,7 +46,7 @@ VsmmWindow {
                 anchors.centerIn: parent; spacing: 10
 
                 IconImage {
-                    source: Theme.icons.iDropItem
+                    source: Theme.icons.dropItemIcon
                     color: dropArea.containsDrag ? Theme.colors.dropAreaDragFg : Theme.colors.dropAreaIcon
                     sourceSize: Qt.size(64, 64)
                     Layout.alignment: Qt.AlignHCenter
@@ -56,7 +55,7 @@ VsmmWindow {
                 Label {
                     id: dragAndDropLabel
                     text: qsTr("Drag & Drop .zip file here\n...or click to browse")
-                    color: Theme.colors.label
+                    font.pixelSize: Theme.fonts.body
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
                 }
@@ -89,7 +88,7 @@ VsmmWindow {
         Label {
             id: modPathLabel
             text: ""
-            color: Theme.colors.label
+            font.pixelSize: Theme.fonts.body
             horizontalAlignment: Text.AlignHCenter
             Layout.alignment: Qt.AlignHCenter
         }
@@ -101,7 +100,7 @@ VsmmWindow {
 
             LayoutHorizontalSpacer{}
 
-            VsmmButton {
+            Button {
                 text: qsTr("Add")
                 icon.source: ""
 

@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import vsmm
+import VSMMStyle
 import "js/StringHelpers.js" as StrUtils
 
 VsmmWindow {
@@ -10,7 +11,7 @@ VsmmWindow {
 
     width: 800; height: 600; minimumWidth: 600; minimumHeight: 400;
 
-    windowTitle: qsTr("Settings"); windowIcon: Theme.icons.iSettings;
+    windowTitle: qsTr("Settings"); windowIcon: Theme.icons.settingsIcon;
 
     dialog: true; movable: false; resizable: false;
     modality: Qt.ApplicationModal
@@ -21,13 +22,14 @@ VsmmWindow {
         anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20; anchors.topMargin: 5; anchors.bottomMargin: 10;
         spacing: 0
 
-        VsmmTabBar {
+        TabBar {
             id: settingsTabBar
+            Layout.fillWidth: true
 
-            VsmmTabButton { text: qsTr("General")}
-            VsmmTabButton { text: qsTr("Paths")}
-            VsmmTabButton { text: qsTr("Appearance")}
-            //VsmmTabButton { text: qsTr("Advanced")}
+            TabButton { text: qsTr("General"); font.pixelSize: Theme.fonts.body }
+            TabButton { text: qsTr("Paths"); font.pixelSize: Theme.fonts.body }
+            TabButton { text: qsTr("Appearance"); font.pixelSize: Theme.fonts.body }
+            //TabButton { text: qsTr("Advanced")}
         }
 
         StackLayout {
@@ -51,7 +53,7 @@ VsmmWindow {
 
             LayoutHorizontalSpacer{}
 
-            VsmmButton {
+            Button {
                 text: settingsChanged ? "* " + qsTr("Save") : qsTr("Save")
 
                 defaultColor: settingsChanged ? Theme.colors.buttonDefault : Theme.colors.buttonInactive
@@ -67,8 +69,8 @@ VsmmWindow {
                 }
             }
 
-            VsmmButton {
-                text: qsTr("Save & Close")
+            Button {
+                text: qsTr("Save && Close")
 
                 defaultColor: settingsChanged ? Theme.colors.buttonDefault : Theme.colors.buttonInactive
                 enabled: settingsChanged
@@ -84,7 +86,7 @@ VsmmWindow {
                 }
             }
 
-            VsmmButton {
+            Button {
                 text: qsTr("Close")
 
                 display: AbstractButton.TextOnly

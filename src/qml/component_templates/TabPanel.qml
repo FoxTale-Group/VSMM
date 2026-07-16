@@ -15,7 +15,7 @@ Rectangle {
         anchors.fill: parent
 
         color: Theme.colors.tabPanelBackground
-        radius: Theme.windowRadius
+        radius: Theme.radius.window
         border.width: 2
         border.color: Theme.colors.tabPanelBorder
 

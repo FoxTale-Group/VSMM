@@ -5,9 +5,11 @@ import QtQuick.Layouts
 import QtQuick.Controls.impl
 import QtQuick.Effects
 import vsmm
+import VSMMStyle
 
 RowLayout {
     spacing: 2
+    Layout.rightMargin: 8
     clip: true
     opacity: _ModEntryHoverHandler.hovered ? 1.0 : 0.0
     visible: opacity > 0
@@ -19,8 +21,9 @@ RowLayout {
         }
     }
 
-    VsmmModEntryButton {
-        icon.source: Theme.icons.iDownloadOne
+    Button {
+        modEntry: true
+        icon.source: Theme.icons.downloadOneIcon
 
         Layout.preferredHeight: 35
         Layout.preferredWidth: 35
@@ -41,8 +44,11 @@ RowLayout {
         }
     }
 
-    VsmmModEntryButton {
-        icon.source: isFavoriteMod ? Theme.icons.iFavoriteFilled : Theme.icons.iFavorite
+
+    Button {
+        modEntry: true
+
+        icon.source: isFavoriteMod ? Theme.icons.favoriteFilledIcon : Theme.icons.favoriteIcon
         iconColor: isFavoriteMod ? Theme.colors.modFavButton : Theme.colors.icon
 
         Layout.preferredHeight: 35
@@ -60,8 +66,10 @@ RowLayout {
         }
     }
 
-    VsmmModEntryButton {
-        icon.source: Theme.icons.iOpenLink
+    Button {
+        modEntry: true
+
+        icon.source: Theme.icons.openLinkIcon
 
         Layout.preferredHeight: 35
         Layout.preferredWidth: 35
@@ -74,8 +82,10 @@ RowLayout {
         }
     }
 
-    VsmmModEntryButton {
-        icon.source: Theme.icons.iDelete
+    Button {
+        modEntry: true
+
+        icon.source: Theme.icons.deleteIcon
         iconColor: Theme.colors.modDelButtonIcon
 
         Layout.leftMargin: 5

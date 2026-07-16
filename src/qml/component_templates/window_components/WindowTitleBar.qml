@@ -60,13 +60,14 @@ Item {
 
         Text {
             text: _TitleBar.windowTitleText
+            font.pixelSize: Theme.fonts.body
             color: Theme.colors.windowTitle
             Layout.fillWidth: true
         }
 
         // Minimize Button
         Button {
-            icon.source: Theme.icons.iMinimize
+            icon.source: Theme.icons.minimizeIcon
             icon.color: Theme.colors.icon
             display: AbstractButton.IconOnly
             Layout.preferredWidth: 30
@@ -85,7 +86,7 @@ Item {
         // Maximize / Restore Button
         Button {
             // Change icon based on current state
-            icon.source: Window.window.visibility === Window.Maximized ? Theme.icons.iExitFullscreen : Theme.icons.iGoFullscreen
+            icon.source: Window.window.visibility === Window.Maximized ? Theme.icons.exitFullscreenIcon : Theme.icons.goFullscreenIcon
             icon.color: Theme.colors.icon
             display: AbstractButton.IconOnly
             Layout.preferredWidth: 30
@@ -109,7 +110,7 @@ Item {
 
         // Close Button
         Button {
-            icon.source: Theme.icons.iClose
+            icon.source: Theme.icons.closeIcon
             icon.color: Theme.colors.icon
             display: AbstractButton.IconOnly
             Layout.preferredWidth: 30
