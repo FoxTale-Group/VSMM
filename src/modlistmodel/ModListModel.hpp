@@ -57,16 +57,17 @@ class MODLISTMODEL_EXPORT ModListModel : public QAbstractListModel {
     void setStore(ModStore *store);
 
   public slots:
-    void iconUpdate(const QString &modId);
+    void iconUpdate(QStringView modId);
 
   private slots:
-    void onModAdded(const ModEntry &mod);
-    void onModUpdated(const ModEntry &mod);
+    void onModAdded(QStringView modId);
+    void onModUpdated(QStringView modId);
     void onModsReloading();
+    void onModRemoved(QStringView modId);
 
   private:
     ModStore *mStore{nullptr};
-    QList<QString> mOrder;        // row order -> mod id
+    QStringList mOrder;           // mods ids
     QHash<QString, int> mIdToRow; // mod id -> row index
     ModImageProvider *mImageProvider{nullptr};
 };

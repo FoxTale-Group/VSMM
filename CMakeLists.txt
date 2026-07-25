@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 4.3)
+cmake_minimum_required(VERSION 4.2)
 set(VSMM_RELEASE_VERSION "0.2.0-alpha.2" CACHE STRING "Project version" FORCE)
 project(VSMM
-        DESCRIPTION "Mod Checker For Vintage Story"
+        DESCRIPTION "Mod Manager For Vintage Story"
         HOMEPAGE_URL "https://github.com/FoxTale-Group/VSMM"
         LANGUAGES CXX)
 set(APP_DISPLAY_NAME "Vintage Story Mod Manager")
