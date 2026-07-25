@@ -46,20 +46,25 @@ bool ModImageProvider::hasImage(const QString &id) const {
     return mImages.contains(id);
 }
 
-void ModImageProvider::onImageReceived(const QString &id, QImage image) {
+void ModImageProvider::onImageReceived(const QString &modId, QImage image) {
     {
         QMutexLocker locker(&mMutex);
-        if (const auto it = mImages.find(id); it != mImages.end()) {
+        if (const auto it = mImages.find(modId); it != mImages.end()) {
             *it = std::move(image);
         } else {
-            mImages.insert(id, std::move(image));
+            mImages.insert(modId, std::move(image));
         }
     }
-    emit imageAdded(id);
+    emit imageAdded(modId);
 }
 
 void ModImageProvider::onModsReloading() {
     QMutexLocker locker(&mMutex);
     mImages.clear();
+}
+
+void ModImageProvider::onModRemoved(QStringView modId) {
+    QMutexLocker locker(&mMutex);
+    mImages.removeIf([modId](const QPair<QString, QImage> &entry) { return entry.first == modId.toString(); });
 }
 } // namespace vsmm

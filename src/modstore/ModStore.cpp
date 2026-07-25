@@ -91,7 +91,7 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
                 it->setFavorite(true);
             }
 
-            emitSignal(&ModStore::modUpdated, this, *it);
+            emitSignal(&ModStore::modUpdated, this, it->getId());
             return;
         }
     }
@@ -109,7 +109,7 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
     if (mFavoriteMods.contains(it->getId().toString())) {
         it->setFavorite(true);
     }
-    emitSignal(&ModStore::modAdded, this, *it);
+    emitSignal(&ModStore::modAdded, this, it->getId());
 }
 
 void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
@@ -119,7 +119,7 @@ void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
     }
     const auto includePrerelease = mConfig->getGeneral<bool>(Config::INCLUDE_MOD_PRERELEASE_JSON_KEY);
     it->initOnlineInfo(std::move(onlineInfo), mGameMngr->getGameVersion(), includePrerelease);
-    emitSignal(&ModStore::modUpdated, this, *it);
+    emitSignal(&ModStore::modUpdated, this, it->getId());
 }
 
 void ModStore::reload() {
@@ -187,7 +187,30 @@ void ModStore::setFavorite(const QString &id, bool favorite) {
     }
     it->setFavorite(favorite);
     mConfig->setFavorites(mFavoriteMods.values());
-    emit modUpdated(*it);
+    emit modUpdated(it->getId());
+}
+
+void ModStore::remove(const QString &id) {
+    using namespace Qt::StringLiterals;
+
+    const auto it = mMods.find(id);
+    if (it == mMods.end()) {
+        return;
+    }
+
+    if (!QFile::remove(it->getFileInfo().absoluteFilePath())) {
+        qCritical() << u"Failed to delete %1"_s.arg(id);
+        return;
+    }
+
+    // let modlistmodel & imgprovider remove their entries first
+    emit modRemoved(it->getId());
+
+    mMods.erase(it);
+    // update count of installed mods
+    emit modsChanged();
+
+    qInfo() << u"Mod %1 deleted"_s.arg(id);
 }
 
 bool ModStore::contains(const QString &id) const { return mMods.contains(id); }

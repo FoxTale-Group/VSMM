@@ -34,11 +34,12 @@ class IMGPROVIDER_EXPORT ModImageProvider : public QQuickImageProvider {
     bool hasImage(const QString &id) const;
 
   signals:
-    void imageAdded(const QString &id); // used by modlistmodel
+    void imageAdded(QStringView modId); // used by modlistmodel
 
   public slots:
-    void onImageReceived(const QString &id, QImage image);
+    void onImageReceived(const QString &modId, QImage image);
     void onModsReloading();
+    void onModRemoved(QStringView modId);
 
   private:
     QHash<QString, QImage> mImages;

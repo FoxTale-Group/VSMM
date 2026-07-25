@@ -33,40 +33,40 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
         return {};
     }
 
-    const ModEntry *modPtr = mStore->find(mOrder.at(index.row()));
-    if (!modPtr) {
+    const ModEntry *mod = mStore->find(mOrder.at(index.row()));
+    if (!mod) {
         return {};
     }
-    const ModEntry &mod = *modPtr;
+
     switch (role) {
     case NameRole:
-        return mod.getName().toString();
+        return mod->getName().toString();
     case VersionRole:
-        return QString::fromStdString(mod.getVersion().to_string());
+        return QString::fromStdString(mod->getVersion().to_string());
     case AuthorRole:
-        return mod.getAuthor().toString();
+        return mod->getAuthor().toString();
     case LatestVersionRole:
-        return QString::fromStdString(mod.getLatestVersion().mVersion.to_string());
+        return QString::fromStdString(mod->getLatestVersion().mVersion.to_string());
     case TagsRole:
-        return mod.getTags();
+        return mod->getTags();
     case UrlRole:
-        return mod.getUrl();
+        return mod->getUrl();
     case TypeRole:
-        return mod.getType().toString();
+        return mod->getType().toString();
     case HasUpdateRole:
-        return mod.hasUpdate();
+        return mod->hasUpdate();
     case IconRole: {
-        if (!mImageProvider || !mImageProvider->hasImage(mod.getId().toString())) {
+        if (!mImageProvider || !mImageProvider->hasImage(mod->getId().toString())) {
             return QString();
         }
         return QStringLiteral("image://modicon/%1?diff=%2")
-            .arg(mod.getId().toString())
-            .arg(mImageProvider->getCacheKey(mod.getId().toString()));
+            .arg(mod->getId().toString())
+            .arg(mImageProvider->getCacheKey(mod->getId().toString()));
     }
     case IdRole:
-        return mod.getId().toString();
+        return mod->getId().toString();
     case FavoriteRole:
-        return mod.isFavorite();
+        return mod->isFavorite();
     default:
         return {};
     }
@@ -75,16 +75,11 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
 }
 
 QHash<int, QByteArray> ModListModel::roleNames() const {
-    return {{NameRole, "modName"},
-            {VersionRole, "modVersion"},
-            {AuthorRole, "modAuthor"},
-            {LatestVersionRole, "modLatestVersion"},
-            {TagsRole, "modTags"},
-            {UrlRole, "modUrl"},
-            {TypeRole, "modSide"},
-            {HasUpdateRole, "modHasUpdate"},
-            {IconRole, "modThumbnail"},
-            {IdRole, "modId"},
+    return {{NameRole, "modName"},          {VersionRole, "modVersion"},
+            {AuthorRole, "modAuthor"},      {LatestVersionRole, "modLatestVersion"},
+            {TagsRole, "modTags"},          {UrlRole, "modUrl"},
+            {TypeRole, "modSide"},          {HasUpdateRole, "modHasUpdate"},
+            {IconRole, "modThumbnail"},     {IdRole, "modId"},
             {FavoriteRole, "isFavoriteMod"}};
 }
 
@@ -95,23 +90,24 @@ void ModListModel::setStore(ModStore *store) {
     connect(store, &ModStore::modAdded, this, &ModListModel::onModAdded);
     connect(store, &ModStore::modUpdated, this, &ModListModel::onModUpdated);
     connect(store, &ModStore::modsReloading, this, &ModListModel::onModsReloading);
+    connect(store, &ModStore::modRemoved, this, &ModListModel::onModRemoved);
 }
 
-void ModListModel::onModAdded(const ModEntry &mod) {
-    const QString modId = mod.getId().toString();
+void ModListModel::onModAdded(QStringView modId) {
     if (mIdToRow.contains(modId)) {
         return;
     }
 
+    const QString modIdStr = modId.toString();
     const int row = static_cast<int>(mOrder.size());
     beginInsertRows({}, row, row);
-    mOrder.append(modId);
-    mIdToRow.insert(modId, row);
+    mOrder.append(modIdStr);
+    mIdToRow.insert(modIdStr, row);
     endInsertRows();
 }
 
-void ModListModel::onModUpdated(const ModEntry &mod) {
-    const auto it = mIdToRow.constFind(mod.getId().toString());
+void ModListModel::onModUpdated(QStringView modId) {
+    const auto it = mIdToRow.constFind(modId);
     if (it == mIdToRow.constEnd()) {
         return;
     }
@@ -120,7 +116,7 @@ void ModListModel::onModUpdated(const ModEntry &mod) {
     }
 }
 
-void ModListModel::iconUpdate(const QString &modId) {
+void ModListModel::iconUpdate(QStringView modId) {
     const auto it = mIdToRow.constFind(modId);
     if (it == mIdToRow.constEnd()) {
         return;
@@ -134,9 +130,26 @@ void ModListModel::onModsReloading() {
     if (mOrder.isEmpty()) {
         return;
     }
-    beginRemoveRows(QModelIndex(), 0, static_cast<int>(mOrder.size() - 1));
+    beginRemoveRows({}, 0, static_cast<int>(mOrder.size() - 1));
     mOrder.clear();
     mIdToRow.clear();
+    endRemoveRows();
+}
+
+void ModListModel::onModRemoved(QStringView modId) {
+    const auto it = mIdToRow.constFind(modId);
+    if (it == mIdToRow.constEnd()) {
+        return;
+    }
+
+    const int row = *it;
+    beginRemoveRows({}, row, row);
+    mOrder.removeIf([modId](const QString &modId_) { return modId == modId_; });
+    // Regenerate id to row
+    mIdToRow.clear();
+    for (qsizetype i = 0; i < mOrder.size(); ++i) {
+        mIdToRow.insert(mOrder[i], static_cast<int>(i));
+    }
     endRemoveRows();
 }
 } // namespace vsmm

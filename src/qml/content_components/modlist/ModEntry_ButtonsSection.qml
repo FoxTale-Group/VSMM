@@ -90,7 +90,7 @@ RowLayout {
 
         onClicked: {
             console.info("Deleting " + modName)
-            // TODO: Implement mod deleting functionality
+            ModStore.remove(modId)
         }
     }
 }

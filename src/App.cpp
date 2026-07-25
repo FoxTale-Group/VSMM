@@ -89,6 +89,7 @@ void App::initQmlEngine() {
     connect(modLoader, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
     connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
     connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
+    connect(modStore, &ModStore::modRemoved, mModImageProvider, &ModImageProvider::onModRemoved);
 
     config->validate();
 }
