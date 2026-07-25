@@ -1,19 +1,39 @@
-![Project State](https://img.shields.io/badge/Status-Early_Dev-orange?style=flat-square)
-![Stable Release](https://img.shields.io/github/v/release/FoxTale-Group/VSMM?style=flat-square&logo=github&label=Stable&color=blue)
-![Pre-Release](https://img.shields.io/github/v/release/FoxTale-Group/VSMM?include_prereleases&style=flat-square&logo=github&label=Pre-Release&color=orange)
+<h1 align="center"><b>Vintage Story Mod Manager (VSMM)</b></h1> 
 
-![Windows Build](https://github.com/FoxTale-Group/VSMM/actions/workflows/build-windows.yml/badge.svg?branch=main)
+<div align="center">
+
+<!-- This will be uncommented when repo will go public
+![Stable](https://img.shields.io/github/v/release/FoxTale-Group/VSMM?style=for-the-badge&logo=github&label=Stable&color=green)
+![Pre-Release](https://img.shields.io/github/v/release/FoxTale-Group/VSMM?include_prereleases&style=for-the-badge&logo=github&label=Pre-Release&color=orange)
+![Build Linux](https://img.shields.io/github/actions/workflow/status/FoxTale-Group/VSMM/build-and-package.yml?branch=main&logo=githubactions&logoColor=white&style=for-the-badge&label=Build%20Linux%20%26%20Test)
+![Build Windows](https://img.shields.io/github/actions/workflow/status/FoxTale-Group/VSMM/build-and-package.yml?branch=main&logo=githubactions&logoColor=white&style=for-the-badge&label=Build%20Windows)
+![Issues](https://img.shields.io/github/issues/FoxTale-Group/VSMM?style=for-the-badge&label=Issues&color=yellow)
+![License](https://img.shields.io/github/license/FoxTale-Group/VSMM?style=for-the-badge&label=License&color=blue)
+-->
+![Project State](https://img.shields.io/badge/Status-Early_Dev-orange)
 ![Linux Build](https://github.com/FoxTale-Group/VSMM/actions/workflows/build.yml/badge.svg?branch=main)
+![Windows Build](https://github.com/FoxTale-Group/VSMM/actions/workflows/build-windows.yml/badge.svg?branch=main)
 
-# Vintage Story Mod Manager (VSMM)
+</div>
 
-A fast, lightweight desktop manager for [*Vintage Story*](https://www.vintagestory.at/) mods.
+---
+<div align="center">
+  
+**A fast, lightweight desktop manager for [*Vintage Story*](https://www.vintagestory.at/) mods.**
 
 VSMM scans your local mods folder, cross-references each installed mod against the
 official [Vintage Story mod API](https://mods.vintagestory.at/), and shows you at a
 glance which mods have updates available — all inside a custom, frameless, dark-themed UI.
 
-## Features
+---
+
+![Screenshot of Vintage Story Mod Manager UI](/.docs/images/VSMM.png)
+
+---
+
+</div>
+
+## Features:
 
 - **Automatic scanning** of your local `Mods` folder
 - **Update detection** - compares installed versions against the latest release
@@ -28,32 +48,50 @@ glance which mods have updates available — all inside a custom, frameless, dar
 > Vintage Story Mod Manager is currently Under Development. Some things may not work, some may not be implemented yet.
 > Keep that in mind when using unfinished versions of our app.
 
-## Screenshots
-
-<!-- Add screenshots or a GIF here -->
-![Screenshot of Vintage Story Mod Manager UI](/.docs/images/VSMM.png)
-
 ---
 
-## Releases & Running
-
-[Latest release](https://github.com/FoxTale-Group/VSMM/releases/latest)
+# Installation
 
 ### Runtime Dependencies
 - Qt 6.10
 - libzip
 
----
+## Linux:
 
-## Building from source
+Go to [releases page](https://github.com/FoxTale-Group/VSMM/releases/latest) and download the leatest stable package for your distribution or generic linux `.tar.gz` package.
 
-### Requirements
+```bash
+# On Ubuntu-based distros:
+sudo apt install path/to/package/vintagestory-mod-manager-{version}-Linux.deb
+
+# On Fedora-based distros:
+sudo dnf install path/to/package/vintagestory-mod-manager-{version}-Linux.rpm
+```
+> [!IMPORTANT]
+> Replace `path/to/package` with actuall path where you downloaded package and replace `{version}` with actual version for your downloaded package
+
+For all other uncovered distros just download `.tar.gz` or `tar.xz` archive, extract it and run excutable.
+
+## Windows
+
+Go to [releases page](https://github.com/FoxTale-Group/VSMM/releases/latest) and download the leatest stable windows installer or portable version.
+
+- For installer version run the installation and proceed with it.
+- For portable version just unzip the archive and run `bin/VSMM.exe`.
+
+> [!IMPORTANT]
+> After starting go to app settings and setup path to `VintagestoryData` folder.
+
+# Building from source
+
+### Requirements:
 
 - A C++23-capable compiler
 - [CMake](https://cmake.org/) ≥ 4.2 and [Ninja](https://ninja-build.org/)
 - [Qt 6](https://www.qt.io/) - `Core`, `Quick`, `Qml`, `Network`, `QuickControls2`
 - [libzip](https://libzip.org/)
 
+## On Linux:
 
 Install required build dependencies using your distribution package manager.
 ```bash
@@ -67,7 +105,7 @@ sudo apt install cmake ninja-build qt6-{base,declarative}-dev libzip-dev
 sudo dnf install cmake ninja-build libzip-devel qt6-qtbase-devel qt6-qtquickcontrols2-devel
 ```
 
-### Building
+## Building
 
 ```bash
 # Clone this repository:
@@ -85,19 +123,9 @@ cmake -G Ninja -S . -B build-dir -DCMAKE_BUILD_TYPE=Release && cmake --build bui
 > [!TIP]
 > You can also use `build.sh` or `build-debug.sh` scripts.
 
-
-### Running
-
-```bash
-./build-dir/bin/VSMM
-```
-
-> [!IMPORTANT]
-> After starting go to app settings and setup path to `VintagestoryData` folder.
-
 ---
 
-## Roadmap
+# Roadmap
 
 **1.0 Release:**
 - [x] Scan local mods folder
@@ -121,11 +149,11 @@ full list of features, ideas, and bugs.
 
 ---
 
-## Contributing
+# Contributing
 
 Contributions are welcome! Check [CONTRIBUTING.md](CONTRIBUTING.md)
 
-## License
+# License
 
 This project is licensed under the **GNU General Public License v3.0** —
 see the [LICENSE](LICENSE) file for details.
