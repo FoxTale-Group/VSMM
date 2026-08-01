@@ -133,8 +133,8 @@ void Config::validate() {
         return;
     }
 
-    auto general = mConfig[PATHS_JSON_KEY].toHash();
-    auto configGamePath = general["gameConfig"_L1].toString();
+    auto paths = mConfig[PATHS_JSON_KEY].toHash();
+    auto configGamePath = paths["gameConfig"_L1].toString();
     QDir configGameDir{configGamePath};
     if (configGamePath.isEmpty() || !configGameDir.exists()) {
         qCCritical(cConfig, "Config game path does not exist");

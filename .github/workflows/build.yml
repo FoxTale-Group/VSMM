@@ -8,6 +8,10 @@ on:
 env:
   DEFAULT_BUILD_TYPE: Debug
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   build-linux:
     runs-on: ubuntu-26.04
@@ -38,4 +42,5 @@ jobs:
       - name: Build
         run: |
           cmake --build ${{github.workspace}}/build
-      # add tests
+      - name: Test
+        run: ctest --test-dir ${{github.workspace}}/build --output-on-failure --no-tests=error
