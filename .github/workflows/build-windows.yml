@@ -1,4 +1,4 @@
-name: Build Windows
+name: Build Windows & Test
 on:
   pull_request:
     branches:
@@ -7,6 +7,10 @@ on:
 
 env:
   DEFAULT_BUILD_TYPE: Debug
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   build-windows:
@@ -77,3 +81,6 @@ jobs:
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VS_PATH=%%i"
           call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat"
           cmake --build build-win --config ${{ env.DEFAULT_BUILD_TYPE }}
+
+      - name: Test
+        run: ctest --test-dir build-win --output-on-failure --no-tests=error
