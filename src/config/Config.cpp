@@ -80,17 +80,24 @@ void Config::setGeneral(const QVariantHash &data) {
 void Config::setPaths(const QVariantHash &data) {
     using namespace Qt::StringLiterals;
     constexpr QLatin1StringView CONFIG_DIR_KEY_NAME{"gameConfig"};
+    constexpr QLatin1StringView GAMEEXE_DIR_KEY_NAME{"gameExe"};
 
     if (mConfig[PATHS_JSON_KEY].toHash() == data) {
         return;
     }
 
     const QDir oldConfigDir = getPath(CONFIG_DIR_KEY_NAME);
+    const QString oldGameExePath = getPath(GAMEEXE_DIR_KEY_NAME);
 
     mConfig[PATHS_JSON_KEY] = QVariant::fromValue(data);
     saveToFile();
     emit pathsChanged();
     qCDebug(cConfig) << "emitted pathsChanged";
+    
+    if (oldGameExePath != mConfig[PATHS_JSON_KEY].toHash()[GAMEEXE_DIR_KEY_NAME].toString()) {
+        emit gameExePathChanged();
+        qCDebug(cConfig) << "emitted gameExePathChanged";
+    }
 
     // Check if config dir path changed
     if (oldConfigDir != mConfig[PATHS_JSON_KEY].toHash()[CONFIG_DIR_KEY_NAME].toString()) {
