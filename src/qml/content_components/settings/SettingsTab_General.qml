@@ -5,7 +5,7 @@ import QtQuick.Controls.impl
 import QtQuick.Layouts
 import vsmm
 
-VsmmTabPanel {
+TabPanel {
     id: _SettingsTab_General
 
     property bool deleteOldModVersion: false
@@ -24,6 +24,7 @@ VsmmTabPanel {
             CheckBox {
                 id: deleteModCheck
                 checked: _SettingsTab_General.deleteOldModVersion
+                font.pixelSize: Theme.fonts.body
 
                 onCheckedChanged: {
                     _SettingsTab_General.deleteOldModVersion = checked
@@ -38,10 +39,8 @@ VsmmTabPanel {
 
             Label {
                 text: qsTr("Remove old mod versions when manually adding newer one")
-                font.pixelSize: 12
+                font.pixelSize: Theme.fonts.body
                 font.bold: true
-                color: Theme.colors.label
-                
             }
         }
 
@@ -50,6 +49,7 @@ VsmmTabPanel {
             spacing: 2
 
             CheckBox {
+                font.pixelSize: Theme.fonts.body
                 checked: _SettingsTab_General.includeModPrerelease
 
                 onCheckedChanged: {
@@ -65,10 +65,8 @@ VsmmTabPanel {
 
             Label {
                 text: qsTr("Check pre-release versions of mods")
-                font.pixelSize: 12
+                font.pixelSize: Theme.fonts.body
                 font.bold: true
-                color: Theme.colors.label
-
             }
         }
 

@@ -28,7 +28,7 @@ RowLayout
             Layout.fillWidth: true
             Layout.maximumWidth: 150
             Layout.preferredHeight: 64
-            radius: 8
+            radius: Theme.radius.card
             color: modelData.color
 
             ColumnLayout {
@@ -38,13 +38,12 @@ RowLayout
 
                 Label {
                     text: modelData.label
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.fonts.body
                     color: Theme.colors.labelAlt
                 }
                 Label {
                     text: modelData.value
-                    font.pixelSize: 22
-                    font.weight: Font.Medium
+                    font.pixelSize: Theme.fonts.headline
                     color: modelData.textColor
                 }
             }

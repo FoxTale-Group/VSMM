@@ -5,7 +5,7 @@ import QtQuick.Controls.impl
 import QtQuick.Layouts
 import vsmm
 
-VsmmTabPanel {
+TabPanel {
     id: _SettingsTab_Appearance
 
     signal settingsEdited(edited: bool)
@@ -16,12 +16,12 @@ VsmmTabPanel {
 
         Label {
             text: qsTr("Application Language")
-            color: Theme.colors.label
+            font.pixelSize: Theme.fonts.body
         }
 
         Label {
             text: qsTr("Theme")
-            color: Theme.colors.label
+            font.pixelSize: Theme.fonts.body
         }
 
         LayoutVerticalSpacer{}

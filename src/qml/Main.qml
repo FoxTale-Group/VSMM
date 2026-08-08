@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import vsmm
+import VSMMStyle
 
 VsmmWindow {
     id: windowMain
@@ -29,11 +30,12 @@ VsmmWindow {
             Layout.fillWidth: true
             spacing: 12
 
-            VsmmButton {
-                text: qsTr("Launch Game"); icon.source: Theme.icons.iLaunch; tooltipText: qsTr("Launch Game")
+            Button {
+                text: qsTr("Launch Game"); icon.source: Theme.icons.launchIcon; tooltipText: qsTr("Launch Game")
 
                 display: AbstractButton.TextBesideIcon
                 Layout.preferredHeight: 60
+                LayoutMirroring.enabled: true
 
                 defaultColor:   Theme.colors.buttonLaunchDefault
                 hoverColor:     Theme.colors.buttonLaunchHover
@@ -45,8 +47,8 @@ VsmmWindow {
                 }
             }
 
-            VsmmButton {
-                icon.source: Theme.icons.iSettings; tooltipText: qsTr("Settings")
+            Button {
+                icon.source: Theme.icons.settingsIcon; tooltipText: qsTr("Settings")
 
                 display: AbstractButton.IconOnly
 

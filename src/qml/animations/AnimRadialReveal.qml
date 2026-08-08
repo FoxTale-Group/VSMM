@@ -20,21 +20,21 @@ Item {
     Item {
         id: maskContainer
         anchors.fill: parent
-        visible: false       // CRITICAL: Hides the giant blob from the screen!
-        layer.enabled: true  // CRITICAL: Keeps the texture active for the mask
+        visible: false       // keeps the oversized circle off screen
+        layer.enabled: true  // keeps its texture live so it can serve as the mask
 
         // 3. THE ANIMATED SHAPE
         Rectangle {
             id: expandingCircle
             anchors.centerIn: parent
 
-            // Animate physical size instead of scale to prevent 0x0 GPU bugs!
-            // Multiplied by 2.5 to guarantee it covers wide corners
+            // Animate physical size rather than scale, which breaks at 0x0. The 2.5
+            // factor guarantees the circle covers the far corners.
             width: root.isRevealed ? root.width * 2.5 : 0
             height: width
             radius: width / 2
 
-            color: "black" // Color doesn't matter, only the shape does
+            color: "black" // only the shape is used, never the colour
 
             Behavior on width {
                 NumberAnimation {
@@ -50,6 +50,6 @@ Item {
         source: contentContainer
         anchors.fill: contentContainer
         maskEnabled: true
-        maskSource: maskContainer // Target the static container, not the moving circle!
+        maskSource: maskContainer // the static container, not the moving circle
     }
 }

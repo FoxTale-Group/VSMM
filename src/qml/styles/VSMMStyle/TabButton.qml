@@ -1,8 +1,15 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Templates as T
+import vsmm
 
-TabButton {
+T.TabButton {
     id: _control
+
+    implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
+                            implicitContentWidth + leftPadding + rightPadding)
+    implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
+                             implicitContentHeight + topPadding + bottomPadding)
+    padding: 6
 
     property int borderThickness: 2
     property color borderColor: {
@@ -28,13 +35,13 @@ TabButton {
         text: _control.text
         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
         color: _control.textColor
-        font.pixelSize: 12
+        font.pixelSize: Theme.fonts.body
     }
 
     // Main background rectangle with rounded corners
     background: Rectangle {
         color: _control.backgroundColor
-        radius: Theme.buttonCornerRadius
+        radius: Theme.radius.button
         border.width: _control.borderThickness
         border.color: _control.borderColor
 
@@ -73,7 +80,6 @@ TabButton {
             anchors.horizontalCenter: parent.horizontalCenter
 
             color: _control.bottomBorder
-            //Behavior on color {ColorAnimation{duration: 150}}
         }
     }
 }

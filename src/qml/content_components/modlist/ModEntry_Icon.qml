@@ -14,7 +14,7 @@ Rectangle {
     Layout.rightMargin: 0
     implicitWidth: 40
     implicitHeight: 40
-    radius: 8
+    radius: Theme.radius.card
     color: Theme.colors.modIconBg
 
     property string coverUrl: modThumbnail
@@ -29,7 +29,7 @@ Rectangle {
 
         IconImage {
             id: fallbackIcon
-            source: Theme.icons.iExtension
+            source: Theme.icons.extensionIcon
             color: Theme.colors.icon
             anchors.fill: parent
             anchors.margins: 4
@@ -61,7 +61,7 @@ Rectangle {
         layer.enabled: true     // keeps its texture realized even while hidden
     }
 
-    // LAYER 2: Icon cropped to the rounded mask, shown only when ready
+    // Icon cropped to the rounded mask, shown only when ready
     MultiEffect {
         anchors.fill: parent
         source: mainImage
@@ -70,7 +70,7 @@ Rectangle {
         visible: mainImage.status === Image.Ready
     }
 
-    // LAYER 3: Icon image border
+    // Icon image border
     Rectangle {
         color: "transparent"
         anchors.fill: parent

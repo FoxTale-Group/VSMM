@@ -29,6 +29,7 @@ Rectangle {
         CheckBox {
             id: _selectForUpdate
             checked: false
+            font.pixelSize: Theme.fonts.body
             Layout.topMargin: 16
             Layout.bottomMargin: 16
             Layout.leftMargin: 0
@@ -58,9 +59,8 @@ Rectangle {
                 // Mod Name
                 Label {
                     text: modName
-                    font.pixelSize: 14
-                    font.weight: Font.Medium
                     color: Theme.colors.label
+                    font.pixelSize: Theme.fonts.label
                     Layout.maximumWidth: 200
                     elide: Text.ElideRight
                 }
@@ -68,28 +68,28 @@ Rectangle {
                 // Mod Author
                 Label {
                     text: qsTr("by %1").arg(modAuthor)
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.fonts.body
                     color: Theme.colors.labelAlt
                 }
 
                 // Dot divider
                 Label {
                     text: "·"
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.fonts.label
                     color: Theme.colors.labelAlt
                 }
 
                 // Mod version
                 Label {
                     text: qsTr("v%1").arg(modVersion)
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.fonts.body
                     color: Theme.colors.labelVersion
                 }
 
                 // Update available badge
                 Rectangle {
                     visible: modHasUpdate
-                    radius: 6
+                    radius: Theme.radius.badge
                     color: Theme.colors.modUpdateBadgeBg
                     implicitWidth: _updateLabel.width + 16
                     implicitHeight: 18
@@ -98,14 +98,14 @@ Rectangle {
                         id: _updateLabel
                         anchors.centerIn: parent
                         text: qsTr("v%1 available").arg(modLatestVersion)
-                        font.pixelSize: 11
+                        font.pixelSize: Theme.fonts.body
                         color: Theme.colors.modUpdateBadgeText
                     }
                 }
                 // Latest version badge
                 Rectangle {
                     visible: !modHasUpdate
-                    radius: 6
+                    radius: Theme.radius.badge
                     color: Theme.colors.modLatestBadgeBg
                     implicitWidth: _latestLabel.width + 16
                     implicitHeight: 18
@@ -114,7 +114,7 @@ Rectangle {
                         id: _latestLabel
                         anchors.centerIn: parent
                         text: qsTr("Latest")
-                        font.pixelSize: 11
+                        font.pixelSize: Theme.fonts.body
                         color: Theme.colors.modLatestBadgeText
                     }
                 }
@@ -130,11 +130,11 @@ Rectangle {
                     model: modTags
                     delegate: Label {
                         text: modelData
-                        font.pixelSize: 10
+                        font.pixelSize: Theme.fonts.meta
                         color: Theme.colors.modTagText
                         background: Rectangle {
                             color: Theme.colors.modTagBg
-                            radius: 4
+                            radius: Theme.radius.chip
                         }
                         padding: 2
                     }

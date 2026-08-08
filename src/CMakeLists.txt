@@ -8,9 +8,18 @@ configure_file(constants.hpp.in constants.hpp)
 # Set unified target directory for sub-libs generated qmldir and .qmltypes
 set(QT_QML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml_imports)
 
-# Point QML import path directly to output directory
-list(APPEND QML_IMPORT_PATH ${QT_QML_OUTPUT_DIRECTORY})
-set(QML_IMPORT_PATH ${QML_IMPORT_PATH} CACHE PATH "Qt Creator QML Import Paths" FORCE)
+# Point Qt Creator's code model at the generated modules, plus the VSMMStyle style sources
+# so `import VSMMStyle` resolves in the editor (the style otherwise only ever exists as a
+# qrc blob, invisible to tooling).
+#
+# Rebuilt from scratch on every configure, NOT appended to: `list(APPEND)` reads back the
+# FORCE-cached value, so each configure grew the list by another copy of the same path and
+# the code model re-scanned (and re-queued plugin type-info reads for) the same tree N times.
+#
+# STRING, not PATH -- this is a ";"-separated list; PATH marks it as a single directory.
+set(QML_IMPORT_PATH
+        "${QT_QML_OUTPUT_DIRECTORY};${CMAKE_CURRENT_SOURCE_DIR}/qml/styles"
+        CACHE STRING "Qt Creator QML Import Paths" FORCE)
 
 # Add libs and qml modules subdirectories
 add_subdirectory(httpclient)
@@ -57,6 +66,10 @@ file(GLOB ICON_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS "../
 # Get all QML and JS files
 file(GLOB_RECURSE QML_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS "qml/*.qml" "qml/js/*.js")
 
+# The custom Qt Quick Controls style ("VSMMStyle") is its own module (see below); keep
+# it out of the "vsmm" app module so its Button.qml isn't registered as a vsmm type.
+list(FILTER QML_FILES EXCLUDE REGEX "qml/styles/")
+
 # Setup qml/Theme.qml as QML Singleton type
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
@@ -65,6 +78,9 @@ qt_add_qml_module(${PROJECT_NAME}
         VERSION 1.0
         QML_FILES ${QML_FILES}
         RESOURCES ${ICON_FILES} ../assets/logo/VSMM.png
+        # Feeds the generated .qmlls.ini (and the qmllint target) so tooling can resolve
+        # `import VSMMStyle` -- the style lives here as a plain directory, not a QML module.
+        IMPORT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/qml/styles
         IMPORTS
             Config
             ModStore
@@ -72,6 +88,24 @@ qt_add_qml_module(${PROJECT_NAME}
             ModLoader
             ModSortFilterModel
             GameMngr)
+
+# Custom Qt Quick Controls style "VSMMStyle", resolved at runtime by QQuickStyle::setStyle("VSMMStyle").
+# It is a plain style directory (qmldir + control impls) placed on the default qrc import
+# path at qt/qml/VSMMStyle/, NOT a qt_add_qml_module type module. BASE strips the source prefix
+# so the files land directly under the module path.
+qt_add_resources(${PROJECT_NAME} "VSMMStyle"
+        PREFIX "/qt/qml/VSMMStyle"
+        BASE "qml/styles/VSMMStyle"
+        FILES
+            qml/styles/VSMMStyle/qmldir
+            qml/styles/VSMMStyle/Button.qml
+            qml/styles/VSMMStyle/CheckBox.qml
+            qml/styles/VSMMStyle/Label.qml
+            qml/styles/VSMMStyle/ScrollBar.qml
+            qml/styles/VSMMStyle/TabBar.qml
+            qml/styles/VSMMStyle/TabButton.qml
+            qml/styles/VSMMStyle/TextField.qml
+            qml/styles/VSMMStyle/ToolTip.qml)
 
 # -- CPACK --
 

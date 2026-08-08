@@ -7,10 +7,66 @@ QtObject {
 
     readonly property string appLogo: "qrc:/qt/qml/vsmm/assets/logo/VSMM.png"
 
-    readonly property int windowRadius: 10
-    readonly property int buttonCornerRadius: 6
+    property bool isDarkTheme: true
 
-    readonly property QtObject colors: QtObject
+    component IconSet: QtObject
+    {
+        readonly property string _iconsPath: "qrc:/qt/qml/vsmm/assets/icons/"
+
+        readonly property string addIcon:            _iconsPath + "add"              + ".svg"
+        readonly property string addBoxIcon:         _iconsPath + "add_box"          + ".svg"
+        readonly property string checkUpdateIcon:    _iconsPath + "check_update"     + ".svg"
+        readonly property string closeIcon:          _iconsPath + "close"            + ".svg"
+        readonly property string deleteIcon:         _iconsPath + "delete"           + ".svg"
+        readonly property string downloadIcon:       _iconsPath + "download"         + ".svg"
+        readonly property string downloadAllIcon:    _iconsPath + "download_all"     + ".svg"
+        readonly property string downloadOneIcon:    _iconsPath + "download_one"     + ".svg"
+        readonly property string dropItemIcon:       _iconsPath + "drop_item"        + ".svg"
+        readonly property string exitFullscreenIcon: _iconsPath + "exit_fullscreen"  + ".svg"
+        readonly property string extensionIcon:      _iconsPath + "extension"        + ".svg"
+        readonly property string favoriteIcon:       _iconsPath + "favorite"         + ".svg"
+        readonly property string favoriteFilledIcon: _iconsPath + "favorite_filled"  + ".svg"
+        readonly property string filterIcon:         _iconsPath + "filter"           + ".svg"
+        readonly property string folderIcon:         _iconsPath + "folder"           + ".svg"
+        readonly property string folderOpenIcon:     _iconsPath + "folder_open"      + ".svg"
+        readonly property string gamepadIcon:        _iconsPath + "gamepad"          + ".svg"
+        readonly property string goFullscreenIcon:   _iconsPath + "fullscreen"       + ".svg"
+        readonly property string launchIcon:         _iconsPath + "launch"           + ".svg"
+        readonly property string minimizeIcon:       _iconsPath + "minimize"         + ".svg"
+        readonly property string openLinkIcon:       _iconsPath + "open_link"        + ".svg"
+        readonly property string searchIcon:         _iconsPath + "search"           + ".svg"
+        readonly property string selectCheckBoxIcon: _iconsPath + "select_check_box" + ".svg"
+        readonly property string settingsIcon:       _iconsPath + "settings"         + ".svg"
+        readonly property string syncIcon:           _iconsPath + "sync"             + ".svg"
+        readonly property string upgradeOneIcon:     _iconsPath + "upgrade_one"      + ".svg"
+    }
+    readonly property IconSet icons: IconSet {}
+
+    property real fontScale: 1.0          // seeded from system, overridable in Settings
+    component FontSet: QtObject
+    {
+        readonly property int headline: Math.round(22 * _ThemeRoot.fontScale)
+        readonly property int title:    Math.round(18 * _ThemeRoot.fontScale)
+        readonly property int label:    Math.round(14 * _ThemeRoot.fontScale)
+        readonly property int body:     Math.round(12 * _ThemeRoot.fontScale)
+        readonly property int meta:     Math.round(11 * _ThemeRoot.fontScale)
+    }
+    readonly property FontSet fonts: FontSet {}
+
+    component RadiusSet: QtObject
+    {
+        readonly property int window:    10  // window frame, tab panel
+        readonly property int panel:     12  // large containers: mod list, drop zone
+        readonly property int field:      8  // text inputs and their wrappers
+        readonly property int card:       8  // stat cards, mod icon tiles
+        readonly property int button:     6  // Button, TabButton, ToolTip
+        readonly property int badge:      6  // version badges on a mod row
+        readonly property int chip:       4  // mod tag chips
+        readonly property int indicator:  4  // CheckBox box
+    }
+    readonly property RadiusSet radius: RadiusSet {}
+
+    component ColorSet: QtObject
     {
         // Window colors
         readonly property color windowBackground: "#1e1e1e"
@@ -129,36 +185,6 @@ QtObject {
         readonly property color dropAreaDragFg: "#4da6ff"
 
     }
+    readonly property ColorSet colors: ColorSet {}
 
-    readonly property QtObject icons: QtObject
-    {
-        readonly property string _iconsPath: "qrc:/qt/qml/vsmm/assets/icons/"
-
-        readonly property string iAdd:              _iconsPath + "add"              + ".svg"
-        readonly property string iAddBox:           _iconsPath + "add_box"          + ".svg"
-        readonly property string iCheckUpdate:      _iconsPath + "check_update"     + ".svg"
-        readonly property string iClose:            _iconsPath + "close"            + ".svg"
-        readonly property string iDelete:           _iconsPath + "delete"           + ".svg"
-        readonly property string iDownload:         _iconsPath + "download"         + ".svg"
-        readonly property string iDownloadAll:      _iconsPath + "download_all"     + ".svg"
-        readonly property string iDownloadOne:      _iconsPath + "download_one"     + ".svg"
-        readonly property string iDropItem:         _iconsPath + "drop_item"        + ".svg"
-        readonly property string iExitFullscreen:   _iconsPath + "exit_fullscreen"  + ".svg"
-        readonly property string iExtension:        _iconsPath + "extension"        + ".svg"
-        readonly property string iFavorite:         _iconsPath + "favorite"         + ".svg"
-        readonly property string iFavoriteFilled:   _iconsPath + "favorite_filled"  + ".svg"
-        readonly property string iFilter:           _iconsPath + "filter"           + ".svg"
-        readonly property string iFolder:           _iconsPath + "folder"           + ".svg"
-        readonly property string iFolderOpen:       _iconsPath + "folder_open"      + ".svg"
-        readonly property string iGamepad:          _iconsPath + "gamepad"          + ".svg"
-        readonly property string iGoFullscreen:     _iconsPath + "fullscreen"       + ".svg"
-        readonly property string iLaunch:           _iconsPath + "launch"           + ".svg"
-        readonly property string iMinimize:         _iconsPath + "minimize"         + ".svg"
-        readonly property string iOpenLink:         _iconsPath + "open_link"        + ".svg"
-        readonly property string iSearch:           _iconsPath + "search"           + ".svg"
-        readonly property string iSelectCheckBox:   _iconsPath + "select_check_box" + ".svg"
-        readonly property string iSettings:         _iconsPath + "settings"         + ".svg"
-        readonly property string iSync:             _iconsPath + "sync"             + ".svg"
-        readonly property string iUpgradeOne:       _iconsPath + "upgrade_one"      + ".svg"
-    }
 }

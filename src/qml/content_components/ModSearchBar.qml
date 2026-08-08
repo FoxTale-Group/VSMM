@@ -9,7 +9,7 @@ Rectangle {
     id: searchBar
     Layout.fillWidth: true
     Layout.preferredHeight: 40
-    radius: 8
+    radius: Theme.radius.field
 
     property bool searchBarFocused: searchInput.activeFocus
 
@@ -54,7 +54,7 @@ Rectangle {
         spacing: 5
 
         IconImage {
-            source: Theme.icons.iSearch
+            source: Theme.icons.searchIcon
             color: searchBar.searchBarFocused ? Theme.colors.searchBarIcon : Theme.colors.searchBarDefault
 
             Behavior on color {
@@ -67,8 +67,7 @@ Rectangle {
             id: searchInput
             Layout.fillWidth: true
             placeholderText: qsTr("Search installed mods...")
-            color: Theme.colors.text
-            font.pixelSize: 14
+            font.pixelSize: Theme.fonts.label
 
             background: Item{}
 

@@ -14,6 +14,13 @@ endif ()
 find_package(libzip CONFIG REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Core Quick Qml Network QuickControls2)
 
+# Emit .qmlls.ini next to the QML sources, pointing the QML Language Server at this build
+# directory. Without it qmlls cannot find the generated qmldir/.qmltypes and silently
+# returns ZERO completions -- no autocompletion for Theme.colors.*, VSMMStyle types, or any
+# of the C++-backed singletons. The generated files hold absolute paths, so they are
+# gitignored.
+set(QT_QML_GENERATE_QMLLS_INI ON)
+
 qt_standard_project_setup()
 
 include(FetchContent)

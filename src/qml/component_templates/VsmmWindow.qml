@@ -34,7 +34,7 @@ ApplicationWindow
     header: WindowTitleBar {
         windowTitleText: _VsmmWindow.windowTitle
         windowIconSource: _VsmmWindow.windowIcon
-        cornerRadius: Theme.windowRadius
+        cornerRadius: Theme.radius.window
 
         showMaximize: _VsmmWindow.resizable
         showMinimize: _VsmmWindow.minimizable
@@ -60,7 +60,7 @@ ApplicationWindow
     background: Rectangle {
         anchors.fill: parent
         color: Theme.colors.windowBackground
-        radius: Window.window.visibility === Window.Maximized ? 0 : Theme.windowRadius
+        radius: Window.window.visibility === Window.Maximized ? 0 : Theme.radius.window
 
         border.color: Theme.colors.windowBorder
         border.width: Window.window.visibility === Window.Maximized ? 0 : 1

@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import vsmm
+import VSMMStyle
 
 RowLayout
 {
@@ -12,9 +13,9 @@ RowLayout
 
     signal openAddModDialog()
 
-    VsmmButton {
+    Button {
         text: qsTr("Add mod")
-        icon.source: Theme.icons.iAddBox
+        icon.source: Theme.icons.addBoxIcon
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
@@ -33,8 +34,8 @@ RowLayout
 
     ModSearchBar{}
 
-    VsmmButton {
-        icon.source: Theme.icons.iFilter
+    Button {
+        icon.source: Theme.icons.filterIcon
         display: AbstractButton.IconOnly
         Layout.preferredHeight: 40
 
@@ -43,8 +44,8 @@ RowLayout
         onClicked: {}
     }
 
-    VsmmButton {
-        icon.source: Theme.icons.iSync
+    Button {
+        icon.source: Theme.icons.syncIcon
         display: AbstractButton.IconOnly
         Layout.preferredHeight: 40
 
@@ -58,9 +59,9 @@ RowLayout
         onClicked: ModStore.reload()
     }
 
-    VsmmButton {
+    Button {
         text: qsTr("Update selected")
-        icon.source: Theme.icons.iDownload
+        icon.source: Theme.icons.downloadIcon
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
@@ -77,9 +78,9 @@ RowLayout
         }
     }
 
-    VsmmButton {
+    Button {
         text: qsTr("Update all")
-        icon.source: Theme.icons.iDownloadAll
+        icon.source: Theme.icons.downloadAllIcon
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
