@@ -115,7 +115,7 @@ void ModEntry::initAuthor(const QJsonObject &json) {
         return;
     }
 
-    mAuthor = json["author"_L1].toString();
+    mOnlineInfo.mAuthor = json["author"_L1].toString();
 }
 
 void ModEntry::initTags(const QJsonObject &json) {
@@ -165,8 +165,23 @@ ModEntry::getLatestVersion(QJsonArray releases, const semver::version<> &gameVer
         }
         return returnVersion;
     };
+    const auto supportsGameVersion = [&gameVersion, &tryParse](const QJsonArray &tags) {
+        for (const auto &tag : tags) {
+            const auto supported = tryParse(tag.toString());
+            if (!supported) {
+                continue;
+            }
+
+            // treat patch numbers as compatible
+            if (supported->major() == gameVersion.major() && supported->minor() == gameVersion.minor()) {
+                return true;
+            }
+        }
+        return false;
+    };
 
     const bool includePrerelease = !mVersion.prerelease_tag().empty() || cfgIncludePrerelease;
+    QPair<QJsonObject, semver::version<>> latest;
     for (const auto &release : releases) {
         if (!release["modversion"_L1].isString()) {
             qCritical() << u"%1: Invalid JSON format: no modversion"_s.arg(mOnlineInfo.mName);
@@ -175,37 +190,26 @@ ModEntry::getLatestVersion(QJsonArray releases, const semver::version<> &gameVer
 
         const auto releaseVersion = tryParse(release["modversion"_L1].toString());
 
-        if (!releaseVersion) {
+        // the API orders releases by release date
+        if (!releaseVersion || *releaseVersion <= mVersion ||
+            // only include prerelease if mod is already a prerelease, or it is set in app cfg explicitly
+            (!releaseVersion->prerelease_tag().empty() && !includePrerelease)) {
             continue;
         }
 
-        // releases are sorted from latest -> oldest
-        if (*releaseVersion <= mVersion) {
-            break;
-        }
-
-        // only include prerelease if mod is already a prerelease, or it is set in app cfg explicitly
-        if (!releaseVersion->prerelease_tag().empty() && !includePrerelease) {
-            continue;
-        }
         if (!release["tags"_L1].isArray()) {
             qCritical() << u"%1: Invalid JSON format: release tags is not an array"_s.arg(mOnlineInfo.mName);
             continue;
         }
 
-        for (const auto &tag : release["tags"_L1].toArray()) {
-            const auto supported = tryParse(tag.toString());
-            if (!supported) {
-                continue;
-            }
-
-            // treat patch numbers as compatible
-            if (supported->major() == gameVersion.major() && supported->minor() == gameVersion.minor()) {
-                return {release.toObject(), *releaseVersion};
-            }
+        if (!supportsGameVersion(release["tags"_L1].toArray()) ||
+            (!latest.first.isEmpty() && *releaseVersion <= latest.second)) {
+            continue;
         }
+
+        latest = {release.toObject(), *releaseVersion};
     }
-    return {};
+    return latest;
 }
 
 } // namespace vsmm

@@ -51,13 +51,18 @@ class ConfigTest : public QObject {
         return QJsonDocument::fromJson(file.readAll()).object();
     }
 
+    QtMessageHandler mPreviousHandler{nullptr};
+    static void quietHandler(QtMsgType, const QMessageLogContext &, const QString &) {}
+
   private slots:
     void initTestCase() {
+        mPreviousHandler = qInstallMessageHandler(quietHandler);
         QStandardPaths::setTestModeEnabled(true);
         QVERIFY2(configDir().contains("qttest"_L1), qPrintable(configDir()));
     }
 
     void cleanupTestCase() {
+        qInstallMessageHandler(mPreviousHandler);
         QFile::remove(configFilePath());
         QStandardPaths::setTestModeEnabled(false);
     }
