@@ -70,30 +70,35 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
         }
 
         // Dont copy mod if it's already in the mods folder
-        if (!modPath.startsWith(localModInfo.mFileInfo.absolutePath()) &&
-            !QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
+        const bool alreadyInModsFolder = modPath.startsWith(localModInfo.mFileInfo.absolutePath());
+        if (!alreadyInModsFolder && !QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
             qWarning() << u"Failed to copy mod %1 to %2."_s.arg(localModInfo).arg(newModFilePath);
-            if (qsizetype extPos = newModFilePath.indexOf(".zip"_L1); extPos != -1) {
-                newModFilePath.insert(extPos, QString::fromStdString("_" + localModInfo.mVersion.to_string()));
 
-                // Last try to copy file to mods folder with suffixed version
-                if (!QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
-                    qWarning() << u"Failed to copy mod %1 to %2."_s.arg(localModInfo).arg(newModFilePath);
-                    return;
-                }
+            const qsizetype extPos = newModFilePath.indexOf(".zip"_L1);
+            if (extPos == -1) {
+                return;
             }
+            newModFilePath.insert(extPos, QString::fromStdString("_" + localModInfo.mVersion.to_string()));
 
+            // Last try to copy file to mods folder with suffixed version
+            if (!QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
+                qWarning() << u"Failed to copy mod %1 to %2."_s.arg(localModInfo).arg(newModFilePath);
+                return;
+            }
+        }
+
+        if (!alreadyInModsFolder) {
             // update file info for newly copied mod
             localModInfo.mFileInfo = QFileInfo{newModFilePath};
-            *it = ModEntry{std::move(localModInfo)};
-
-            if (mFavoriteMods.contains(it->getId().toString())) {
-                it->setFavorite(true);
-            }
-
-            emitSignal(&ModStore::modUpdated, this, it->getId());
-            return;
         }
+        *it = ModEntry{std::move(localModInfo)};
+
+        if (mFavoriteMods.contains(it->getId().toString())) {
+            it->setFavorite(true);
+        }
+
+        emitSignal(&ModStore::modUpdated, this, it->getId());
+        return;
     }
 
     if (mGameMngr->getModsDirs().isEmpty()) {
