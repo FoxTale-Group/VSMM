@@ -27,7 +27,7 @@ include(FetchContent)
 FetchContent_Declare(
         semver
         GIT_REPOSITORY https://github.com/Neargye/semver.git
-        GIT_TAG v1.0.0-rc)
+        GIT_TAG v1.0.0)
 FetchContent_MakeAvailable(semver)
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
