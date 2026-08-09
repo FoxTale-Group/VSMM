@@ -51,18 +51,13 @@ class ConfigTest : public QObject {
         return QJsonDocument::fromJson(file.readAll()).object();
     }
 
-    QtMessageHandler mPreviousHandler{nullptr};
-    static void quietHandler(QtMsgType, const QMessageLogContext &, const QString &) {}
-
   private slots:
     void initTestCase() {
-        mPreviousHandler = qInstallMessageHandler(quietHandler);
         QStandardPaths::setTestModeEnabled(true);
         QVERIFY2(configDir().contains("qttest"_L1), qPrintable(configDir()));
     }
 
     void cleanupTestCase() {
-        qInstallMessageHandler(mPreviousHandler);
         QFile::remove(configFilePath());
         QStandardPaths::setTestModeEnabled(false);
     }
@@ -70,6 +65,7 @@ class ConfigTest : public QObject {
     void missingFileYieldsEmptyConfig() {
         QVERIFY(!QFile::exists(configFilePath()));
 
+        QTest::ignoreMessage(QtWarningMsg, "Could not open config file");
         vsmm::Config config;
 
         QVERIFY(config.getPath(GAME_CONFIG_KEY).isEmpty());
@@ -99,6 +95,7 @@ class ConfigTest : public QObject {
     void nonObjectJsonYieldsEmptyConfig() {
         createConfigFile("[1, 2, 3]");
 
+        QTest::ignoreMessage(QtWarningMsg, "Config file is not a valid JSON object");
         vsmm::Config config;
 
         QVERIFY(config.property("general").toHash().isEmpty());
@@ -174,17 +171,24 @@ class ConfigTest : public QObject {
 
     void validateRejectsBadConfig_data() {
         QTest::addColumn<QByteArray>("json");
-        QTest::newRow("empty file") << QByteArray{"{}"};
-        QTest::newRow("general missing") << QByteArray{R"({"paths": {"gameConfig": "."}})"};
-        QTest::newRow("general not an object") << QByteArray{R"({"general": "yes", "paths": {"gameConfig": "."}})"};
-        QTest::newRow("game config path empty") << QByteArray{R"({"general": {}, "paths": {"gameConfig": ""}})"};
-        QTest::newRow("game config path missing") << QByteArray{R"({"general": {}, "paths": {}})"};
-        QTest::newRow("game config dir absent")
-            << QByteArray{R"({"general": {}, "paths": {"gameConfig": "/nope/does/not/exist"}})"};
+        // The rejection reason is part of the contract, so each row pins its diagnostic too.
+        QTest::addColumn<QByteArray>("expectedError");
+        const QByteArray invalidConfig{"VSMM config is not a valid"};
+        const QByteArray badGamePath{"Config game path does not exist"};
+        QTest::newRow("empty-file") << QByteArray{"{}"} << invalidConfig;
+        QTest::newRow("general-missing") << QByteArray{R"({"paths": {"gameConfig": "."}})"} << invalidConfig;
+        QTest::newRow("general-not-an-object")
+            << QByteArray{R"({"general": "yes", "paths": {"gameConfig": "."}})"} << invalidConfig;
+        QTest::newRow("game-config-path-empty")
+            << QByteArray{R"({"general": {}, "paths": {"gameConfig": ""}})"} << badGamePath;
+        QTest::newRow("game-config-path-missing") << QByteArray{R"({"general": {}, "paths": {}})"} << badGamePath;
+        QTest::newRow("game-config-dir-absent")
+            << QByteArray{R"({"general": {}, "paths": {"gameConfig": "/nope/does/not/exist"}})"} << badGamePath;
     }
 
     void validateRejectsBadConfig() {
         QFETCH(QByteArray, json);
+        QFETCH(QByteArray, expectedError);
         createConfigFile(json);
 
         vsmm::Config config;
@@ -193,6 +197,7 @@ class ConfigTest : public QObject {
         QSignalSpy appearanceSpy{&config, &vsmm::Config::appearanceChanged};
         QSignalSpy gameConfigSpy{&config, &vsmm::Config::gameConfigPathChanged};
 
+        QTest::ignoreMessage(QtCriticalMsg, expectedError.constData());
         config.validate();
 
         QCOMPARE(generalSpy.count(), 0);
