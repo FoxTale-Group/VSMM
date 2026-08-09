@@ -84,6 +84,9 @@ void App::initQmlEngine() {
     modSortFilterModel->setSourceModel(modListModel);
 
     gameMngr->setConfig(config);
+    if (!gameMngr->readGameVersion()) {
+        qCritical() << "Game version unknown, update detection is disabled";
+    }
 
     modStore->setConfig(config);
     modStore->setGameMngr(gameMngr);

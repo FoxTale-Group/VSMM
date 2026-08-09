@@ -66,6 +66,7 @@ class CONFIG_EXPORT Config : public QObject {
     void appearanceChanged(); // NOTIFY config — QML bindings only
 
     void gameConfigPathChanged(); // used by gamemngr
+    void gameExePathChanged(); // used by gamemngr
 
   private:
     [[nodiscard]] QVariantHash getGeneral() const;

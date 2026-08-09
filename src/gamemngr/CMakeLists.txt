@@ -20,3 +20,7 @@ generate_export_header(${PROJECT_NAME} EXPORT_FILE_NAME "${PROJECT_NAME}Export.h
 set_target_properties(${PROJECT_NAME} PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON)
+
+if (BUILD_TESTING)
+    add_subdirectory(tests)
+endif ()
