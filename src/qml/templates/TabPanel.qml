@@ -49,6 +49,6 @@ Rectangle {
     Item {
         id: innerContent
         anchors.fill: parent
-        anchors.margins: 10
+        anchors.margins: 20
     }
 }

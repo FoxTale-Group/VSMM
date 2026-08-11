@@ -100,12 +100,16 @@ qt_add_resources(${PROJECT_NAME} "VSMMStyle"
             qml/styles/VSMMStyle/qmldir
             qml/styles/VSMMStyle/Button.qml
             qml/styles/VSMMStyle/CheckBox.qml
+            qml/styles/VSMMStyle/ComboBox.qml
             qml/styles/VSMMStyle/Label.qml
+            qml/styles/VSMMStyle/RadioButton.qml
             qml/styles/VSMMStyle/ScrollBar.qml
+            qml/styles/VSMMStyle/Switch.qml
             qml/styles/VSMMStyle/TabBar.qml
             qml/styles/VSMMStyle/TabButton.qml
             qml/styles/VSMMStyle/TextField.qml
-            qml/styles/VSMMStyle/ToolTip.qml)
+            qml/styles/VSMMStyle/ToolTip.qml
+)
 
 # -- CPACK --
 

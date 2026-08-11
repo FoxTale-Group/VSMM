@@ -25,6 +25,8 @@ RowLayout
 
         delegate: Rectangle
         {
+            required property var modelData
+
             Layout.fillWidth: true
             Layout.maximumWidth: 150
             Layout.preferredHeight: 64

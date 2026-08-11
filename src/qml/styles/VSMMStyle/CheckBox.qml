@@ -1,97 +1,123 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Templates as T
-import QtQuick.Controls.impl // IconImage
 import vsmm
 
 T.CheckBox {
     id: control
 
+    property int boxSize: 22
+
+    // CSS `ease`, cubic-bezier(0.25, 0.1, 0.25, 1.0).
+    readonly property var easeCurve: [0.25, 0.1, 0.25, 1.0, 1.0, 1.0]
+
+    // Geometry morphs slowly while the strokes swap over faster, so the outline has
+    // given way to the tick well before the shape settles.
+    property int morphDuration: 250
+    property int strokeDuration: 100
+
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
-                            implicitContentWidth + leftPadding + rightPadding)
+                            implicitContentWidth + leftPadding + rightPadding
+                            + implicitIndicatorWidth + spacing)
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
-                             implicitContentHeight + topPadding + bottomPadding,
-                             implicitIndicatorHeight + topPadding + bottomPadding)
+                             Math.max(implicitContentHeight, implicitIndicatorHeight)
+                             + topPadding + bottomPadding)
+
     padding: 6
     spacing: 6
-
     font.pixelSize: Theme.fonts.body
 
-    // SVG indicator — padding removed from select_check_box.svg (viewBox now
-    // "120 -840 765 720", was "0 -960 960 960"). The checked glyph renders
-    // edge-to-edge instead of inset, so it no longer looks smaller than the
-    // unchecked outline. Requires import QtQuick.Controls.impl (IconImage).
-    /*indicator: Item {
-        implicitWidth: 20
-        implicitHeight: 20
-        // Center the box when there's no text, otherwise sit at the leading edge.
-        x: control.text ? (control.mirrored ? control.width - width - control.rightPadding : control.leftPadding)
+    indicator: Rectangle {
+        id: box
+
+        implicitWidth: control.boxSize
+        implicitHeight: control.boxSize
+
+        x: control.text ? (control.mirrored ? control.width - width - control.rightPadding
+                                            : control.leftPadding)
                         : control.leftPadding + (control.availableWidth - width) / 2
         y: control.topPadding + (control.availableHeight - height) / 2
 
-        // Unchecked: empty rounded box, brighter border on hover.
-        Rectangle {
-            anchors.fill: parent
-            radius: Theme.radius.indicator
-            color: "transparent"
-            border.width: 2
-            border.color: control.hovered ? Theme.colors.label : Theme.colors.buttonDefault
-            visible: !control.checked
+        radius: Theme.radius.indicator
+        color: control.checked ? Theme.colors.checkBoxChecked : "transparent"
+        opacity: control.enabled ? 1.0 : 0.5
+
+        Behavior on color {
+            ColorAnimation {
+                duration: control.morphDuration
+                easing.type: Easing.Bezier
+                easing.bezierCurve: control.easeCurve
+            }
         }
 
-        // Checked: the now padding-free glyph, tinted with the accent.
-        IconImage {
-            anchors.fill: parent
-            source: Theme.icons.selectCheckBoxIcon
-            sourceSize.width: 20
-            sourceSize.height: 20
-            color: Theme.colors.highlightButtonDefault
-            visible: control.checked
-        }
-    }*/
+        // Both states are the same element. Unchecked it is a rounded-square outline
+        // filling the box; checked it is a narrow bar rotated 45° showing only its right
+        // and bottom edges, which reads as a tick. Every dimension is a fraction of
+        // `boxSize` so the shape scales with the control.
+        Item {
+            id: morph
 
-    // ---------------------------------------------------------------------------
-    // ALT (kept for comparison) — drawn persistent box + Canvas checkmark. No SVG,
-    // no shrink at all (single Rectangle, only colours change between states).
-    //
-     indicator: Rectangle {
-         id: box
-         implicitWidth: 20
-         implicitHeight: 20
-         x: control.text ? (control.mirrored ? control.width - width - control.rightPadding : control.leftPadding)
-                         : control.leftPadding + (control.availableWidth - width) / 2
-         y: control.topPadding + (control.availableHeight - height) / 2
-         radius: Theme.radius.indicator
-         color: control.checked ? Theme.colors.highlightButtonDefault : "transparent"
-         border.width: 2
-         border.color: control.checked ? Theme.colors.highlightButtonDefault
-                     : control.hovered ? Theme.colors.label
-                     : Theme.colors.buttonDefault
-         Canvas {
-             anchors.fill: parent
-             visible: control.checked
-             onPaint: {
-                 const ctx = getContext("2d");
-                 ctx.reset();
-                 ctx.strokeStyle = Theme.colors.icon;
-                 ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.lineJoin = "round";
-                 ctx.beginPath();
-                 ctx.moveTo(width * 0.24, height * 0.52);
-                 ctx.lineTo(width * 0.42, height * 0.70);
-                 ctx.lineTo(width * 0.76, height * 0.30);
-                 ctx.stroke();
-             }
-             onVisibleChanged: if (visible) requestPaint()
-         }
-     }
-    // ---------------------------------------------------------------------------
+            readonly property real legWidth: control.boxSize * 0.115
+
+            x:      control.checked ? control.boxSize * 0.346 : 0
+            y:      control.checked ? control.boxSize * 0.192 : 0
+            width:  control.checked ? control.boxSize * 0.308 : control.boxSize * 0.962
+            height: control.checked ? control.boxSize * 0.500 : control.boxSize * 0.962
+            rotation: control.checked ? 45 : 0
+
+            Behavior on x        { NumberAnimation { duration: control.morphDuration; easing.type: Easing.Bezier; easing.bezierCurve: control.easeCurve } }
+            Behavior on y        { NumberAnimation { duration: control.morphDuration; easing.type: Easing.Bezier; easing.bezierCurve: control.easeCurve } }
+            Behavior on width    { NumberAnimation { duration: control.morphDuration; easing.type: Easing.Bezier; easing.bezierCurve: control.easeCurve } }
+            Behavior on height   { NumberAnimation { duration: control.morphDuration; easing.type: Easing.Bezier; easing.bezierCurve: control.easeCurve } }
+            Behavior on rotation { NumberAnimation { duration: control.morphDuration; easing.type: Easing.Bezier; easing.bezierCurve: control.easeCurve } }
+
+            // The unchecked outline. Rectangle has no per-side borders, so it fades out
+            // whole on the stroke timing rather than thinning two of its edges away.
+            Rectangle {
+                anchors.fill: parent
+                radius: control.checked ? 0 : Theme.radius.indicator
+                color: "transparent"
+                border.width: control.boxSize * 0.077
+                border.color: control.hovered ? Theme.colors.checkBoxBorderHover
+                                              : Theme.colors.checkBoxBorder
+                opacity: control.checked ? 0.0 : 1.0
+
+                Behavior on opacity { NumberAnimation { duration: control.strokeDuration } }
+                Behavior on radius  { NumberAnimation { duration: control.morphDuration; easing.type: Easing.Bezier; easing.bezierCurve: control.easeCurve } }
+                Behavior on border.color { ColorAnimation { duration: control.strokeDuration } }
+            }
+
+            // The two edges that survive into the checked state.
+            Rectangle {
+                anchors.right: parent.right
+                width: morph.legWidth
+                height: parent.height
+                color: Theme.colors.checkBoxMark
+                opacity: control.checked ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: control.strokeDuration } }
+            }
+            Rectangle {
+                anchors.bottom: parent.bottom
+                width: parent.width
+                height: morph.legWidth
+                color: Theme.colors.checkBoxMark
+                opacity: control.checked ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: control.strokeDuration } }
+            }
+        }
+    }
 
     contentItem: Text {
         leftPadding: control.indicator && !control.mirrored ? control.indicator.width + control.spacing : 0
         rightPadding: control.indicator && control.mirrored ? control.indicator.width + control.spacing : 0
+
         text: control.text
         font: control.font
         color: Theme.colors.label
+        opacity: control.enabled ? 1.0 : 0.5
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }
+
+    HoverHandler { cursorShape: Qt.PointingHandCursor }
 }

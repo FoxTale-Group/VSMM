@@ -20,9 +20,8 @@ Rectangle {
 
         model: ModSortFilterModel
 
-        // Appearance comes from the VSMMStyle ScrollBar style; only the policy is set here.
         ScrollBar.vertical: ScrollBar {
-            policy: ScrollBar.AlwaysOn
+            policy: ScrollBar.AsNeeded
         }
 
         delegate: ModEntry {}

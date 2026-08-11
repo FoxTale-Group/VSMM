@@ -11,7 +11,7 @@ RowLayout {
     spacing: 2
     Layout.rightMargin: 8
     clip: true
-    opacity: _ModEntryHoverHandler.hovered ? 1.0 : 0.0
+    opacity: modEntryHoverHandler.hovered ? 1.0 : 0.0
     visible: opacity > 0
 
     Behavior on opacity {

@@ -22,8 +22,11 @@ T.ScrollBar {
     implicitHeight: Math.max(implicitContentHeight + topPadding + bottomPadding,
                              control.horizontal ? thickness : 0)
 
-    // Honor the AlwaysOff policy; the design has no fade, so AsNeeded just shows the bar.
-    visible: control.policy !== T.ScrollBar.AlwaysOff
+    // `size` is the fraction of the content currently visible, so below 1 means there is
+    // somewhere to scroll to. AsNeeded is the default policy.
+    visible: control.policy === T.ScrollBar.AlwaysOff ? false
+           : control.policy === T.ScrollBar.AlwaysOn  ? true
+           : control.size > 0 && control.size < 1
 
     background: Item {}
 
@@ -39,8 +42,8 @@ T.ScrollBar {
             width:  control.horizontal ? parent.width       : parent.width * 0.5
             height: control.horizontal ? parent.height * 0.5 : parent.height
 
-            // Keyed off the drawn size, not `thickness`, so a short handle stays a pill
-            // rather than over-rounding into a circle.
+            // Keyed off the drawn size so a short handle stays a pill instead of
+            // over-rounding into a circle.
             radius: Math.min(width, height) / 2
 
             color: control.pressed ? Theme.colors.scrollBarHandlePress
