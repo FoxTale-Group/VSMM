@@ -44,7 +44,7 @@ Instances are created by the engine and wired together in `App::initQmlEngine()`
 | `ModStore` | `ModStore` | 4 | 8 | mod counts, selection state, all mutations |
 | `ModSortFilterModel` | `ModSortFilterModel` | 1 | — | the model to feed a `ListView` |
 | `ModListModel` | `ModListModel` | — | — | source model; defines the delegate roles |
-| `GameMngr` | `GameMngr` | — | 1 | launching the game |
+| `GameMngr` | `GameMngr` | 1 | 1 | launching the game, installed game version |
 | `ModLoader` | `ModLoader` | — | — | nothing — see note below |
 
 ---
@@ -226,9 +226,11 @@ Rectangle { visible: modHasUpdate }
 
 ## GameMngr
 
-`src/gamemngr/GameMngr.hpp:31-44`
+`src/gamemngr/GameMngr.hpp:31-60`
 
-No properties. One invokable:
+| Property | Type | Notify | Meaning |
+|---|---|---|---|
+| `gameVersion` | `QString` (read-only) | `gameVersionChanged` | installed game version, **empty string when unknown** |
 
 | Method | Effect |
 |---|---|
@@ -239,10 +241,19 @@ Button {
     text: qsTr("Launch Game")
     onClicked: GameMngr.launchGame()
 }
+
+Label {
+    text: GameMngr.gameVersion ? qsTr("Vintage Story %1").arg(GameMngr.gameVersion)
+                               : qsTr("Game version unknown")
+}
 ```
 
-`getModsDirs()` and `getGameVersion()` are C++-only — the game version is **not** currently
-available to QML.
+The version is read by running the executable in a subprocess, so it is **not available at
+startup** — bind to the property rather than reading it once. It is re-read whenever
+`Config.paths.gameExe` changes, and reverts to an empty string if the read fails or times
+out. Update detection is disabled while it is empty (`App.cpp:87` logs a critical).
+
+`getModsDirs()` is C++-only.
 
 ---
 
@@ -305,10 +316,6 @@ branching grows beyond a couple of sites, a typed singleton would serve better.
 `qmllint` reports `Member "gameConfig" not found on type "QVariantHash"` and you get no
 completion on config keys. The warnings are expected and cannot be fixed from QML — it needs
 the C++ side to expose a `Q_GADGET` with real properties, or individual `Q_PROPERTY`s.
-
-**The game version isn't exposed.** `GameMngr::getGameVersion()` exists but has no
-`Q_PROPERTY`, so the UI cannot show which game version is installed or warn about mod
-compatibility.
 
 **No error channel.** Nothing surfaces failures to QML — a failed download, an unreadable
 archive or a bad game path is only logged. There is no property or signal to bind an error
