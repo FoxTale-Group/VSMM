@@ -26,6 +26,8 @@
 
 #include <semver.hpp>
 
+#include <optional>
+
 namespace vsmm {
 class GAMEMNGR_EXPORT GameMngr : public QObject {
     Q_OBJECT
@@ -41,13 +43,10 @@ class GAMEMNGR_EXPORT GameMngr : public QObject {
 
   public:
     GameMngr();
-    ~GameMngr() override;
     void setConfig(Config *config);
     [[nodiscard]] const QList<QDir> &getModsDirs() const;
-    [[nodiscard]] const semver::version<> &getGameVersion() const;
+    [[nodiscard]] const std::optional<semver::version<>> &getGameVersion() const;
     [[nodiscard]] QString getGameVersionString() const;
-    [[nodiscard]] bool isGameVersionKnown() const;
-    [[nodiscard]] bool readGameVersion();
     Q_INVOKABLE void launchGame() const;
 
   signals:
@@ -55,10 +54,11 @@ class GAMEMNGR_EXPORT GameMngr : public QObject {
     void gameVersionChanged(); // used by qml
 
   private:
-    void setupProcess(QProcess &process, const QStringList &arguments) const;
+    void initGameVersion();
+    bool setupProcess(QProcess &process, const QStringList &arguments) const;
     bool beginVersionRead();
     void killVersionProcess();
-    void finishVersionRead(const semver::version<> &version, bool known);
+    void finishVersionRead(std::optional<semver::version<>> version = {});
     void notifyModsDirsChanged();
     void readClientCfg();
     void readModsPaths(const QJsonObject &clientSettings);
@@ -66,14 +66,13 @@ class GAMEMNGR_EXPORT GameMngr : public QObject {
 
     Config *mConfig{nullptr};
     QList<QDir> mModsDirs;
-    semver::version<> mGameVersion;
-    bool mGameVersionKnown{false};
+    std::optional<semver::version<>> mGameVersion;
     bool mModsDirsParsed{false};
     bool mModsDirsChangedPending{false};
 
     // version checking
-    QProcess mVersionProcess{this};
     QTimer mVersionTimeout{this};
+    QProcess mVersionProcess{this};
 
   private slots:
     void parseClientCfg();
