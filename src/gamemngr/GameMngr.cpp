@@ -38,16 +38,6 @@ GameMngr::GameMngr() {
     connect(&mVersionProcess, &QProcess::errorOccurred, this, &GameMngr::onVersionProcessFailed);
 }
 
-GameMngr::~GameMngr() {
-    // disconnect, so ~QProcess won't emit any signals for gamemngr anymore
-    if (!mVersionProcess.disconnect(this)) {
-        qCWarning(cGameMngr) << "Failed to disconnect QProcess signals";
-        // if failed, just block all signals
-        mVersionProcess.blockSignals(true);
-    }
-    killVersionProcess();
-}
-
 void GameMngr::killVersionProcess() {
     if (mVersionProcess.state() == QProcess::NotRunning) {
         return;
@@ -59,27 +49,39 @@ void GameMngr::killVersionProcess() {
 }
 
 void GameMngr::setConfig(Config *config) {
+    if (mConfig) {
+        qCCritical(cGameMngr, "Config already set");
+        return;
+    }
+
     mConfig = config;
     connect(mConfig, &Config::gameConfigPathChanged, this, &GameMngr::parseClientCfg);
     connect(mConfig, &Config::gameExePathChanged, this, &GameMngr::refreshGameVersion);
+
+    initGameVersion();
 }
 
 const QList<QDir> &GameMngr::getModsDirs() const { return mModsDirs; }
 
-const semver::version<> &GameMngr::getGameVersion() const { return mGameVersion; }
-
-bool GameMngr::isGameVersionKnown() const { return mGameVersionKnown; }
+const std::optional<semver::version<>> &GameMngr::getGameVersion() const { return mGameVersion; }
 
 QString GameMngr::getGameVersionString() const {
-    return mGameVersionKnown ? QString::fromStdString(mGameVersion.to_string()) : QString{};
+    return mGameVersion ? QString::fromStdString(mGameVersion->to_string()) : QString{};
 }
 
-void GameMngr::setupProcess(QProcess &process, const QStringList &arguments) const {
+bool GameMngr::setupProcess(QProcess &process, const QStringList &arguments) const {
+    if (mConfig->getPath(CONFIG_GAMEEXE_JSON_KEY).isEmpty()) {
+        qCCritical(cGameMngr, "config paths.%s value is empty", qUtf8Printable(CONFIG_GAMEEXE_JSON_KEY));
+        return false;
+    }
+
     const QFileInfo gameExe{mConfig->getPath(CONFIG_GAMEEXE_JSON_KEY)};
 
     process.setProgram(gameExe.absoluteFilePath());
     process.setWorkingDirectory(gameExe.absolutePath());
     process.setArguments(arguments);
+
+    return true;
 }
 
 void GameMngr::launchGame() const {
@@ -87,13 +89,10 @@ void GameMngr::launchGame() const {
         qCFatal(cGameMngr, "Config not set");
     }
 
-    if (mConfig->getPath(CONFIG_GAMEEXE_JSON_KEY).isEmpty()) {
-        qCCritical(cGameMngr) << u"config paths.%1 value is empty"_s.arg(CONFIG_GAMEEXE_JSON_KEY);
+    QProcess gameProcess;
+    if (!setupProcess(gameProcess, {})) {
         return;
     }
-
-    QProcess gameProcess;
-    setupProcess(gameProcess, {});
 
     qint64 pid{-1};
     if (!gameProcess.startDetached(&pid)) {
@@ -101,7 +100,7 @@ void GameMngr::launchGame() const {
         return;
     }
 
-    qCDebug(cGameMngr) << u"Process started as %1"_s.arg(pid);
+    qCDebug(cGameMngr, "Process started as %lld", pid);
 }
 
 void GameMngr::parseClientCfg() {
@@ -125,7 +124,7 @@ void GameMngr::readClientCfg() {
 
     QFile clientSettingsFile{configGameDir.absolutePath() + QDir::separator() + clientSettingsFilename};
     if (!clientSettingsFile.open(QIODevice::ReadOnly | QIODevice::Text | QIODevice::ExistingOnly)) {
-        qCCritical(cGameMngr) << u"Failed to open client settings file"_s.arg(clientSettingsFile.fileName());
+        qCCritical(cGameMngr, "Failed to open client settings file %s", qUtf8Printable(clientSettingsFile.fileName()));
         return;
     }
 
@@ -137,7 +136,7 @@ void GameMngr::readClientCfg() {
 
     auto clientSettings = clientSettingsDoc.object();
     if (const auto &[valid, reason] = checkClientSettingsVer(clientSettings); !valid) {
-        qCCritical(cGameMngr) << u"Detected unsupported clientsettings: %1"_s.arg(reason);
+        qCCritical(cGameMngr, "Detected unsupported clientsettings: %s", qUtf8Printable(reason));
         return;
     }
 
@@ -157,12 +156,11 @@ void GameMngr::notifyModsDirsChanged() {
     emit modsDirsChanged();
 }
 
-void GameMngr::finishVersionRead(const semver::version<> &version, bool known) {
-    const bool versionChanged = mGameVersionKnown != known || mGameVersion != version;
+void GameMngr::finishVersionRead(std::optional<semver::version<>> version) {
+    const bool versionChanged = mGameVersion != version;
     // check if version changed and emit signal for QML
     if (versionChanged) {
-        mGameVersion = version;
-        mGameVersionKnown = known;
+        mGameVersion = std::move(version);
         emit gameVersionChanged();
     }
 
@@ -184,30 +182,25 @@ bool GameMngr::beginVersionRead() {
         return false;
     }
 
-    if (mConfig->getPath(CONFIG_GAMEEXE_JSON_KEY).isEmpty()) {
-        qCCritical(cGameMngr) << u"config paths.%1 value is empty"_s.arg(CONFIG_GAMEEXE_JSON_KEY);
-        finishVersionRead({}, false);
+    if (!setupProcess(mVersionProcess, {u"--version"_s})) {
+        finishVersionRead();
         return false;
     }
 
-    setupProcess(mVersionProcess, {u"--version"_s});
     mVersionProcess.start();
     return true;
 }
 
-bool GameMngr::readGameVersion() {
+void GameMngr::initGameVersion() {
     if (!beginVersionRead()) {
-        return false;
+        return;
     }
 
     if (!mVersionProcess.waitForFinished(VERSION_READ_TIMEOUT_MS)) {
         if (mVersionProcess.error() == QProcess::Timedout) {
             onVersionReadTimeout();
         }
-        return false;
     }
-
-    return mGameVersionKnown;
 }
 
 void GameMngr::refreshGameVersion() {
@@ -222,7 +215,7 @@ void GameMngr::onVersionProcessFinished(int errCode [[maybe_unused]], QProcess::
     mVersionTimeout.stop();
 
     if (exitStatus != QProcess::NormalExit) {
-        finishVersionRead({}, false);
+        finishVersionRead();
         return;
     }
 
@@ -230,19 +223,19 @@ void GameMngr::onVersionProcessFinished(int errCode [[maybe_unused]], QProcess::
     if (const auto result = semver::parse(mVersionProcess.readAllStandardOutput().trimmed().toStdString(), version);
         !result) {
         qCCritical(cGameMngr, "Failed to parse game version");
-        finishVersionRead({}, false);
+        finishVersionRead();
         return;
     }
 
-    qCDebug(cGameMngr) << u"Game version detected: %1"_s.arg(version.to_string());
-    finishVersionRead(version, true);
+    qCDebug(cGameMngr, "Game version detected: %s", version.to_string().c_str());
+    finishVersionRead(version);
 }
 
 void GameMngr::onVersionProcessFailed(QProcess::ProcessError error) {
     mVersionTimeout.stop();
-    qCCritical(cGameMngr)
-        << u"Game exe failed while reading the version: %1 (%2)"_s.arg(mVersionProcess.errorString()).arg(error);
-    finishVersionRead({}, false);
+    qCCritical(cGameMngr, "Game exe failed while reading the version: %s (%d)",
+               qUtf8Printable(mVersionProcess.errorString()), error);
+    finishVersionRead();
 }
 
 void GameMngr::onVersionReadTimeout() {
@@ -250,10 +243,10 @@ void GameMngr::onVersionReadTimeout() {
         return;
     }
 
-    qCCritical(cGameMngr) << u"Game exe did not exit for --version; is paths.%1 the right binary?"_s.arg(
-        CONFIG_GAMEEXE_JSON_KEY);
+    qCCritical(cGameMngr, "Game exe did not exit for --version; is paths.%s the right binary?",
+               qUtf8Printable(CONFIG_GAMEEXE_JSON_KEY));
     killVersionProcess();
-    finishVersionRead({}, false);
+    finishVersionRead();
 }
 
 void GameMngr::readModsPaths(const QJsonObject &clientSettings) {
