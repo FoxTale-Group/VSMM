@@ -6,7 +6,7 @@ import QtQuick.Layouts
 import vsmm
 
 TabPanel {
-    id: _SettingsTab_Advanced
+    id: settingsTabAdvanced
     content: Rectangle {
         anchors.fill: parent; anchors.margins: 10; color: "transparent"
 

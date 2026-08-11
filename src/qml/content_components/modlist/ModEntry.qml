@@ -7,14 +7,14 @@ import QtQuick.Effects
 import vsmm
 
 Rectangle {
-    id: _modEntry
+    id: modEntryRoot
     width: modListView.width
     height: 64
     color: "transparent"
 
-    HoverHandler {id: _ModEntryHoverHandler}
+    HoverHandler {id: modEntryHoverHandler}
 
-    // Divider
+    // Divider between every mod entry
     HorizontalDivider {
         anchors.leftMargin: 6; anchors.rightMargin: 16
         visible: index !== modListView.count - 1
@@ -27,7 +27,7 @@ Rectangle {
         spacing: 10
 
         CheckBox {
-            id: _selectForUpdate
+            id: selectForUpdate
             checked: false
             font.pixelSize: Theme.fonts.body
             Layout.topMargin: 16
@@ -37,7 +37,7 @@ Rectangle {
             padding: 0
 
             onCheckedChanged: {
-                if (_selectForUpdate.checked) {
+                if (selectForUpdate.checked) {
                     console.log(modName + " is selected for update")
                 } else {
                     console.log(modName + " is not selected for update anymore")
@@ -91,11 +91,11 @@ Rectangle {
                     visible: modHasUpdate
                     radius: Theme.radius.badge
                     color: Theme.colors.modUpdateBadgeBg
-                    implicitWidth: _updateLabel.width + 16
+                    implicitWidth: updateLabel.width + 16
                     implicitHeight: 18
 
                     Label {
-                        id: _updateLabel
+                        id: updateLabel
                         anchors.centerIn: parent
                         text: qsTr("v%1 available").arg(modLatestVersion)
                         font.pixelSize: Theme.fonts.body
@@ -107,11 +107,11 @@ Rectangle {
                     visible: !modHasUpdate
                     radius: Theme.radius.badge
                     color: Theme.colors.modLatestBadgeBg
-                    implicitWidth: _latestLabel.width + 16
+                    implicitWidth: latestLabel.width + 16
                     implicitHeight: 18
 
                     Label {
-                        id: _latestLabel
+                        id: latestLabel
                         anchors.centerIn: parent
                         text: qsTr("Latest")
                         font.pixelSize: Theme.fonts.body
@@ -122,7 +122,7 @@ Rectangle {
 
             // Second Row: Mod Tags
             RowLayout {
-                Layout.maximumWidth: _modEntry.width * 0.7
+                Layout.maximumWidth: modEntryRoot.width * 0.6 // Restricted with of tags section, so mod entry buttons fit within window
                 spacing: 8
                 clip: true
 

@@ -12,6 +12,7 @@ T.Button {
     property color defaultColor: modEntry ? Theme.colors.modEntryButtonDefault : Theme.colors.buttonDefault
     property color hoverColor:   modEntry ? Theme.colors.modEntryButtonHover   : Theme.colors.buttonHover
     property color pressColor:   modEntry ? Theme.colors.modEntryButtonPress   : Theme.colors.buttonPress
+    property color inactiveColor: modEntry ? Theme.colors.modEntryButtonDefault : Theme.colors.buttonInactive
     property color iconColor:    modEntry ? Theme.colors.icon                  : Theme.colors.buttonIcon
     property int   radius:       Theme.radius.button
     property string tooltipText: ""
@@ -53,10 +54,11 @@ T.Button {
 
     background: Rectangle {
         radius: rootButton.radius
-        color: rootButton.down ? rootButton.pressColor
-             : rootButton.enabled ? (rootButton.hovered ? rootButton.hoverColor : rootButton.defaultColor)
+        color: !rootButton.enabled ? rootButton.inactiveColor
+             : rootButton.down    ? rootButton.pressColor
+             : rootButton.hovered ? rootButton.hoverColor
              : rootButton.defaultColor
-        Behavior on color { ColorAnimation { duration: 150; easing.type: Easing.OutCubic } }
+        Behavior on color { ColorAnimation { duration: 200; easing.type: Easing.OutCubic } }
     }
 
     HoverHandler { cursorShape: Qt.PointingHandCursor }

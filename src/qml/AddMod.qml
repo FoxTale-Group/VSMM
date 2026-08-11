@@ -9,7 +9,7 @@ import vsmm
 import "js/StringHelpers.js" as StrUtils
 
 VsmmWindow {
-    id: _addModWindow
+    id: addModWindow
 
     property string modPath: ""
 
@@ -67,8 +67,8 @@ VsmmWindow {
 
                 onDropped: (drop) => {
                     if (drop.hasUrls) {
-                        _addModWindow.modPath = drop.urls[0].toString()
-                        modPathLabel.text = qsTr("Selected mod: ") + StrUtils.getFileName(_addModWindow.modPath)
+                        addModWindow.modPath = drop.urls[0].toString()
+                        modPathLabel.text = qsTr("Selected mod: ") + StrUtils.getFileName(addModWindow.modPath)
                         modPathLabel.color = Theme.colors.label
                     }
                 }
@@ -109,20 +109,20 @@ VsmmWindow {
 
                 onClicked: {
                     console.log("Add mod")
-                    sendFile(_addModWindow.modPath)
+                    sendFile(addModWindow.modPath)
                 }
             }
             LayoutHorizontalSpacer{}
         }
 
         Component.onCompleted: {
-            _addModWindow.modPath = ""
+            addModWindow.modPath = ""
             modPathLabel.text = qsTr("Selected mod: ")
             modPathLabel.color = Theme.colors.label
         }
 
         Component.onDestruction: {
-            _addModWindow.modPath = ""
+            addModWindow.modPath = ""
             modPathLabel.text = qsTr("Selected mod: ")
             modPathLabel.color = Theme.colors.label
         }
@@ -137,8 +137,8 @@ VsmmWindow {
         nameFilters: [qsTr("Vintage Story Mod Archive (*.zip)"), qsTr("All Files (*)")]
 
         onAccepted: {
-            _addModWindow.modPath = systemFilePicker.selectedFile.toString()
-            modPathLabel.text = qsTr("Selected mod: ") + StrUtils.getFileName(_addModWindow.modPath)
+            addModWindow.modPath = systemFilePicker.selectedFile.toString()
+            modPathLabel.text = qsTr("Selected mod: ") + StrUtils.getFileName(addModWindow.modPath)
             modPathLabel.color = Theme.colors.label
         }
     }

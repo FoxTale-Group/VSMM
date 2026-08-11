@@ -8,7 +8,7 @@ Item {
 
     default property alias content: contentContainer.children
 
-    // 1. THE CONTENT
+    // What gets revealed. Rendered to a layer so MultiEffect can mask it.
     Item {
         id: contentContainer
         anchors.fill: parent
@@ -16,14 +16,13 @@ Item {
         layer.enabled: true
     }
 
-    // 2. THE MASK CONTAINER (Static layer, hidden from UI)
+    // The mask. Stays put at the content's size while the circle inside it grows.
     Item {
         id: maskContainer
         anchors.fill: parent
         visible: false       // keeps the oversized circle off screen
         layer.enabled: true  // keeps its texture live so it can serve as the mask
 
-        // 3. THE ANIMATED SHAPE
         Rectangle {
             id: expandingCircle
             anchors.centerIn: parent
@@ -45,7 +44,6 @@ Item {
         }
     }
 
-    // 4. THE RENDERER
     MultiEffect {
         source: contentContainer
         anchors.fill: contentContainer

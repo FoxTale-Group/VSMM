@@ -1,9 +1,10 @@
+pragma ComponentBehavior: Bound
 pragma Singleton
 import QtQml
 import QtQuick
 
 QtObject {
-    id: _ThemeRoot
+    id: themeRoot
 
     readonly property string appLogo: "qrc:/qt/qml/vsmm/assets/logo/VSMM.png"
 
@@ -45,11 +46,11 @@ QtObject {
     property real fontScale: 1.0          // seeded from system, overridable in Settings
     component FontSet: QtObject
     {
-        readonly property int headline: Math.round(22 * _ThemeRoot.fontScale)
-        readonly property int title:    Math.round(18 * _ThemeRoot.fontScale)
-        readonly property int label:    Math.round(14 * _ThemeRoot.fontScale)
-        readonly property int body:     Math.round(12 * _ThemeRoot.fontScale)
-        readonly property int meta:     Math.round(11 * _ThemeRoot.fontScale)
+        readonly property int headline: Math.round(22 * themeRoot.fontScale)
+        readonly property int title:    Math.round(18 * themeRoot.fontScale)
+        readonly property int label:    Math.round(14 * themeRoot.fontScale)
+        readonly property int body:     Math.round(12 * themeRoot.fontScale)
+        readonly property int meta:     Math.round(11 * themeRoot.fontScale)
     }
     readonly property FontSet fonts: FontSet {}
 
@@ -72,6 +73,14 @@ QtObject {
         readonly property color windowBackground: "#1e1e1e"
         readonly property color windowBorder:     "#555555"
         readonly property color windowTitle:      "#7e7e7e"
+
+        // Accent Colors Set
+        readonly property color accent0:     "#3584e4"
+        readonly property color accent1:     "#33d17a"
+        readonly property color accent2:     "#f6d32d"
+        readonly property color accent3:     "#ff7800"
+        readonly property color accent4:     "#e01b24"
+        readonly property color accent5:     "#9141ac"
 
         // Default text labels and icons
         readonly property color icon:              "white"
@@ -121,6 +130,22 @@ QtObject {
         readonly property color modEntryButtonHover:   "#444444"
         readonly property color modEntryButtonPress:   "#333333"
 
+        // Radio button (accent swatches). Fixed colours: the ring is drawn against the
+        // panel, not against the swatch it surrounds.
+        readonly property color radioRing:      "#ffffff"
+        readonly property color radioRingHover: "#5c5c5c"
+
+        // Checkbox colors
+        readonly property color checkBoxBorder:      "#595959"
+        readonly property color checkBoxBorderHover: "#ffffff"
+        readonly property color checkBoxChecked:     "#237cb8"
+        readonly property color checkBoxMark:        "#ffffff"
+
+        // Switch colors
+        readonly property color switchTrackOff: "#525252"
+        readonly property color switchTrackOn:  "#237cb8"
+        readonly property color switchThumb:    "#ffffff"
+
         // Highlighted button colors
         readonly property color highlightButtonDefault: "#237cb8"
         readonly property color highlightButtonHover:   "#1f5c87"
@@ -152,6 +177,8 @@ QtObject {
         readonly property color searchBarBg:        "#3e3e3e"
         readonly property color searchBarDefault:   "#888888"
         readonly property color searchBarIcon:      "#ffffff"
+        // Icon and floating label once the field is focused or holds text.
+        readonly property color searchBarAccent:    "#237cb8"
 
         // Mod list colors
         readonly property color modlistBg:      "#262626"

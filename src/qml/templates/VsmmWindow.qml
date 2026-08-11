@@ -6,7 +6,7 @@ import vsmm
 
 ApplicationWindow
 {
-    id: _VsmmWindow
+    id: vsmmWindow
 
     // Overwritable window parameters
     width: 400
@@ -32,29 +32,29 @@ ApplicationWindow
     color: "transparent"
 
     header: WindowTitleBar {
-        windowTitleText: _VsmmWindow.windowTitle
-        windowIconSource: _VsmmWindow.windowIcon
+        windowTitleText: vsmmWindow.windowTitle
+        windowIconSource: vsmmWindow.windowIcon
         cornerRadius: Theme.radius.window
 
-        showMaximize: _VsmmWindow.resizable
-        showMinimize: _VsmmWindow.minimizable
+        showMaximize: vsmmWindow.resizable
+        showMinimize: vsmmWindow.minimizable
 
-        canMove: _VsmmWindow.movable
+        canMove: vsmmWindow.movable
     }
 
     // Window drag area
     MouseArea {
-        enabled: _VsmmWindow.movable
+        enabled: vsmmWindow.movable
         anchors.fill: parent
         onPressed: (mouse) => {
-            _VsmmWindow.startSystemMove()
+            vsmmWindow.startSystemMove()
             mouse.accepted = true
         }
     }
 
     WindowResizers {
-        enabled: _VsmmWindow.resizable
-        visible: _VsmmWindow.resizable
+        enabled: vsmmWindow.resizable
+        visible: vsmmWindow.resizable
     }
 
     background: Rectangle {

@@ -6,7 +6,7 @@ import QtQuick.Layouts
 import QtQuick.Window
 
 Item {
-    id: _TitleBar
+    id: titleBar
     property string windowIconSource: ""
     property string windowTitleText: ""
     property int cornerRadius: 0
@@ -32,7 +32,7 @@ Item {
     }
 
     MouseArea {
-        enabled: _TitleBar.canMove
+        enabled: titleBar.canMove
         anchors.fill: parent
         onPressed: Window.window.startSystemMove()
         // Double-click to maximize/restore
@@ -53,13 +53,13 @@ Item {
         anchors.rightMargin: 3
 
         IconImage {
-            source: _TitleBar.windowIconSource
-            visible: !!_TitleBar.windowIconSource
+            source: titleBar.windowIconSource
+            visible: !!titleBar.windowIconSource
             sourceSize: Qt.size(20, 20)
         }
 
         Text {
-            text: _TitleBar.windowTitleText
+            text: titleBar.windowTitleText
             font.pixelSize: Theme.fonts.body
             color: Theme.colors.windowTitle
             Layout.fillWidth: true
@@ -73,7 +73,7 @@ Item {
             Layout.preferredWidth: 30
             Layout.preferredHeight: 30
 
-            visible: _TitleBar.showMinimize
+            visible: titleBar.showMinimize
 
             background: Rectangle {
                 color: parent.hovered ? Theme.colors.modEntryButtonHover : "transparent"
@@ -92,7 +92,7 @@ Item {
             Layout.preferredWidth: 30
             Layout.preferredHeight: 30
 
-            visible: _TitleBar.showMaximize
+            visible: titleBar.showMaximize
 
             background: Rectangle {
                 color: parent.hovered ? Theme.colors.modEntryButtonHover : "transparent"
