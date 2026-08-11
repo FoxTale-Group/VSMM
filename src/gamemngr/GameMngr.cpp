@@ -37,6 +37,7 @@ GameMngr::GameMngr() {
     connect(&mVersionProcess, &QProcess::finished, this, &GameMngr::onVersionProcessFinished);
     connect(&mVersionProcess, &QProcess::errorOccurred, this, &GameMngr::onVersionProcessFailed);
 }
+GameMngr::~GameMngr() { killVersionProcess(); }
 
 void GameMngr::killVersionProcess() {
     if (mVersionProcess.state() == QProcess::NotRunning) {
@@ -48,15 +49,15 @@ void GameMngr::killVersionProcess() {
     mVersionProcess.waitForFinished(VERSION_KILL_TIMEOUT_MS);
 }
 
-void GameMngr::setConfig(Config *config) {
+void GameMngr::setConfig(IConfig *config) {
     if (mConfig) {
         qCCritical(cGameMngr, "Config already set");
         return;
     }
 
     mConfig = config;
-    connect(mConfig, &Config::gameConfigPathChanged, this, &GameMngr::parseClientCfg);
-    connect(mConfig, &Config::gameExePathChanged, this, &GameMngr::refreshGameVersion);
+    connect(mConfig, &IConfig::gameConfigPathChanged, this, &GameMngr::parseClientCfg);
+    connect(mConfig, &IConfig::gameExePathChanged, this, &GameMngr::refreshGameVersion);
 
     initGameVersion();
 }
@@ -70,12 +71,13 @@ QString GameMngr::getGameVersionString() const {
 }
 
 bool GameMngr::setupProcess(QProcess &process, const QStringList &arguments) const {
-    if (mConfig->getPath(CONFIG_GAMEEXE_JSON_KEY).isEmpty()) {
-        qCCritical(cGameMngr, "config paths.%s value is empty", qUtf8Printable(CONFIG_GAMEEXE_JSON_KEY));
+    const QString gameExePath = mConfig->paths().gameExe;
+    if (gameExePath.isEmpty()) {
+        qCCritical(cGameMngr, "config paths.%s value is empty", qUtf8Printable(PathSettings::GAME_EXE_KEY));
         return false;
     }
 
-    const QFileInfo gameExe{mConfig->getPath(CONFIG_GAMEEXE_JSON_KEY)};
+    const QFileInfo gameExe{gameExePath};
 
     process.setProgram(gameExe.absoluteFilePath());
     process.setWorkingDirectory(gameExe.absolutePath());
@@ -116,7 +118,7 @@ void GameMngr::readClientCfg() {
         qCFatal(cGameMngr, "Config not set");
     }
 
-    QDir configGameDir = mConfig->getPath(CONFIG_GAMEDIR_JSON_KEY);
+    QDir configGameDir = mConfig->paths().gameConfig;
     if (!configGameDir.exists(clientSettingsFilename)) {
         qCCritical(cGameMngr, "Client settings file does not exist");
         return;
@@ -244,7 +246,7 @@ void GameMngr::onVersionReadTimeout() {
     }
 
     qCCritical(cGameMngr, "Game exe did not exit for --version; is paths.%s the right binary?",
-               qUtf8Printable(CONFIG_GAMEEXE_JSON_KEY));
+               qUtf8Printable(PathSettings::GAME_EXE_KEY));
     killVersionProcess();
     finishVersionRead();
 }

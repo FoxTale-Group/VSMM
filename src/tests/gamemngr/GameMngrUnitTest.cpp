@@ -16,137 +16,38 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "GameMngrTestUtils.hpp"
+
+#include <ConfigMock.hpp>
 #include <GameMngr.hpp>
 
 #include <QElapsedTimer>
-#include <QJsonArray>
-#include <QJsonDocument>
+#include <QLoggingCategory>
 #include <QRegularExpression>
 #include <QSignalSpy>
-#include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
 
 using namespace Qt::StringLiterals;
-
-// The fake game executables are POSIX shell scripts, which CreateProcess cannot run directly.
-#ifdef Q_OS_WIN
-#define SKIP_WITHOUT_POSIX_SHELL() QSKIP("Uses a POSIX shell script as a stand-in for the game executable")
-#else
-#define SKIP_WITHOUT_POSIX_SHELL() ((void)0)
-#endif
+using namespace vsmm::test;
 
 namespace {
-
-constexpr QLatin1StringView SUPPORTED_SETTINGS_VERSION{"1.16"};
-constexpr QLatin1StringView CLIENT_SETTINGS_FILE{"clientsettings.json"};
-
-[[nodiscard]] QJsonObject clientSettings(const QJsonArray &modPaths,
-                                         QLatin1StringView settingsVersion = SUPPORTED_SETTINGS_VERSION) {
-    return {{"stringSettings"_L1, QJsonObject{{"settingsVersion"_L1, settingsVersion}}},
-            {"stringListSettings"_L1, QJsonObject{{"modPaths"_L1, modPaths}}}};
-}
-
-// The ways a configured executable can fail to yield a usable version.
+// ways a configured exe can fail to yield a usable version
 enum UnreadableVersion { NoExecutable, MissingExecutable, GarbageOutput, CrashingExecutable };
-
-[[nodiscard]] QStringList toPaths(const QList<QDir> &dirs) {
-    QStringList paths;
-    paths.reserve(dirs.size());
-    for (const auto &dir : dirs) {
-        paths.append(dir.path());
-    }
-    return paths;
-}
-
 } // namespace
 
-class GameMngrTest : public QObject {
+class GameMngrUnitTest : public QObject {
     Q_OBJECT
 
-    [[nodiscard]] static QString configDir() {
-        return QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
-    }
-    [[nodiscard]] static QString configFilePath() { return configDir() + QDir::separator() + "config.json"_L1; }
-
-    static void writeFile(const QString &path, const QByteArray &contents) {
-        QFile file{path};
-        QVERIFY2(file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate), qPrintable(path));
-        QCOMPARE(file.write(contents), contents.size());
-    }
-
-    // config.json as the app would find it on disk. `gameExe` is optional, most tests do not need it.
-    static void writeConfig(const QString &gameConfigDir, const QString &gameExe = {}) {
-        QVERIFY(QDir().mkpath(configDir()));
-        QJsonObject paths{{"gameConfig"_L1, gameConfigDir}};
-        if (!gameExe.isEmpty()) {
-            paths["gameExe"_L1] = gameExe;
-        }
-        writeFile(configFilePath(),
-                  QJsonDocument{
-                      QJsonObject{{"general"_L1, QJsonObject{}}, {"appearance"_L1, QJsonObject{}}, {"paths"_L1, paths}}}
-                      .toJson());
-    }
-
-    static void writeClientSettings(const QDir &gameDir, const QByteArray &contents) {
-        writeFile(gameDir.absoluteFilePath(CLIENT_SETTINGS_FILE), contents);
-    }
-
-    static void writeClientSettings(const QDir &gameDir, const QJsonObject &json) {
-        writeClientSettings(gameDir, QJsonDocument{json}.toJson());
-    }
-
-    // Stand-in for the game binary: prints a version for `--version`, otherwise touches `marker`
-    // so a launch can be observed. POSIX only, the launch tests skip elsewhere.
-    static QString writeFakeGameExe(const QDir &dir, const QString &version, const QString &marker = {}) {
-        const QString path = dir.absoluteFilePath("fake-vintagestory.sh"_L1);
-        const QByteArray script = "#!/bin/sh\n"
-                                  "if [ \"$1\" = \"--version\" ]; then\n"
-                                  "  echo " +
-                                  version.toUtf8() +
-                                  "\n"
-                                  "else\n"
-                                  "  touch \"" +
-                                  marker.toUtf8() +
-                                  "\"\n"
-                                  "fi\n";
-        writeFile(path, script);
-        QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
-        return path;
-    }
-
-    // A binary that starts fine and then dies on a signal.
-    static QString writeCrashingExe(const QDir &dir) {
-        const QString path = dir.absoluteFilePath("crashing.sh"_L1);
-        writeFile(path, QByteArray{"#!/bin/sh\nkill -SEGV $$\n"});
-        QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
-        return path;
-    }
-
-    // A binary that starts fine but never exits, standing in for one that ignores `--version`.
-    static QString writeHangingExe(const QDir &dir) {
-        const QString path = dir.absoluteFilePath("hanging.sh"_L1);
-        writeFile(path, QByteArray{"#!/bin/sh\nsleep 30\n"});
-        QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
-        return path;
-    }
-
     static void ignoreEmptyGameExe() { QTest::ignoreMessage(QtCriticalMsg, "config paths.gameExe value is empty"); }
-    static void ignoreVersionDetected() { QTest::ignoreMessage(QtDebugMsg, "Game version detected: 1.22.5"); }
-    static void ignoreProcessStarted() {
-        QTest::ignoreMessage(QtDebugMsg, QRegularExpression{u"^Process started as \\d+$"_s});
+    // only gamemngr logs, and no tracing unless a test pins a debug line as its only evidence
+    static void onlyGameMngrLogs(bool withDebug = false) {
+        QLoggingCategory::setFilterRules(withDebug ? u"*=false\ngamemngr=true"_s
+                                                   : u"*=false\ngamemngr=true\ngamemngr.debug=false"_s);
     }
 
   private slots:
-    void initTestCase() {
-        QStandardPaths::setTestModeEnabled(true);
-        QVERIFY2(configDir().contains("qttest"_L1), qPrintable(configDir()));
-    }
-
-    void cleanupTestCase() {
-        QFile::remove(configFilePath());
-        QStandardPaths::setTestModeEnabled(false);
-    }
+    void init() { onlyGameMngrLogs(); }
 
     void freshManagerHasNothing() {
         const vsmm::GameMngr gameMngr;
@@ -159,11 +60,13 @@ class GameMngrTest : public QObject {
         QTemporaryDir gameDir;
         QVERIFY(gameDir.isValid());
         const QDir dir{gameDir.path()};
-        writeClientSettings(
-            dir, clientSettings({u"Mods"_s, dir.absoluteFilePath(u"mods1"_s), dir.absoluteFilePath(u"mods2"_s)}));
-        writeConfig(gameDir.path());
+        QVERIFY(writeClientSettings(
+            dir, clientSettings({u"Mods"_s, dir.absoluteFilePath(u"mods1"_s), dir.absoluteFilePath(u"mods2"_s)})));
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        // seeding before setConfig only populates state, nothing is connected yet
+        config.setGameConfigDir(gameDir.path());
+
         vsmm::GameMngr gameMngr;
         ignoreEmptyGameExe();
         gameMngr.setConfig(&config);
@@ -172,7 +75,7 @@ class GameMngrTest : public QObject {
         config.validate();
 
         QCOMPARE(spy.count(), 1);
-        // "Mods" is the game's built-in folder and must be skipped; order is preserved.
+        // "Mods" is the game's built-in folder, skip it and keep the order
         QCOMPARE(toPaths(gameMngr.getModsDirs()),
                  QStringList({dir.absoluteFilePath(u"mods1"_s), dir.absoluteFilePath(u"mods2"_s)}));
     }
@@ -181,12 +84,13 @@ class GameMngrTest : public QObject {
         QTemporaryDir gameDir;
         QVERIFY(gameDir.isValid());
         const QDir dir{gameDir.path()};
-        writeClientSettings(
-            dir, clientSettings({u"Mods"_s, dir.absoluteFilePath(u"mods1"_s), dir.absoluteFilePath(u"mods2"_s)}));
-        writeConfig(gameDir.path());
+        QVERIFY(writeClientSettings(
+            dir, clientSettings({u"Mods"_s, dir.absoluteFilePath(u"mods1"_s), dir.absoluteFilePath(u"mods2"_s)})));
 
-        vsmm::Config config;
-        vsmm::Config config2;
+        vsmm::ConfigMock config;
+        vsmm::ConfigMock config2;
+        config.setGameConfigDir(gameDir.path());
+
         vsmm::GameMngr gameMngr;
         ignoreEmptyGameExe();
         gameMngr.setConfig(&config);
@@ -198,7 +102,9 @@ class GameMngrTest : public QObject {
         gameMngr.setConfig(&config2);
 
         QCOMPARE(spy.count(), 1);
-        // "Mods" is the game's built-in folder and must be skipped; order is preserved.
+        // second config is not wired up, so it cannot drive a scan
+        config2.validate();
+        QCOMPARE(spy.count(), 1);
         QCOMPARE(toPaths(gameMngr.getModsDirs()),
                  QStringList({dir.absoluteFilePath(u"mods1"_s), dir.absoluteFilePath(u"mods2"_s)}));
     }
@@ -216,10 +122,11 @@ class GameMngrTest : public QObject {
         QTemporaryDir gameDir;
         QVERIFY(gameDir.isValid());
         const QDir dir{gameDir.path()};
-        writeClientSettings(dir, clientSettings({entry, dir.absoluteFilePath(u"mods1"_s)}));
-        writeConfig(gameDir.path());
+        QVERIFY(writeClientSettings(dir, clientSettings({entry, dir.absoluteFilePath(u"mods1"_s)})));
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGameConfigDir(gameDir.path());
+
         vsmm::GameMngr gameMngr;
         ignoreEmptyGameExe();
         gameMngr.setConfig(&config);
@@ -231,8 +138,8 @@ class GameMngrTest : public QObject {
 
     void unreadableClientSettingsLeaveModsDirsEmpty_data() {
         QTest::addColumn<QByteArray>("contents");
-        QTest::addColumn<bool>("writeFile");
-        // Each row must also say why it gave up, so the diagnostics stay accurate.
+        QTest::addColumn<bool>("writeTheFile");
+        // each row pins why it gave up, so the diagnostics stay accurate
         QTest::addColumn<QByteArray>("expectedError");
         QTest::newRow("file-missing") << QByteArray{} << false << QByteArray{"Client settings file does not exist"};
         QTest::newRow("not-json") << QByteArray{"not json at all"} << true
@@ -254,16 +161,17 @@ class GameMngrTest : public QObject {
 
     void unreadableClientSettingsLeaveModsDirsEmpty() {
         QFETCH(QByteArray, contents);
-        QFETCH(bool, writeFile);
+        QFETCH(bool, writeTheFile);
         QFETCH(QByteArray, expectedError);
         QTemporaryDir gameDir;
         QVERIFY(gameDir.isValid());
-        if (writeFile) {
-            writeClientSettings(QDir{gameDir.path()}, contents);
+        if (writeTheFile) {
+            QVERIFY(writeClientSettings(QDir{gameDir.path()}, contents));
         }
-        writeConfig(gameDir.path());
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGameConfigDir(gameDir.path());
+
         vsmm::GameMngr gameMngr;
         ignoreEmptyGameExe();
         gameMngr.setConfig(&config);
@@ -273,11 +181,11 @@ class GameMngrTest : public QObject {
         config.validate();
 
         QVERIFY(gameMngr.getModsDirs().isEmpty());
-        // The consumers still have to learn the scan produced nothing.
+        // consumers still have to learn the scan produced nothing
         QCOMPARE(spy.count(), 1);
     }
 
-    // A settings file the app does not understand must not be parsed at all.
+    // unsupported settings file must not be parsed at all
     void unsupportedClientSettingsAreRejected_data() {
         QTest::addColumn<QJsonObject>("json");
         QTest::addColumn<QByteArray>("expectedError");
@@ -294,10 +202,11 @@ class GameMngrTest : public QObject {
         QFETCH(QByteArray, expectedError);
         QTemporaryDir gameDir;
         QVERIFY(gameDir.isValid());
-        writeClientSettings(QDir{gameDir.path()}, json);
-        writeConfig(gameDir.path());
+        QVERIFY(writeClientSettings(QDir{gameDir.path()}, json));
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGameConfigDir(gameDir.path());
+
         vsmm::GameMngr gameMngr;
         ignoreEmptyGameExe();
         gameMngr.setConfig(&config);
@@ -306,9 +215,9 @@ class GameMngrTest : public QObject {
         QTest::ignoreMessage(QtCriticalMsg, expectedError.constData());
         config.validate();
 
-        // The modPaths in the file are well-formed, so only the version gate can keep them out.
+        // modPaths are well-formed, so only the version gate can keep them out
         QVERIFY(gameMngr.getModsDirs().isEmpty());
-        // Rejected once, not rejected and then scanned anyway.
+        // rejected once, not rejected and then scanned anyway
         QCOMPARE(spy.count(), 1);
     }
 
@@ -319,11 +228,12 @@ class GameMngrTest : public QObject {
         QVERIFY(secondGameDir.isValid());
         const QDir first{firstGameDir.path()};
         const QDir second{secondGameDir.path()};
-        writeClientSettings(first, clientSettings({first.absoluteFilePath(u"mods1"_s)}));
-        writeClientSettings(second, clientSettings({second.absoluteFilePath(u"mods2"_s)}));
-        writeConfig(firstGameDir.path());
+        QVERIFY(writeClientSettings(first, clientSettings({first.absoluteFilePath(u"mods1"_s)})));
+        QVERIFY(writeClientSettings(second, clientSettings({second.absoluteFilePath(u"mods2"_s)})));
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGameConfigDir(firstGameDir.path());
+
         vsmm::GameMngr gameMngr;
         ignoreEmptyGameExe();
         gameMngr.setConfig(&config);
@@ -331,8 +241,8 @@ class GameMngrTest : public QObject {
         config.validate();
         QCOMPARE(toPaths(gameMngr.getModsDirs()), QStringList({first.absoluteFilePath(u"mods1"_s)}));
 
-        // Pointing the app at another game install replaces the dirs, it does not append to them.
-        QVERIFY(config.setProperty("paths", QVariantHash{{u"gameConfig"_s, secondGameDir.path()}}));
+        // another game install replaces the dirs, it does not append to them
+        config.setGameConfigDir(secondGameDir.path());
 
         QCOMPARE(spy.count(), 2);
         QCOMPARE(toPaths(gameMngr.getModsDirs()), QStringList({second.absoluteFilePath(u"mods2"_s)}));
@@ -343,21 +253,22 @@ class GameMngrTest : public QObject {
         QTemporaryDir gameDir;
         QVERIFY(gameDir.isValid());
         const QDir dir{gameDir.path()};
-        writeClientSettings(dir, clientSettings({}));
-        writeConfig(gameDir.path(), writeFakeGameExe(dir, u"1.22.5"_s));
+        QVERIFY(writeClientSettings(dir, clientSettings({})));
+        const QString exe = writeFakeGameExe(dir, u"1.22.5"_s);
+        QVERIFY(!exe.isEmpty());
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGamePaths(gameDir.path(), exe);
+
         vsmm::GameMngr gameMngr;
-        ignoreVersionDetected();
         gameMngr.setConfig(&config);
-        // Reading the version is an explicit step; setConfig only wires signals up.
+        // startup read is blocking, so the version is already there
         QVERIFY(gameMngr.getGameVersion());
 
         QCOMPARE(QString::fromStdString(gameMngr.getGameVersion()->to_string()), u"1.22.5"_s);
     }
 
-    // Every way a version read can fail must leave it unknown rather than half-set, because
-    // ModEntry matches no release against a default version and every mod then reads "no update".
+    // half-set is worse than unknown, ModEntry matches no release and every mod then reads "no update"
     void versionStaysUnknownWhenItCannotBeRead_data() {
         QTest::addColumn<int>("kind");
         QTest::newRow("no-executable-configured") << int(NoExecutable);
@@ -371,35 +282,37 @@ class GameMngrTest : public QObject {
         QTemporaryDir gameDir;
         QVERIFY(gameDir.isValid());
         const QDir dir{gameDir.path()};
-        writeClientSettings(dir, clientSettings({}));
+        QVERIFY(writeClientSettings(dir, clientSettings({})));
 
-        // Each row must also produce the diagnostic that explains it; ignoreMessage() fails the
-        // test if the message is missing, so the wording is pinned, not merely silenced.
+        // each row pins its diagnostic, ignoreMessage fails when the message never arrives
         QString gameExe;
         switch (kind) {
         case NoExecutable:
-            QTest::ignoreMessage(QtCriticalMsg, "config paths.gameExe value is empty");
+            ignoreEmptyGameExe();
             break;
         case MissingExecutable:
             gameExe = dir.absoluteFilePath(u"not-installed"_s);
-            // The tail of this one is the platform's own errno text.
+            // tail of this one is the platform's own errno text
             QTest::ignoreMessage(QtCriticalMsg,
                                  QRegularExpression{u"^Game exe failed while reading the version: .*\\(0\\)$"_s});
             break;
         case GarbageOutput:
             SKIP_WITHOUT_POSIX_SHELL();
             gameExe = writeFakeGameExe(dir, u"not-a-version"_s);
+            QVERIFY(!gameExe.isEmpty());
             QTest::ignoreMessage(QtCriticalMsg, "Failed to parse game version");
             break;
         case CrashingExecutable:
             SKIP_WITHOUT_POSIX_SHELL();
             gameExe = writeCrashingExe(dir);
+            QVERIFY(!gameExe.isEmpty());
             QTest::ignoreMessage(QtCriticalMsg, "Game exe failed while reading the version: Process crashed (1)");
             break;
         }
-        writeConfig(gameDir.path(), gameExe);
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGamePaths(gameDir.path(), gameExe);
+
         vsmm::GameMngr gameMngr;
         gameMngr.setConfig(&config);
 
@@ -407,29 +320,28 @@ class GameMngrTest : public QObject {
         QVERIFY(gameMngr.property("gameVersion").toString().isEmpty());
     }
 
-    // Configuring the exe after startup must re-read the version, otherwise it stays unknown for
-    // the whole session and ModEntry matches no release against it. The read is non-blocking so a
-    // Settings save does not freeze the UI, and the QML-facing property follows it.
+    // exe set after startup must re-read the version, non-blocking so a Settings save cannot freeze the UI
     void settingGameExeLaterReReadsTheVersionAndNotifies() {
         SKIP_WITHOUT_POSIX_SHELL();
         QTemporaryDir gameDir;
         QVERIFY(gameDir.isValid());
         const QDir dir{gameDir.path()};
-        writeClientSettings(dir, clientSettings({}));
-        writeConfig(gameDir.path());
+        QVERIFY(writeClientSettings(dir, clientSettings({})));
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGameConfigDir(gameDir.path());
+
         vsmm::GameMngr gameMngr;
         QSignalSpy spy{&gameMngr, &vsmm::GameMngr::gameVersionChanged};
         ignoreEmptyGameExe();
         gameMngr.setConfig(&config);
         QVERIFY(!gameMngr.getGameVersion());
-        // Unknown was already the starting state, so there was nothing to notify.
+        // unknown was already the starting state, so nothing to notify
         QCOMPARE(spy.count(), 0);
 
         const QString exe = writeFakeGameExe(dir, u"1.22.5"_s);
-        ignoreVersionDetected();
-        QVERIFY(config.setProperty("paths", QVariantHash{{u"gameConfig"_s, gameDir.path()}, {u"gameExe"_s, exe}}));
+        QVERIFY(!exe.isEmpty());
+        config.setGameExePath(exe);
 
         QTRY_VERIFY(gameMngr.getGameVersion());
         QCOMPARE(QString::fromStdString(gameMngr.getGameVersion()->to_string()), u"1.22.5"_s);
@@ -442,30 +354,56 @@ class GameMngrTest : public QObject {
         QTemporaryDir gameDir;
         QVERIFY(gameDir.isValid());
         const QDir dir{gameDir.path()};
-        writeClientSettings(dir, clientSettings({}));
-        writeConfig(gameDir.path(), writeFakeGameExe(dir, u"1.22.5"_s));
+        QVERIFY(writeClientSettings(dir, clientSettings({})));
+        const QString exe = writeFakeGameExe(dir, u"1.22.5"_s);
+        QVERIFY(!exe.isEmpty());
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGamePaths(gameDir.path(), exe);
+
         vsmm::GameMngr gameMngr;
-        ignoreVersionDetected();
         gameMngr.setConfig(&config);
         QVERIFY(gameMngr.getGameVersion());
         QCOMPARE(gameMngr.property("gameVersion").toString(), u"1.22.5"_s);
         QSignalSpy spy{&gameMngr, &vsmm::GameMngr::gameVersionChanged};
 
-        // The user repoints the app at an executable that is not there any more.
+        // user repoints the app at an exe that is gone
         QTest::ignoreMessage(QtCriticalMsg,
                              QRegularExpression{u"^Game exe failed while reading the version: .*\\(0\\)$"_s});
-        QVERIFY(config.setProperty(
-            "paths", QVariantHash{{u"gameConfig"_s, gameDir.path()}, {u"gameExe"_s, dir.absoluteFilePath(u"gone"_s)}}));
+        config.setGameExePath(dir.absoluteFilePath(u"gone"_s));
 
         QTRY_VERIFY(!gameMngr.getGameVersion());
         QVERIFY(gameMngr.property("gameVersion").toString().isEmpty());
         QCOMPARE(spy.count(), 1);
     }
 
-    // Update detection runs per mod against the version of the moment and is never recomputed, so
-    // a scan must not start while a version read is still resolving.
+    // mods dirs stay the same, but scanned mods were update checked against the old version, so rescan
+    void aChangedVersionAloneTriggersARescan() {
+        SKIP_WITHOUT_POSIX_SHELL();
+        QTemporaryDir gameDir;
+        QVERIFY(gameDir.isValid());
+        const QDir dir{gameDir.path()};
+        QVERIFY(writeClientSettings(dir, clientSettings({dir.absoluteFilePath(u"mods1"_s)})));
+
+        vsmm::ConfigMock config;
+        config.setGameConfigDir(gameDir.path());
+
+        vsmm::GameMngr gameMngr;
+        ignoreEmptyGameExe();
+        gameMngr.setConfig(&config);
+        config.validate();
+
+        QSignalSpy scanSpy{&gameMngr, &vsmm::GameMngr::modsDirsChanged};
+
+        const QString exe = writeFakeGameExe(dir, u"1.22.5"_s);
+        QVERIFY(!exe.isEmpty());
+        config.setGameExePath(exe);
+
+        QTRY_COMPARE(scanSpy.count(), 1);
+        QVERIFY(gameMngr.getGameVersion());
+    }
+
+    // update detection is never recomputed, so no scan while a version read is still resolving
     void noScanStartsBeforeTheVersionReadSettles() {
         SKIP_WITHOUT_POSIX_SHELL();
         QTemporaryDir firstGameDir;
@@ -474,11 +412,12 @@ class GameMngrTest : public QObject {
         QVERIFY(secondGameDir.isValid());
         const QDir first{firstGameDir.path()};
         const QDir second{secondGameDir.path()};
-        writeClientSettings(first, clientSettings({first.absoluteFilePath(u"mods1"_s)}));
-        writeClientSettings(second, clientSettings({second.absoluteFilePath(u"mods2"_s)}));
-        writeConfig(firstGameDir.path());
+        QVERIFY(writeClientSettings(first, clientSettings({first.absoluteFilePath(u"mods1"_s)})));
+        QVERIFY(writeClientSettings(second, clientSettings({second.absoluteFilePath(u"mods2"_s)})));
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGameConfigDir(firstGameDir.path());
+
         vsmm::GameMngr gameMngr;
         ignoreEmptyGameExe();
         gameMngr.setConfig(&config);
@@ -489,12 +428,12 @@ class GameMngrTest : public QObject {
         connect(&gameMngr, &vsmm::GameMngr::modsDirsChanged, this,
                 [&] { versionKnownAtScan = gameMngr.getGameVersion().has_value(); });
 
-        // One Settings save changing both paths at once.
-        ignoreVersionDetected();
-        QVERIFY(config.setProperty("paths", QVariantHash{{u"gameConfig"_s, secondGameDir.path()},
-                                                         {u"gameExe"_s, writeFakeGameExe(second, u"1.22.5"_s)}}));
+        const QString exe = writeFakeGameExe(second, u"1.22.5"_s);
+        QVERIFY(!exe.isEmpty());
+        // one Settings save changing both paths at once
+        config.setGamePaths(secondGameDir.path(), exe);
 
-        // The version read is still in flight, so the scan must not have been announced yet.
+        // version read still in flight, so no scan announced yet
         QCOMPARE(scanSpy.count(), 0);
 
         QTRY_COMPARE(scanSpy.count(), 1);
@@ -502,73 +441,54 @@ class GameMngrTest : public QObject {
         QCOMPARE(toPaths(gameMngr.getModsDirs()), QStringList({second.absoluteFilePath(u"mods2"_s)}));
     }
 
-    // Changing only the exe leaves the mods dirs alone, but every already-scanned mod was update
-    // checked against the old version, so one rescan is still owed.
-    void aChangedVersionAloneTriggersARescan() {
-        SKIP_WITHOUT_POSIX_SHELL();
-        QTemporaryDir gameDir;
-        QVERIFY(gameDir.isValid());
-        const QDir dir{gameDir.path()};
-        writeClientSettings(dir, clientSettings({dir.absoluteFilePath(u"mods1"_s)}));
-        writeConfig(gameDir.path());
-
-        vsmm::Config config;
-        vsmm::GameMngr gameMngr;
-        ignoreEmptyGameExe();
-        gameMngr.setConfig(&config);
-        config.validate();
-
-        QSignalSpy scanSpy{&gameMngr, &vsmm::GameMngr::modsDirsChanged};
-
-        QVariantHash paths = config.property("paths").toHash();
-        paths[u"gameExe"_s] = writeFakeGameExe(dir, u"1.22.5"_s);
-        ignoreVersionDetected();
-        QVERIFY(config.setProperty("paths", paths));
-
-        QTRY_COMPARE(scanSpy.count(), 1);
-        QVERIFY(gameMngr.getGameVersion());
-    }
-
-    // The version probe and the game launch use separate QProcess objects, so a probe that is
-    // still running (or was killed on timeout) can never stop the user from launching.
+    // version probe and launch use separate QProcess objects, so a busy probe cannot block a launch
     void launchWorksWhileAVersionReadIsInFlight() {
         SKIP_WITHOUT_POSIX_SHELL();
         QTemporaryDir gameDir;
         QVERIFY(gameDir.isValid());
         const QDir dir{gameDir.path()};
         const QString marker = dir.absoluteFilePath(u"launched"_s);
-        writeClientSettings(dir, clientSettings({}));
-        writeConfig(gameDir.path());
+        QVERIFY(writeClientSettings(dir, clientSettings({})));
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGameConfigDir(gameDir.path());
+
         vsmm::GameMngr gameMngr;
         ignoreEmptyGameExe();
         gameMngr.setConfig(&config);
 
-        // Start an async read that will not finish on its own.
-        QVERIFY(config.setProperty(
-            "paths", QVariantHash{{u"gameConfig"_s, gameDir.path()}, {u"gameExe"_s, writeHangingExe(dir)}}));
-        // A second change is ignored while that read is in flight, so the probe stays busy.
-        QTest::ignoreMessage(QtDebugMsg, "Game version read already in progress");
-        QVERIFY(config.setProperty("paths", QVariantHash{{u"gameConfig"_s, gameDir.path()},
-                                                         {u"gameExe"_s, writeFakeGameExe(dir, u"1.22.5"_s, marker)}}));
+        // async read that will not finish on its own
+        const QString hanging = writeHangingExe(dir);
+        QVERIFY(!hanging.isEmpty());
+        config.setGameExePath(hanging);
 
-        ignoreProcessStarted();
+        // second change is ignored while that read is in flight, so the probe stays busy
+        const QString launcher = writeFakeGameExe(dir, u"1.22.5"_s, marker);
+        QVERIFY(!launcher.isEmpty());
+        // the trace line is the only evidence of that, so tracing goes on for this one call
+        onlyGameMngrLogs(true);
+        QTest::ignoreMessage(QtDebugMsg, "Game version read already in progress");
+        config.setGameExePath(launcher);
+        onlyGameMngrLogs();
+
         gameMngr.launchGame();
 
-        QTRY_VERIFY_WITH_TIMEOUT(QFile::exists(marker), 5000);
+        QTRY_VERIFY(QFile::exists(marker));
     }
 
-    // Slow by design: it waits out the real 3 s probe timeout.
+    // slow by design, waits out the real 3 s probe timeout
     void aTimedOutVersionReadIsKilledAndRecoverable() {
         SKIP_WITHOUT_POSIX_SHELL();
         QTemporaryDir gameDir;
         QVERIFY(gameDir.isValid());
         const QDir dir{gameDir.path()};
-        writeClientSettings(dir, clientSettings({}));
-        writeConfig(gameDir.path(), writeHangingExe(dir));
+        QVERIFY(writeClientSettings(dir, clientSettings({})));
+        const QString hanging = writeHangingExe(dir);
+        QVERIFY(!hanging.isEmpty());
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGamePaths(gameDir.path(), hanging);
+
         vsmm::GameMngr gameMngr;
         QTest::ignoreMessage(QtCriticalMsg, "Game exe did not exit for --version; is paths.gameExe the right binary?");
         gameMngr.setConfig(&config);
@@ -576,13 +496,13 @@ class GameMngrTest : public QObject {
         QElapsedTimer timer;
         timer.start();
         QVERIFY(!gameMngr.getGameVersion());
-        // Guards against falling back to QProcess's 30 s default.
+        // guards against falling back to QProcess 30 s default
         QVERIFY2(timer.elapsed() < 10000, qPrintable(QString::number(timer.elapsed())));
 
-        // The timed-out probe must have been killed, or every later read would be refused.
-        ignoreVersionDetected();
-        QVERIFY(config.setProperty("paths", QVariantHash{{u"gameConfig"_s, gameDir.path()},
-                                                         {u"gameExe"_s, writeFakeGameExe(dir, u"1.22.5"_s)}}));
+        // timed out probe must be killed, or every later read gets refused
+        const QString exe = writeFakeGameExe(dir, u"1.22.5"_s);
+        QVERIFY(!exe.isEmpty());
+        config.setGameExePath(exe);
 
         QTRY_COMPARE(gameMngr.property("gameVersion").toString(), u"1.22.5"_s);
     }
@@ -590,10 +510,11 @@ class GameMngrTest : public QObject {
     void launchWithoutAGameExecutableIsANoOp() {
         QTemporaryDir gameDir;
         QVERIFY(gameDir.isValid());
-        writeClientSettings(QDir{gameDir.path()}, clientSettings({}));
-        writeConfig(gameDir.path());
+        QVERIFY(writeClientSettings(QDir{gameDir.path()}, clientSettings({})));
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGameConfigDir(gameDir.path());
+
         vsmm::GameMngr gameMngr;
         ignoreEmptyGameExe();
         gameMngr.setConfig(&config);
@@ -611,23 +532,23 @@ class GameMngrTest : public QObject {
         QVERIFY(gameDir.isValid());
         const QDir dir{gameDir.path()};
         const QString marker = dir.absoluteFilePath(u"launched"_s);
-        writeClientSettings(dir, clientSettings({}));
-        writeConfig(gameDir.path(), writeFakeGameExe(dir, u"1.22.5"_s, marker));
+        QVERIFY(writeClientSettings(dir, clientSettings({})));
+        const QString exe = writeFakeGameExe(dir, u"1.22.5"_s, marker);
+        QVERIFY(!exe.isEmpty());
 
-        vsmm::Config config;
+        vsmm::ConfigMock config;
+        config.setGamePaths(gameDir.path(), exe);
+
         vsmm::GameMngr gameMngr;
-        ignoreVersionDetected();
         gameMngr.setConfig(&config);
-        // Deliberately no readGameVersion() call: launchGame() must set up the process itself
-        // rather than reuse whatever a version read happened to leave on mGameProcess.
+        // no extra version read, launchGame must set up its own process instead of reusing mVersionProcess
         QVERIFY(!QFile::exists(marker));
 
-        ignoreProcessStarted();
         gameMngr.launchGame();
 
         QTRY_VERIFY_WITH_TIMEOUT(QFile::exists(marker), 5000);
     }
 };
 
-QTEST_GUILESS_MAIN(GameMngrTest)
-#include "GameMngrTest.moc"
+QTEST_GUILESS_MAIN(GameMngrUnitTest)
+#include "GameMngrUnitTest.moc"

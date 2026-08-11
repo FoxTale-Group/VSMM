@@ -1,7 +1,5 @@
 project(ModEntryTest)
 
-find_package(Qt6 REQUIRED COMPONENTS Test)
-
 set(SOURCES ModEntryTest.cpp)
 qt_add_executable(${PROJECT_NAME} ${SOURCES})
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})

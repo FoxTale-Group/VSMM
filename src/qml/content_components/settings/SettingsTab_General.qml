@@ -12,8 +12,8 @@ TabPanel {
     readonly property bool includeModPrerelease: prereleaseSwitch.checked
 
     // Values currently in Config.
-    readonly property bool savedDeleteOldModVersion: Config.general.deleteOldModVersion ?? true
-    readonly property bool savedIncludeModPrerelease: Config.general.includeModPrerelease ?? false
+    readonly property bool savedDeleteOldModVersion: Config.general.deleteOldModVersion
+    readonly property bool savedIncludeModPrerelease: Config.general.includeModPrerelease
 
     readonly property bool dirty: settingsTabGeneral.deleteOldModVersion !== settingsTabGeneral.savedDeleteOldModVersion
                                || settingsTabGeneral.includeModPrerelease !== settingsTabGeneral.savedIncludeModPrerelease

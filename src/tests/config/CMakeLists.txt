@@ -1,7 +1,5 @@
 project(ConfigTest)
 
-find_package(Qt6 REQUIRED COMPONENTS Test)
-
 set(SOURCES ConfigTest.cpp)
 qt_add_executable(${PROJECT_NAME} ${SOURCES})
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
@@ -12,8 +10,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON)
 
-# Helps windows to find Config.dll
+# Helps windows to find the component DLLs at test run time. Config links Interfaces, so
+# that directory has to be on PATH too.
 if (WIN32)
 set_tests_properties(${PROJECT_NAME} PROPERTIES
-        ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Config>")
+        ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Config>;PATH=path_list_prepend:$<TARGET_FILE_DIR:Interfaces>")
 endif ()

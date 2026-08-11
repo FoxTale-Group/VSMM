@@ -24,7 +24,7 @@
 
 namespace vsmm {
 ModStore::ModStore(QObject *parent) : QObject{parent} {}
-void ModStore::setConfig(Config *config) {
+void ModStore::setConfig(IConfig *config) {
     mConfig = config;
 
     // Get favorites from cfg
@@ -64,7 +64,7 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
         QString modPath = it->getFileInfo().absolutePath();
         QString newModFilePath = modPath + QDir::separator() + localModInfo.mFileInfo.fileName();
         // remove old mod and copy new one
-        auto removeOldVersion = mConfig->getGeneral<bool>(Config::DELETE_OLD_VERSION_JSON_KEY);
+        auto removeOldVersion = mConfig->general().deleteOldModVersion;
         if (removeOldVersion && !QFile::moveToTrash(it->getFileInfo().absoluteFilePath())) {
             qWarning() << u"Failed to move mod %1 to trash."_s.arg(*it);
         }
@@ -122,7 +122,7 @@ void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
     if (it == mMods.end()) {
         return;
     }
-    const auto includePrerelease = mConfig->getGeneral<bool>(Config::INCLUDE_MOD_PRERELEASE_JSON_KEY);
+    const auto includePrerelease = mConfig->general().includeModPrerelease;
     it->initOnlineInfo(std::move(onlineInfo),
                        mGameMngr->getGameVersion() ? *mGameMngr->getGameVersion() : semver::version{},
                        includePrerelease);
@@ -190,7 +190,7 @@ void ModStore::setFavorite(const QString &id, bool favorite) {
     if (favorite) {
         mFavoriteMods.insert(id);
     } else {
-        mFavoriteMods.removeIf([&id](const auto &val) { return val == id; });
+        mFavoriteMods.remove(id);
     }
     it->setFavorite(favorite);
     mConfig->setFavorites(mFavoriteMods.values());
