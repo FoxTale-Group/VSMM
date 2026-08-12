@@ -8,11 +8,19 @@ import VSMMStyle
 TabPanel {
     id: settingsTabAppearance
 
-    // TODO: no `appearance` schema in Config yet, so the language, theme and accent
-    // controls are previews only and this tab is never dirty.
-    readonly property bool dirty: false
+    // Live selection. The swatches write straight to Theme so the whole app previews the
+    // accent; this reads it back for the dirty comparison.
+    readonly property int accentIndex: Theme.accentIndex
+    
+    // Values currently in Config.
+    readonly property int savedAccentIndex: Config.appearance.accentIndex ?? 0
+    readonly property bool dirty: settingsTabAppearance.accentIndex !== settingsTabAppearance.savedAccentIndex
 
-    function revert() {}
+    function revert() {
+        const i = Math.min(Math.max(settingsTabAppearance.savedAccentIndex, 0), Theme.colors.accents.length - 1);
+        Theme.accentIndex = i;
+        accentRepeater.itemAt(i).checked = true;
+    }
 
     content: ColumnLayout {
         anchors.fill: parent
@@ -112,16 +120,29 @@ TabPanel {
 
             LayoutHorizontalSpacer {}
 
-            // autoExclusive groups by parent, so sharing this RowLayout is what makes
-            // the swatches mutually exclusive; no ButtonGroup is involved.
-            RadioButton { swatchColor: Theme.colors.accent0; checked: true }
-            RadioButton { swatchColor: Theme.colors.accent1 }
-            RadioButton { swatchColor: Theme.colors.accent2 }
-            RadioButton { swatchColor: Theme.colors.accent3 }
-            RadioButton { swatchColor: Theme.colors.accent4 }
-            RadioButton { swatchColor: Theme.colors.accent5 }
+            // Wraps to a new line once the swatches no longer fit, so the palette can grow
+            // without pushing the row past the window edge. Its own tight spacing keeps the
+            // swatches grouped independently of the outer row's.
+            Flow {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 2
 
-            LayoutHorizontalSpacer {}
+                // autoExclusive groups by parent, so sharing this Flow is what makes the
+                // swatches mutually exclusive; no ButtonGroup is involved.
+                Repeater {
+                    id: accentRepeater
+                    model: Theme.colors.accents
+
+                    RadioButton {
+                        required property int index
+                        required property color modelData
+
+                        swatchColor: modelData
+                        onClicked: Theme.accentIndex = index
+                    }
+                }
+            }
         }
 
         LayoutVerticalSpacer{}

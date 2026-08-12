@@ -9,9 +9,14 @@ T.Button {
     // Set `modEntry: true` for the mod-row icon button variant.
     property bool modEntry: false
 
+    // Set `defaultColor` alone: hover and press are derived from it, so a call site needs
+    // one colour per button. Both remain assignable for roles that are not a lightness
+    // ramp -- the modEntry variant among them, whose transparent base has nothing to shade.
     property color defaultColor: modEntry ? Theme.colors.modEntryButtonDefault : Theme.colors.buttonDefault
-    property color hoverColor:   modEntry ? Theme.colors.modEntryButtonHover   : Theme.colors.buttonHover
-    property color pressColor:   modEntry ? Theme.colors.modEntryButtonPress   : Theme.colors.buttonPress
+    property color hoverColor:   modEntry ? Theme.colors.modEntryButtonHover
+                                         : Theme.shade(rootButton.defaultColor, Theme.hoverShade)
+    property color pressColor:   modEntry ? Theme.colors.modEntryButtonPress
+                                         : Theme.shade(rootButton.defaultColor, Theme.pressShade)
     property color inactiveColor: modEntry ? Theme.colors.modEntryButtonDefault : Theme.colors.buttonInactive
     property color iconColor:    modEntry ? Theme.colors.icon                  : Theme.colors.buttonIcon
     property int   radius:       Theme.radius.button

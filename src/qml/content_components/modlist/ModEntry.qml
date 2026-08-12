@@ -122,7 +122,7 @@ Rectangle {
 
             // Second Row: Mod Tags
             RowLayout {
-                Layout.maximumWidth: modEntryRoot.width * 0.6 // Restricted with of tags section, so mod entry buttons fit within window
+                Layout.maximumWidth: modEntryRoot.width * 0.55 // Restricted width of tags section, so mod entry buttons fit within window
                 spacing: 8
                 clip: true
 

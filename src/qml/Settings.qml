@@ -54,10 +54,11 @@ VsmmWindow {
             LayoutHorizontalSpacer{}
 
             Button {
-                text: settingsChanged ? "* " + qsTr("Save") : qsTr("Save")
+                text: qsTr("Save")
 
                 enabled: settingsChanged
 
+                defaultColor: Theme.colors.accent
                 display: AbstractButton.TextOnly
                 Layout.preferredHeight: 30
 
@@ -72,6 +73,7 @@ VsmmWindow {
 
                 enabled: settingsChanged
 
+                defaultColor: Theme.colors.accent
                 display: AbstractButton.TextOnly
                 Layout.preferredHeight: 30
 
@@ -119,6 +121,10 @@ VsmmWindow {
             pathsCfg.gameConfig = configurationTab.gameConfigDir;
             pathsCfg.gameExe = configurationTab.gameExePath;
             Config.paths = pathsCfg;
+
+            let appearanceCfg = Config.appearance;
+            appearanceCfg.accentIndex = appearanceTab.accentIndex;
+            Config.appearance = appearanceCfg;
         }
     }
 }

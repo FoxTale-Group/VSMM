@@ -26,7 +26,7 @@ T.TextField {
     // Shared by the icon and the floating label so the two can never disagree. White
     // while focused, since the accent reads muddy against the filled panel; accent while
     // unfocused but populated, which is what marks a filled field at a glance.
-    readonly property color labelColor: control.activeFocus ? Theme.colors.searchBarIcon
+    readonly property color labelColor: control.activeFocus ? Theme.colors.searchBarAccent
                                       : control.length > 0  ? Theme.colors.searchBarAccent
                                                             : Theme.colors.searchBarDefault
 

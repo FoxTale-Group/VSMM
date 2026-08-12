@@ -30,9 +30,11 @@ RowLayout {
 
         tooltipText: modHasUpdate ? qsTr("Download update for '%1'").arg(modName) : ""
 
+        // Shaded from the update role's base rather than from `defaultColor`, which is
+        // transparent here and so has nothing to derive from.
         defaultColor: "transparent"
-        hoverColor: modHasUpdate ? Theme.colors.buttonUpdateHover : "transparent"
-        pressColor: modHasUpdate ? Theme.colors.buttonUpdatePress : "transparent"
+        hoverColor: modHasUpdate ? Theme.shade(Theme.colors.buttonUpdate, Theme.hoverShade) : "transparent"
+        pressColor: modHasUpdate ? Theme.shade(Theme.colors.buttonUpdate, Theme.pressShade) : "transparent"
 
         iconColor: modHasUpdate ? Theme.colors.buttonUpdateLabel : Theme.colors.labelVersion
 

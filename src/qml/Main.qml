@@ -18,6 +18,12 @@ VsmmWindow {
     Settings {id: settingsWindow}
     AddMod {id: addModWindow}
 
+    // Theme holds no reference to Config, so the persisted accent has to be pushed into it.
+    // Done here rather than relying on the settings window's revert(), which only reaches
+    // Theme because that window happens to be constructed eagerly.
+    // Theme clamps the index when resolving the colour, so no range check is needed.
+    Component.onCompleted: Theme.accentIndex = Config.appearance.accentIndex ?? 0
+
     ColumnLayout
     {
         id: appContent
@@ -37,9 +43,7 @@ VsmmWindow {
                 Layout.preferredHeight: 60
                 LayoutMirroring.enabled: true
 
-                defaultColor:   Theme.colors.buttonLaunchDefault
-                hoverColor:     Theme.colors.buttonLaunchHover
-                pressColor:     Theme.colors.buttonLaunchPress
+                defaultColor:   Theme.colors.buttonLaunch
 
                 onClicked: {
                     console.info("Launching game...")

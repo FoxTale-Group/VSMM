@@ -33,9 +33,7 @@ RowLayout
 
         tooltipText: qsTr("Refresh mod list")
 
-        defaultColor: Theme.colors.highlightButtonDefault
-        hoverColor: Theme.colors.highlightButtonHover
-        pressColor: Theme.colors.highlightButtonPress
+        defaultColor: Theme.colors.accent
 
         enabled: ModStore.workPending === false
         onClicked: ModStore.reload()
@@ -48,9 +46,7 @@ RowLayout
         icon.source: Theme.icons.downloadAllIcon
         tooltipText: qsTr("Update all mods")
 
-        defaultColor: Theme.colors.buttonUpdateDefault
-        hoverColor: Theme.colors.buttonUpdateHover
-        pressColor: Theme.colors.buttonUpdatePress
+        defaultColor: Theme.colors.accent
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40
@@ -66,9 +62,6 @@ RowLayout
                 updateButton.text: qsTr("Update selected")
                 updateButton.icon.source: Theme.icons.downloadIcon
                 updateButton.tooltipText: qsTr("Update selected mods")
-                updateButton.defaultColor: Theme.colors.highlightButtonDefault
-                updateButton.hoverColor: Theme.colors.highlightButtonHover
-                updateButton.pressColor: Theme.colors.highlightButtonPress
             }
         }
 
@@ -92,9 +85,7 @@ RowLayout
 
         tooltipText: qsTr("Add a new mod from file")
 
-        defaultColor: Theme.colors.buttonAddModDefault
-        hoverColor: Theme.colors.buttonAddModHover
-        pressColor: Theme.colors.buttonAddModPress
+        defaultColor: Theme.colors.accent
 
         onClicked: {
             console.log("Add mod button clicked.")
