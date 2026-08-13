@@ -103,7 +103,7 @@ T.ComboBox {
             font: option.font
             // The selected entry keeps the accent so it stays findable while
             // the hover highlight moves around it.
-            color: control.currentIndex === option.index ? Theme.colors.highlightButtonDefault
+            color: control.currentIndex === option.index ? Theme.colors.highlightButton
                                                          : Theme.colors.text
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
@@ -111,7 +111,11 @@ T.ComboBox {
 
         background: Rectangle {
             radius: Theme.radius.badge
-            color: option.highlighted || option.hovered ? Theme.colors.buttonHover : "transparent"
+            // Lightens the popup's own surface, so the row rises toward the cursor rather
+            // than darkening against the panel behind it.
+            color: option.highlighted || option.hovered
+                   ? Theme.shade(Theme.colors.tabPanelBackground, -Theme.hoverShade)
+                   : "transparent"
 
             Behavior on color { ColorAnimation { duration: 150; easing.type: Easing.OutCubic } }
         }

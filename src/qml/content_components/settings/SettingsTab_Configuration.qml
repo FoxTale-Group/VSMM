@@ -2,7 +2,6 @@ import QtQml
 import QtCore
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Controls.impl
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import vsmm

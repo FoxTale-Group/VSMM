@@ -67,6 +67,24 @@ QtObject {
     }
     readonly property RadiusSet radius: RadiusSet {}
 
+    // Signed lightness offsets for a control's interaction states, applied to its base
+    // colour by shade(). Negative darkens; a role whose states get lighter passes the
+    // negated value.
+    readonly property real hoverShade: -0.09
+    readonly property real pressShade: -0.19
+
+    // Shifts `base` along HSL lightness, keeping hue, saturation and alpha.
+    // The saturation test is required: Qt returns hslHue -1 for an achromatic colour, and
+    // feeding that back through Qt.hsla does not reproduce the input.
+    function shade(base, delta) {
+        return Qt.hsla(base.hslSaturation > 0 ? base.hslHue : 0,
+                       base.hslSaturation,
+                       Math.max(0, Math.min(1, base.hslLightness + delta)),
+                       base.a);
+    }
+
+    property int accentIndex: 0
+
     component ColorSet: QtObject
     {
         // Window colors
@@ -75,17 +93,26 @@ QtObject {
         readonly property color windowTitle:      "#7e7e7e"
 
         // Accent Colors Set
-        readonly property color accent0:     "#3584e4"
-        readonly property color accent1:     "#33d17a"
-        readonly property color accent2:     "#f6d32d"
-        readonly property color accent3:     "#ff7800"
-        readonly property color accent4:     "#e01b24"
-        readonly property color accent5:     "#9141ac"
+        readonly property list<color> accents: ["#3584e4",
+                                                "#3c5e8b", // Apollo Color Palette
+                                                "#1D9E75",
+                                                "#33914e",
+                                                "#468232", // Apollo Color Palette
+                                                '#9f9341',
+                                                "#ad7757", // Apollo Color Palette
+                                                '#bc5800',
+                                                "#884b2b", // Apollo Color Palette
+                                                '#b14248',
+                                                "#752438", // Apollo Color Palette
+                                                '#9a4da1',
+                                                "#7a367b"] // Apollo Color Palette
 
-        // Default text labels and icons
+        readonly property color accent: accents[Math.min(Math.max(themeRoot.accentIndex, 0), accents.length - 1)]
+
+        // Default text, labels and icons
         readonly property color icon:              "white"
         readonly property color text:              "white"
-        readonly property color textSelection:     "lightblue"
+        readonly property color textSelection:     accent
         readonly property color textSelected:      "black"
         readonly property color textWarning:       "yellow"
         readonly property color textError:         "red"
@@ -117,11 +144,9 @@ QtObject {
         readonly property color tabButtonInactiveBorder: tabButtonInactive
         readonly property color tabButtonHoverBorder:    tabButtonHover
 
-        // Default button colors
+        // Default button colors. Hover and press are derived via Theme.shade().
         readonly property color buttonInactive: "#323232"
         readonly property color buttonDefault: "#595959"
-        readonly property color buttonHover:   "#3e3e3e"
-        readonly property color buttonPress:   "#2a2a2a"
         readonly property color buttonIcon:    "#ffffff"
         readonly property color buttonText:    "#ffffff"
 
@@ -138,34 +163,20 @@ QtObject {
         // Checkbox colors
         readonly property color checkBoxBorder:      "#595959"
         readonly property color checkBoxBorderHover: "#ffffff"
-        readonly property color checkBoxChecked:     "#237cb8"
+        readonly property color checkBoxChecked:     accent
         readonly property color checkBoxMark:        "#ffffff"
 
         // Switch colors
         readonly property color switchTrackOff: "#525252"
-        readonly property color switchTrackOn:  "#237cb8"
+        readonly property color switchTrackOn:  accent
         readonly property color switchThumb:    "#ffffff"
 
-        // Highlighted button colors
-        readonly property color highlightButtonDefault: "#237cb8"
-        readonly property color highlightButtonHover:   "#1f5c87"
-        readonly property color highlightButtonPress:   "#143f5c"
+        // Button role colors. One base each; hover and press are derived via Theme.shade().
+        readonly property color highlightButton: accent
+        readonly property color buttonLaunch:    accent
+        readonly property color buttonUpdate:    "#a6842e"
 
-        // Launch Game button colors
-        readonly property color buttonLaunchDefault: "#33914e"
-        readonly property color buttonLaunchHover:   "#2a7840"
-        readonly property color buttonLaunchPress:   "#1e572e"
-
-        // Add Mod button colors
-        readonly property color buttonAddModDefault: "#1D9E75"
-        readonly property color buttonAddModHover:   "#188160"
-        readonly property color buttonAddModPress:   "#0d5e44"
-
-        // Add Mod button colors
-        readonly property color buttonUpdateLabel:   "#e0a23a"
-        readonly property color buttonUpdateDefault: "#a6842e"
-        readonly property color buttonUpdateHover:   "#7c6220"
-        readonly property color buttonUpdatePress:   "#453713"
+        readonly property color buttonUpdateLabel: "#e0a23a"
 
         // Stat cards colors
         readonly property color statCardInstalledBg:    "#2a2a2a"
@@ -177,8 +188,8 @@ QtObject {
         readonly property color searchBarBg:        "#3e3e3e"
         readonly property color searchBarDefault:   "#888888"
         readonly property color searchBarIcon:      "#ffffff"
-        // Icon and floating label once the field is focused or holds text.
-        readonly property color searchBarAccent:    "#237cb8"
+        // Icon and floating label once the field is unfocused and holds text.
+        readonly property color searchBarAccent:    themeRoot.shade(accent, 0.25)
 
         // Mod list colors
         readonly property color modlistBg:      "#262626"
@@ -187,8 +198,8 @@ QtObject {
         // Mod entry colors
         readonly property color modTagText:         "#888780"
         readonly property color modTagBg:           "#333333"
-        readonly property color modIconBorder:      "#1D9E75"
-        readonly property color modIconBgDefault:   "#1D9E75"
+        readonly property color modIconBorder:      accent
+        readonly property color modIconBgDefault:   accent
         readonly property color modIconBg:          "#000000"
 
         // Mod entry update badges colors
@@ -198,7 +209,7 @@ QtObject {
         readonly property color modLatestBadgeText: "#00ff00"
 
         // Mod entry action buttons colors
-        readonly property color modFavButton:       "#ca22c7"
+        readonly property color modFavButton:       accent
         readonly property color modDelButtonIcon:   "#dd1919"
         readonly property color modDelButtonHover:  "#572525"
         readonly property color modDelButtonPress:  "#291313"
@@ -209,9 +220,8 @@ QtObject {
         readonly property color dropAreaDragBg: "#2a3d4d"
         readonly property color dropAreaBorder: "#555555"
         readonly property color dropAreaIcon:   "#aaaaaa"
-        readonly property color dropAreaDragFg: "#4da6ff"
+        readonly property color dropAreaDragFg: accent
 
     }
     readonly property ColorSet colors: ColorSet {}
-
 }

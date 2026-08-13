@@ -20,9 +20,13 @@ T.RadioButton {
     readonly property var easeCurve: [0.4, 0.0, 0.2, 1.0, 1.0, 1.0]
     property int animationDuration: 150
 
+    // The indicator is a separate term rather than being added to the content width:
+    // contentItem already reserves the indicator in its own padding when there is text, so
+    // adding both would count it twice. With no text the indicator term is what sizes the
+    // control, which keeps a bare swatch down to its own footprint.
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
-                            implicitContentWidth + leftPadding + rightPadding
-                            + implicitIndicatorWidth + (control.text ? spacing : 0))
+                            implicitIndicatorWidth + leftPadding + rightPadding,
+                            implicitContentWidth + leftPadding + rightPadding)
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                              Math.max(implicitContentHeight, implicitIndicatorHeight)
                              + topPadding + bottomPadding)
@@ -107,8 +111,12 @@ T.RadioButton {
     }
 
     contentItem: Text {
-        leftPadding: control.indicator && !control.mirrored ? control.indicator.width + control.spacing : 0
-        rightPadding: control.indicator && control.mirrored ? control.indicator.width + control.spacing : 0
+        // Only reserved when there is a label to keep clear of the indicator; a swatch-only
+        // button would otherwise carry the indicator's width as empty padding.
+        leftPadding: control.text && control.indicator && !control.mirrored
+                     ? control.indicator.width + control.spacing : 0
+        rightPadding: control.text && control.indicator && control.mirrored
+                      ? control.indicator.width + control.spacing : 0
 
         text: control.text
         font: control.font
