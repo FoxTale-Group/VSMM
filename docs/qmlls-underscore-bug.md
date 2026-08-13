@@ -1,12 +1,23 @@
 # qmlls: a leading underscore in a QML `id` kills tooling for the whole file
 
-**Status:** reported upstream to Qt (2026-08-11). Issue link: [QTBUG-149089](https://qt-project.atlassian.net/browse/QTBUG-149089)
+**Status:** **fixed upstream, ships in Qt 6.11.2.** Reported as
+[QTBUG-149089](https://qt-project.atlassian.net/browse/QTBUG-149089) on 2026-08-11; a Qt
+maintainer confirmed on 2026-08-13 that it reproduces on 6.11.1 but not on `dev`, having been
+fixed by the patch for
+[QTBUG-146920](https://qt-project.atlassian.net/browse/QTBUG-146920)
+(`qmlformat`: parse failure when an object id begins with an underscore),
+[change 737814](https://codereview.qt-project.org/c/qt/qtdeclarative/+/737814).
 
-**Affects:** Qt 6.11.1 (qt6-declarative 6.11.1-3). Unfixed at time of writing.
+**Affects:** Qt 6.11.0 to 6.11.1. **Keep the rule below until this machine is on 6.11.2**, then
+re-verify with `probe.py` and drop it.
+
+**The SIGSEGVs are a separate, still-open problem.** See
+[`qmlls-crashes.md`](qmlls-crashes.md). They are *not* caused by the underscore and not fixed
+by the above.
 
 ## The rule for this codebase
 
-> **Never write `id: _foo`.** Use a plain name — `id: foo`.
+> **Never write `id: _foo`.** Use a plain name: `id: foo`.
 
 That is the whole practical takeaway. Everything below is why, and how to re-check it once
 Qt ships a fix.
@@ -15,7 +26,7 @@ Qt ships a fix.
 
 If **any** object in a QML document declares an `id` starting with `_`, `qmlls` answers
 `textDocument/semanticTokens/full` with `null` for that document. The effect is total for
-the file — no semantic highlighting, no completion, for every symbol in it, not just the id.
+the file: no semantic highlighting, no completion, for every symbol in it, not just the id.
 
 The id does not have to be referenced anywhere. Declaring it is enough.
 
@@ -28,7 +39,7 @@ Three things make this nasty to diagnose:
 - **It is per-file and silent.** It presents as "some files have completion, some don't",
   which looks like a broken editor setup rather than a code problem.
 
-Underscore-prefixed **property** names are fine — `Theme.qml` still has `_iconsPath` inside
+Underscore-prefixed **property** names are fine. `Theme.qml` still has `_iconsPath` inside
 `IconSet` and analyses normally. Only `id` triggers it.
 
 `qmllint` is unaffected (exits 0 either way), so it cannot be used to detect this.
@@ -36,7 +47,7 @@ Underscore-prefixed **property** names are fine — `Theme.qml` still has `_icon
 ## What it cost us
 
 Found 2026-08-11 after roughly two days of misdiagnosis. Before isolating the underscore we
-wrongly blamed — and "fixed" — import paths, the flatpak sandbox, `states`/`PropertyChanges`,
+wrongly blamed (and "fixed") import paths, the flatpak sandbox, `states`/`PropertyChanges`,
 `required property` declarations, and id-qualified `modelData` access. All were innocent.
 
 The project had 17 underscore-prefixed ids across 12 files. Correlation with broken files was
@@ -77,7 +88,7 @@ Item {
 }
 ```
 
-Result — deterministic, 3/3 runs each way:
+Result, deterministic across 3/3 runs each way:
 
 | File | `semanticTokens/full` |
 |---|---|
@@ -135,12 +146,15 @@ p.kill()
 
 ## Related crashes
 
-In the full project — but **not** in the minimal reproducer, which returns `null` without
-dying — `qmlls` also segfaulted repeatedly while editing affected files: 8+ coredumps over
-two weeks. Possibly the same root cause, possibly separate; it could not be reduced to a
-minimal case. Two distinct top frames were seen, both inside the import path:
-`QQmlJSUtils::fileSelectorFor`, and unbounded mutual recursion between
-`QQmlJSImporter::importHelper` and `importDependencies`.
+`qmlls` also segfaulted repeatedly while editing, but **not** in the minimal reproducer,
+which returns `null` without dying. These are a **separate, still-open problem** and are
+documented in [`qmlls-crashes.md`](qmlls-crashes.md) with symbolised backtraces.
+
+**Correction (2026-08-13):** an earlier version of this doc described one of the crashes as
+"unbounded mutual recursion between `QQmlJSImporter::importHelper` and `importDependencies`".
+**That was wrong**: a guess made from a truncated, unsymbolised trace. Full backtraces from
+the retained core dumps show `importHelper` appearing *once*, with the fault being a corrupt
+Qt container rather than stack exhaustion. A Qt maintainer flagged the same doubt.
 
 If qmlls dies repeatedly, editors stop restarting it after 5 crashes in 3 minutes and need a
 manual "Restart QML Language Server".
