@@ -6,7 +6,6 @@ import QtQuick.Controls.impl
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import vsmm
-import "js/StringHelpers.js" as StrUtils
 
 VsmmWindow {
     id: addModWindow
@@ -68,7 +67,7 @@ VsmmWindow {
                 onDropped: (drop) => {
                     if (drop.hasUrls) {
                         addModWindow.modPath = drop.urls[0].toString()
-                        modPathLabel.text = qsTr("Selected mod: ") + StrUtils.getFileName(addModWindow.modPath)
+                        modPathLabel.text = qsTr("Selected mod: ") + StringHelpers.getFileName(addModWindow.modPath)
                         modPathLabel.color = Theme.colors.label
                     }
                 }
@@ -138,14 +137,14 @@ VsmmWindow {
 
         onAccepted: {
             addModWindow.modPath = systemFilePicker.selectedFile.toString()
-            modPathLabel.text = qsTr("Selected mod: ") + StrUtils.getFileName(addModWindow.modPath)
+            modPathLabel.text = qsTr("Selected mod: ") + StringHelpers.getFileName(addModWindow.modPath)
             modPathLabel.color = Theme.colors.label
         }
     }
 
     function sendFile(path) {
         if (path.endsWith(".zip")) {
-            let fileName = StrUtils.getFileName(path)
+            let fileName = StringHelpers.getFileName(path)
 
             console.log("Sending to C++: " + path)
             console.log("Showing in UI: " + fileName)
@@ -154,7 +153,7 @@ VsmmWindow {
             addModWindow.close()
 
         } else {
-            if(StrUtils.isNullOrWhitespace(path)){
+            if(StringHelpers.isNullOrWhitespace(path)){
                 modPathLabel.text = qsTr("No file is selected")
                 modPathLabel.color = Theme.colors.textWarning
             }

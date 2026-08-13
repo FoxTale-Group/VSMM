@@ -6,7 +6,6 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import vsmm
 import VSMMStyle
-import "../../js/StringHelpers.js" as StrUtils
 
 TabPanel {
     id: settingsTabConfiguration
@@ -66,7 +65,7 @@ TabPanel {
                 HoverHandler {
                     cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
                 }
-                ToolTip.visible: !StrUtils.isNullOrWhitespace(dataFolderDescLabel.hoveredLink)
+                ToolTip.visible: !StringHelpers.isNullOrWhitespace(dataFolderDescLabel.hoveredLink)
                 ToolTip.text: qsTr("Open in web browser: %1").arg(_wikiLink)
                 ToolTip.delay: 400
             }
@@ -99,7 +98,7 @@ TabPanel {
 
                     currentFolder: StandardPaths.standardLocations(StandardPaths.HomeLocation)[0]
 
-                    onAccepted: { gameConfigDirInputField.text = StrUtils.getCleanPath(vsDataFolderPicker.selectedFolder.toString()) }
+                    onAccepted: { gameConfigDirInputField.text = StringHelpers.getCleanPath(vsDataFolderPicker.selectedFolder.toString()) }
                 }
             }
         }
@@ -159,7 +158,7 @@ TabPanel {
 
                     currentFolder: StandardPaths.standardLocations(StandardPaths.HomeLocation)[0]
 
-                    onAccepted: { gameExePathField.text = StrUtils.getCleanPath(vsExePicker.selectedFile.toString()) }
+                    onAccepted: { gameExePathField.text = StringHelpers.getCleanPath(vsExePicker.selectedFile.toString()) }
                 }
             }
         }
