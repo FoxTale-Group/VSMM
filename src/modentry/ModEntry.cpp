@@ -70,6 +70,7 @@ void ModEntry::initOnlineInfo(QJsonObject json, const semver::version<> &gameVer
     initTags(json);
     initLatestRelease(json, gameVersion, cfgIncludePrerelease);
     initType(json);
+    initLogoUrl(json);
 
     qCDebug(cModEntry, "Retrieved mod info for %s", qUtf8Printable(mOnlineInfo.mName));
 }
@@ -79,6 +80,7 @@ const ModEntry::LatestVersion &ModEntry::getLatestVersion() const { return mOnli
 const QStringList &ModEntry::getTags() const { return mOnlineInfo.mTags; }
 QStringView ModEntry::getType() const { return mOnlineInfo.mType; }
 bool ModEntry::hasUpdate() const { return mOnlineInfo.mLatestVersion.mHasUpdate; }
+const QUrl &ModEntry::getLogoUrl() const { return mOnlineInfo.mLogoUrl; }
 
 void ModEntry::initName(const QJsonObject &json) {
     if (!json["name"_L1].isString()) {
@@ -156,6 +158,16 @@ void ModEntry::initType(const QJsonObject &json) {
     }
 
     mOnlineInfo.mType = json["type"_L1].toString();
+}
+
+void ModEntry::initLogoUrl(const QJsonObject &json) {
+    if (!json[ONLINE_LOGOFILE_JSON_KEY].isString()) {
+        qCDebug(cModEntry, "%s: no %s in the online info", qUtf8Printable(mOnlineInfo.mName),
+                qUtf8Printable(ONLINE_LOGOFILE_JSON_KEY));
+        return;
+    }
+
+    mOnlineInfo.mLogoUrl = json[ONLINE_LOGOFILE_JSON_KEY].toString();
 }
 
 QPair<QJsonObject, semver::version<>>

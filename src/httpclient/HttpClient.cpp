@@ -103,16 +103,24 @@ void HttpClient::sendGetImpl(const QUrl &url, QObject *context, const QString &c
             });
 }
 
-bool HttpClient::shouldRetry(const QNetworkReply *reply, const QString &contentType, uint retryCount) {
-    if (reply->error() != QNetworkReply::NoError && retryCount < MAX_RETRIES) {
-        qCWarning(cHttpClient, "Failed to retrieve data: %s. Retrying...", qUtf8Printable(reply->errorString()));
+bool HttpClient::shouldRetry(const QNetworkReply *reply, const QString &contentType [[maybe_unused]], uint retryCount) {
+    const int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    auto isPermanentStatus = [](const int code) {
+        return (code >= 400 && code < 500 && code != 429 && code != 408) || code == 501;
+    };
+
+    if (statusCode != 200 && retryCount < MAX_RETRIES &&
+        ((statusCode >= 500 && statusCode <= 504 && statusCode != 501) || statusCode == 429 || statusCode == 408)) {
+        qCWarning(cHttpClient, "Failed to retrieve data: HTTP status code %d. Retrying...", statusCode);
         return true;
     }
 
-    const int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    if (statusCode != 200 && retryCount < MAX_RETRIES &&
-        ((statusCode >= 500 && statusCode <= 504 && statusCode != 501) || statusCode == 429)) {
-        qCWarning(cHttpClient, "Failed to retrieve data: HTTP status code %d. Retrying...", statusCode);
+    if (isPermanentStatus(statusCode)) {
+        return false;
+    }
+
+    if (reply->error() != QNetworkReply::NoError && retryCount < MAX_RETRIES) {
+        qCWarning(cHttpClient, "Failed to retrieve data: %s. Retrying...", qUtf8Printable(reply->errorString()));
         return true;
     }
 

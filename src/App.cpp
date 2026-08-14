@@ -59,6 +59,7 @@ void App::initQmlEngine() {
     QQuickStyle::setFallbackStyle("Basic");
 
     mModImageProvider = new ModImageProvider();
+    mModImageProvider->setHttpClient(&mHttpClient);
     mQmlEngine.addImageProvider("modicon", mModImageProvider);
     mQmlEngine.loadFromModule("vsmm", "Main");
 
@@ -84,7 +85,6 @@ void App::initQmlEngine() {
     auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmm", "ModListModel");
 
     modListModel->setStore(modStore);
-    modListModel->setModImageProvider(mModImageProvider);
 
     modSortFilterModel->setSourceModel(modListModel);
 
@@ -100,7 +100,6 @@ void App::initQmlEngine() {
     modLoader->setStore(modStore);
     modLoader->setGameMngr(gameMngr);
 
-    connect(modLoader, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
     connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
     connect(modStore, &ModStore::modRemoved, mModImageProvider, &ModImageProvider::onModRemoved);
 

@@ -25,7 +25,6 @@
 #include <QStandardPaths>
 #include <QThread>
 #include <QThreadPool>
-#include <QTimer>
 
 #include <algorithm>
 
@@ -151,31 +150,11 @@ void ModLoader::onModUpdateRequested(const ModEntry &mod) {
         [this, latestVersion](QByteArray data) mutable {
             onModUpdateRetrieved(std::move(data), std::move(latestVersion));
         },
-        [this, id = mod.getId()](const QString &error) {
+        [this, id = mod.getId()](QString error) {
             qCWarning(cModLoader, "Failed to retrieve update for %s: %s", qUtf8Printable(id.toString()),
-                      qUtf8Printable(error));
+                      qUtf8Printable(std::move(error)));
             decrementModsLoadingInProgress();
         });
-}
-
-void ModLoader::onModIconRetrieved(QString modId, QByteArray data) {
-    mThreadPoolProcessIcon.start([this, modId = std::move(modId), data = std::move(data)] mutable {
-        QImage image;
-        if (!image.loadFromData(data)) {
-            qCWarning(cModLoader, "Failed to decode icon for %s: invalid image data", qUtf8Printable(modId));
-            return;
-        }
-        if (image.isNull()) {
-            qCWarning(cModLoader, "Failed to decode icon for %s: empty image", qUtf8Printable(modId));
-            return;
-        }
-        QMetaObject::invokeMethod(
-            this,
-            [this, modId = std::move(modId), image_ = std::move(image)] mutable {
-                emit modIconDownloaded(modId, std::move(image_));
-            },
-            Qt::QueuedConnection);
-    });
 }
 
 void ModLoader::onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion) {
@@ -224,9 +203,9 @@ void ModLoader::load_(QFileInfo &&fileInfo) {
                         [this, modId](QByteArray data) mutable {
                             onModInfoRetrieved(std::move(modId), std::move(data));
                         },
-                        [this, modId](const QString &error) {
+                        [this, modId](QString error) {
                             qCWarning(cModLoader, "Error retrieving info for %s: %s", qUtf8Printable(modId),
-                                      qUtf8Printable(error));
+                                      qUtf8Printable(std::move(error)));
                             decrementModsLoadingInProgress();
                         });
                 },
@@ -245,18 +224,6 @@ void ModLoader::onModInfoRetrieved(QString modId, QByteArray data) {
         return;
     }
 
-    if (modObj[ONLINE_LOGOFILE_JSON_KEY].isString()) {
-        QString logoFile = modObj[ONLINE_LOGOFILE_JSON_KEY].toString();
-        if (!logoFile.isEmpty()) {
-            mHttpClient->sendGet(
-                logoFile, this, "image/",
-                [this, modId](QByteArray data) mutable { onModIconRetrieved(std::move(modId), std::move(data)); },
-                [modId](const QString &error) {
-                    qCWarning(cModLoader, "Error retrieving icon for %s: %s", qUtf8Printable(modId),
-                              qUtf8Printable(error));
-                });
-        }
-    }
     mStore->updateOnline(modId, std::move(modObj));
     decrementModsLoadingInProgress();
 }

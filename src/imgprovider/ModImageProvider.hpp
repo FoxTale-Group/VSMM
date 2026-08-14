@@ -18,31 +18,38 @@
 
 #pragma once
 
+#include <HttpClient.hpp>
 #include <ImgProviderExport.hpp>
+#include <QCache>
 #include <QMutex>
 #include <QQuickImageProvider>
 
 namespace vsmm {
-class IMGPROVIDER_EXPORT ModImageProvider : public QQuickImageProvider {
+
+class IMGPROVIDER_EXPORT ModImageProvider : public QQuickAsyncImageProvider {
     Q_OBJECT
 
   public:
-    ModImageProvider();
-
-    QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
-    qint64 getCacheKey(QStringView id) const;
-    bool hasImage(QStringView id) const;
+    ModImageProvider() = default;
+    ~ModImageProvider() override;
+    QQuickImageResponse *requestImageResponse(const QString &id, const QSize &requestedSize) override;
+    void setHttpClient(HttpClient *httpClient);
 
   signals:
-    void imageAdded(QStringView modId); // used by modlistmodel
+    void imageDownloaded(QString id, QImage image, QString error);
 
   public slots:
-    void onImageReceived(QStringView modId, QImage image);
     void onModsReloading();
     void onModRemoved(QStringView modId);
 
   private:
-    QHash<QString, QImage> mImages;
+    void download(QString modId, QUrl url);
+    void finish(QString modId, QImage image, QString error, bool permanentError = false);
+    static constexpr qsizetype CACHE_SIZE{32 * 1024 * 1024}; // 32 MiB
+    HttpClient *mHttpClient{nullptr};
+    QCache<QString, QImage> mCache{CACHE_SIZE};
+    QSet<QString> mInProgress, mNoIcon;
+    QThreadPool mDecodeImagesPool{this};
     mutable QMutex mMutex;
 };
 } // namespace vsmm

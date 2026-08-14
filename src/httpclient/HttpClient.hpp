@@ -34,7 +34,7 @@ class HTTPCLIENT_EXPORT HttpClient : public QObject {
 
   public:
     using SuccessFn = std::function<void(QByteArray)>;
-    using FailedFn = std::function<void(const QString &)>;
+    using FailedFn = std::function<void(QString)>;
 
     explicit HttpClient(QObject *parent = nullptr);
     void sendGet(const QUrl &url, QObject *context, const QString &contentType, SuccessFn successFn,
