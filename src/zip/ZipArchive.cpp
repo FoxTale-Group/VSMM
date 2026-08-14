@@ -75,9 +75,11 @@ QByteArray ZipArchive::getFileContent(FileIndex fileIndex) const {
     QByteArray buffer{static_cast<qsizetype>(fileStats.size), Qt::Uninitialized};
     if (const zip_int64_t bytesRead = zip_fread(modInfoFile, buffer.data(), fileStats.size);
         bytesRead != fileStats.size) {
+        zip_fclose(modInfoFile);
         return {};
     }
 
+    zip_fclose(modInfoFile);
     return buffer;
 }
 
