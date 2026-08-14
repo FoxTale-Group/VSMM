@@ -40,10 +40,9 @@ class GameMngrUnitTest : public QObject {
     Q_OBJECT
 
     static void ignoreEmptyGameExe() { QTest::ignoreMessage(QtCriticalMsg, "config paths.gameExe value is empty"); }
-    // only gamemngr logs, and no tracing unless a test pins a debug line as its only evidence
-    static void onlyGameMngrLogs(bool withDebug = false) {
-        QLoggingCategory::setFilterRules(withDebug ? u"*=false\ngamemngr=true"_s
-                                                   : u"*=false\ngamemngr=true\ngamemngr.debug=false"_s);
+    // only gamemngr logs, and no tracing: no test pins a debug line
+    static void onlyGameMngrLogs() {
+        QLoggingCategory::setFilterRules(u"*=false\ngamemngr=true\ngamemngr.debug=false"_s);
     }
 
   private slots:
@@ -98,7 +97,7 @@ class GameMngrUnitTest : public QObject {
 
         config.validate();
 
-        QTest::ignoreMessage(QtCriticalMsg, "Config already set");
+        QTest::ignoreMessage(QtWarningMsg, "Config already set");
         gameMngr.setConfig(&config2);
 
         QCOMPARE(spy.count(), 1);
@@ -465,11 +464,9 @@ class GameMngrUnitTest : public QObject {
         // second change is ignored while that read is in flight, so the probe stays busy
         const QString launcher = writeFakeGameExe(dir, u"1.22.5"_s, marker);
         QVERIFY(!launcher.isEmpty());
-        // the trace line is the only evidence of that, so tracing goes on for this one call
-        onlyGameMngrLogs(true);
-        QTest::ignoreMessage(QtDebugMsg, "Game version read already in progress");
+        // the warning is the only evidence of that
+        QTest::ignoreMessage(QtWarningMsg, "Game version read already in progress");
         config.setGameExePath(launcher);
-        onlyGameMngrLogs();
 
         gameMngr.launchGame();
 

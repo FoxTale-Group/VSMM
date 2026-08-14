@@ -18,8 +18,11 @@
 
 #include "ModEntry.hpp"
 #include <QJsonArray>
+#include <QLoggingCategory>
 #include <optional>
 #include <utility>
+
+Q_STATIC_LOGGING_CATEGORY(cModEntry, "modentry");
 
 namespace {
 using namespace Qt::StringLiterals;
@@ -68,7 +71,7 @@ void ModEntry::initOnlineInfo(QJsonObject json, const semver::version<> &gameVer
     initLatestRelease(json, gameVersion, cfgIncludePrerelease);
     initType(json);
 
-    qDebug() << u"Retrieved mod info for %1"_s.arg(mOnlineInfo.mName);
+    qCDebug(cModEntry, "Retrieved mod info for %s", qUtf8Printable(mOnlineInfo.mName));
 }
 
 const QUrl &ModEntry::getUrl() const { return mOnlineInfo.mUrl; }
@@ -79,7 +82,7 @@ bool ModEntry::hasUpdate() const { return mOnlineInfo.mLatestVersion.mHasUpdate;
 
 void ModEntry::initName(const QJsonObject &json) {
     if (!json["name"_L1].isString()) {
-        qWarning() << u"%1: Invalid JSON format: name is not a string"_s.arg(mName);
+        qCWarning(cModEntry, "%s: Invalid JSON format: name is not a string", qUtf8Printable(mName));
         return;
     }
     mOnlineInfo.mName = json["name"].toString().trimmed();
@@ -88,13 +91,13 @@ void ModEntry::initName(const QJsonObject &json) {
 void ModEntry::initLatestRelease(const QJsonObject &json, const semver::version<> &gameVersion,
                                  bool cfgIncludePrerelease) {
     if (!json["releases"_L1].isArray()) {
-        qWarning() << u"%1: Invalid JSON format: releases is not an array"_s.arg(mOnlineInfo.mName);
+        qCWarning(cModEntry, "%s: Invalid JSON format: releases is not an array", qUtf8Printable(mOnlineInfo.mName));
         return;
     }
 
     auto jsonReleaseArr = json["releases"_L1].toArray();
     if (jsonReleaseArr.isEmpty()) {
-        qWarning() << u"%1: Invalid JSON format: releases array is empty"_s.arg(mOnlineInfo.mName);
+        qCWarning(cModEntry, "%s: Invalid JSON format: releases array is empty", qUtf8Printable(mOnlineInfo.mName));
         return;
     }
 
@@ -111,7 +114,7 @@ void ModEntry::initLatestRelease(const QJsonObject &json, const semver::version<
 
 void ModEntry::initAuthor(const QJsonObject &json) {
     if (!json["author"_L1].isString()) {
-        qWarning() << u"%1: Invalid JSON format: author is not a string"_s.arg(mOnlineInfo.mName);
+        qCWarning(cModEntry, "%s: Invalid JSON format: author is not a string", qUtf8Printable(mOnlineInfo.mName));
         return;
     }
 
@@ -120,7 +123,7 @@ void ModEntry::initAuthor(const QJsonObject &json) {
 
 void ModEntry::initTags(const QJsonObject &json) {
     if (!json["tags"_L1].isArray()) {
-        qWarning() << u"%1: Invalid JSON format: tags is not a list"_s.arg(mOnlineInfo.mName);
+        qCWarning(cModEntry, "%s: Invalid JSON format: tags is not a list", qUtf8Printable(mOnlineInfo.mName));
         return;
     }
 
@@ -139,7 +142,7 @@ void ModEntry::initModUrl(const QJsonObject &json) {
     }
 
     if (!json["assetid"_L1].isDouble()) {
-        qWarning() << u"%1: Invalid JSON format: assetid is not a number"_s.arg(mOnlineInfo.mName);
+        qCWarning(cModEntry, "%s: Invalid JSON format: assetid is not a number", qUtf8Printable(mOnlineInfo.mName));
         return;
     }
 
@@ -148,7 +151,7 @@ void ModEntry::initModUrl(const QJsonObject &json) {
 
 void ModEntry::initType(const QJsonObject &json) {
     if (!json["type"_L1].isString()) {
-        qWarning() << u"%1: Invalid JSON format: type is not a string"_s.arg(mOnlineInfo.mName);
+        qCWarning(cModEntry, "%s: Invalid JSON format: type is not a string", qUtf8Printable(mOnlineInfo.mName));
         return;
     }
 
@@ -160,7 +163,8 @@ ModEntry::getLatestVersion(QJsonArray releases, const semver::version<> &gameVer
     const auto tryParse = [this](const QString &version) -> std::optional<semver::version<>> {
         semver::version<> returnVersion;
         if (const auto result = semver::parse(version.toStdString(), returnVersion); !result) {
-            qCritical() << u"%1: Cannot parse version '%2'"_s.arg(mOnlineInfo.mName, version);
+            qCCritical(cModEntry, "%s: Cannot parse version '%s'", qUtf8Printable(mOnlineInfo.mName),
+                       qUtf8Printable(version));
             return std::nullopt;
         }
         return returnVersion;
@@ -184,7 +188,7 @@ ModEntry::getLatestVersion(QJsonArray releases, const semver::version<> &gameVer
     QPair<QJsonObject, semver::version<>> latest;
     for (const auto &release : releases) {
         if (!release["modversion"_L1].isString()) {
-            qCritical() << u"%1: Invalid JSON format: no modversion"_s.arg(mOnlineInfo.mName);
+            qCCritical(cModEntry, "%s: Invalid JSON format: no modversion", qUtf8Printable(mOnlineInfo.mName));
             continue;
         }
 
@@ -198,7 +202,8 @@ ModEntry::getLatestVersion(QJsonArray releases, const semver::version<> &gameVer
         }
 
         if (!release["tags"_L1].isArray()) {
-            qCritical() << u"%1: Invalid JSON format: release tags is not an array"_s.arg(mOnlineInfo.mName);
+            qCCritical(cModEntry, "%s: Invalid JSON format: release tags is not an array",
+                       qUtf8Printable(mOnlineInfo.mName));
             continue;
         }
 

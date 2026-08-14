@@ -56,10 +56,8 @@ class MODLISTMODEL_EXPORT ModListModel : public QAbstractListModel {
     void setModImageProvider(ModImageProvider *provider);
     void setStore(ModStore *store);
 
-  public slots:
-    void iconUpdate(QStringView modId);
-
   private slots:
+    void onIconUpdated(QStringView modId);
     void onModAdded(QStringView modId);
     void onModUpdated(QStringView modId);
     void onModsReloading();

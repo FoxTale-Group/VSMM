@@ -51,7 +51,11 @@ void GameMngr::killVersionProcess() {
 
 void GameMngr::setConfig(IConfig *config) {
     if (mConfig) {
-        qCCritical(cGameMngr, "Config already set");
+        qCWarning(cGameMngr, "Config already set");
+        return;
+    }
+    if (!config) {
+        qCFatal(cGameMngr, "Config is null");
         return;
     }
 
@@ -180,7 +184,7 @@ bool GameMngr::beginVersionRead() {
 
     // version checking already running
     if (mVersionProcess.state() != QProcess::NotRunning) {
-        qCDebug(cGameMngr, "Game version read already in progress");
+        qCWarning(cGameMngr, "Game version read already in progress");
         return false;
     }
 
@@ -229,7 +233,7 @@ void GameMngr::onVersionProcessFinished(int errCode [[maybe_unused]], QProcess::
         return;
     }
 
-    qCDebug(cGameMngr, "Game version detected: %s", version.to_string().c_str());
+    qCInfo(cGameMngr, "Game version detected: %s", version.to_string().c_str());
     finishVersionRead(version);
 }
 

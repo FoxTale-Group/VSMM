@@ -55,8 +55,8 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     void load(QFileInfo &&fileInfo);
 
   signals:
-    void modIconDownloaded(const QString &modId, QImage image); // used by imgprovider
-    void allModsReloaded();                                     // used by modstore
+    void modIconDownloaded(QStringView modId, QImage image); // used by imgprovider
+    void allModsReloaded();                                  // used by modstore
 
   public slots:
     void onModsReloading();
@@ -74,7 +74,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
 
     [[nodiscard]] static QVariant getLocalInfoFromZip(QFileInfo &&fileInfo);
     [[nodiscard]] static QVariant parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo);
-    [[nodiscard]] static QJsonObject createOnlineModEntry(QByteArray jsonByteArray, QAnyStringView modId);
+    [[nodiscard]] static QJsonObject createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId);
 
     GameMngr *mGameMngr{nullptr};
     ModStore *mStore{nullptr};

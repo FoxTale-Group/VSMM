@@ -20,6 +20,7 @@
 #include <Config.hpp>
 #include <QCommandLineParser>
 #include <QIcon>
+#include <QLoggingCategory>
 #include <QQuickStyle>
 #include <QStandardPaths>
 #include <constants.hpp>
@@ -28,6 +29,8 @@
 #include <ModListModel.hpp>
 #include <ModLoader.hpp>
 #include <ModSortFilterModel.hpp>
+
+Q_STATIC_LOGGING_CATEGORY(cApp, "app");
 
 namespace vsmm {
 App::App(int &argc, char *argv[]) : QGuiApplication{argc, argv} {
@@ -41,8 +44,10 @@ App::App(int &argc, char *argv[]) : QGuiApplication{argc, argv} {
     parser.addVersionOption();
     parser.process(*this);
 
+    qCInfo(cApp, "%s %s starting", qUtf8Printable(APP_DISPLAY_NAME), qUtf8Printable(APP_VERSION));
+
     connect(&mQmlEngine, &QQmlApplicationEngine::objectCreationFailed,
-            [](const QUrl &url) { qFatal() << QString("QML object creation failed %1").arg(url.toString()); });
+            [](const QUrl &url) { qCFatal(cApp, "QML object creation failed: %s", qUtf8Printable(url.toString())); });
 
     initQmlEngine();
 }
@@ -85,7 +90,7 @@ void App::initQmlEngine() {
 
     gameMngr->setConfig(config);
     if (!gameMngr->getGameVersion()) {
-        qCritical() << "Game version unknown, update detection is disabled";
+        qCCritical(cApp, "Game version unknown, update detection is disabled");
     }
 
     modStore->setConfig(config);
@@ -96,10 +101,10 @@ void App::initQmlEngine() {
     modLoader->setGameMngr(gameMngr);
 
     connect(modLoader, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
-    connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
     connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
     connect(modStore, &ModStore::modRemoved, mModImageProvider, &ModImageProvider::onModRemoved);
 
+    qCDebug(cApp, "Backend wired, validating config");
     config->validate();
 }
 } // namespace vsmm

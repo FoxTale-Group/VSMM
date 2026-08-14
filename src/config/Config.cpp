@@ -43,7 +43,7 @@ Config::Config() {
     QJsonDocument jsonDoc = QJsonDocument::fromJson(mConfigFile.readAll(), &jsonError);
 
     if (jsonError.error != QJsonParseError::NoError) {
-        qCFatal(cConfig) << jsonError.errorString();
+        qCFatal(cConfig, "Config file is not valid JSON: %s", qUtf8Printable(jsonError.errorString()));
         return;
     }
 
@@ -66,6 +66,8 @@ Config::Config() {
     if (!config[FAVORITES_KEY_NAME].isNull() && config[FAVORITES_KEY_NAME].isValid()) {
         mFavorites = config[FAVORITES_KEY_NAME].toStringList();
     }
+
+    qCInfo(cConfig, "Config loaded");
 }
 
 Config::~Config() { saveToFile(); }
@@ -73,6 +75,7 @@ Config::~Config() { saveToFile(); }
 void Config::setFavorites(QStringList favorites) {
     mFavorites = std::move(favorites);
     saveToFile();
+    qCDebug(cConfig, "Favorites set to %s", qUtf8Printable(mFavorites.join(QStringLiteral(", "))));
 }
 
 void Config::setGeneral(const GeneralSettings &data) {
@@ -81,7 +84,7 @@ void Config::setGeneral(const GeneralSettings &data) {
     }
     mGeneral = data;
     emit generalChanged();
-    qCDebug(cConfig) << "emitted generalChanged";
+    qCInfo(cConfig, "General settings changed");
 }
 
 void Config::setPaths(const PathSettings &data) {
@@ -92,17 +95,18 @@ void Config::setPaths(const PathSettings &data) {
 
     mPaths = data;
     emit pathsChanged();
-    qCDebug(cConfig) << "emitted pathsChanged";
 
     if (oldPaths.gameExe != data.gameExe) {
         emit gameExePathChanged();
-        qCDebug(cConfig) << "emitted gameExePathChanged";
+        qCDebug(cConfig, "Game exe path changed");
     }
 
     if (oldPaths.gameConfig != data.gameConfig) {
         emit gameConfigPathChanged();
-        qCDebug(cConfig) << "emitted gameConfigPathChanged";
+        qCDebug(cConfig, "Game config path changed");
     }
+
+    qCInfo(cConfig, "Paths settings changed");
 }
 
 void Config::setAppearance(const AppearanceSettings &data) {
@@ -112,7 +116,7 @@ void Config::setAppearance(const AppearanceSettings &data) {
 
     mAppearance = data;
     emit appearanceChanged();
-    qCDebug(cConfig) << "emitted appearanceChanged";
+    qCInfo(cConfig, "Appearance settings changed");
 }
 
 void Config::saveToFile() const {
@@ -131,7 +135,7 @@ void Config::saveToFile() const {
         qCWarning(cConfig, "Failed to write config file");
         return;
     }
-    qCInfo(cConfig, "Config saved");
+    qCInfo(cConfig, "Config saved to file");
 }
 
 void Config::validate() {
@@ -147,7 +151,7 @@ void Config::validate() {
     emit appearanceChanged();
     emit pathsChanged();
     emit gameConfigPathChanged();
-    qCDebug(cConfig) << "emitted QML signals & gameConfigPathChanged";
+    qCInfo(cConfig, "Config validated");
 }
 
 } // namespace vsmm
