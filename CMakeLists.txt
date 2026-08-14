@@ -35,5 +35,6 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 endif()
 
 include(CTest)
+set(CMAKE_CTEST_ARGUMENTS -V)
 set(CMAKE_INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/vsmm")
 add_subdirectory(src bin)

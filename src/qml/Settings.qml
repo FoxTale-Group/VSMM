@@ -111,20 +111,16 @@ VsmmWindow {
 
     function saveToConfig() {
         if(Config) {
-            let generalCfg = Config.general;
-            generalCfg.deleteOldModVersion = generalTab.deleteOldModVersion;
-            generalCfg.includeModPrerelease = generalTab.includeModPrerelease;
-            Config.general = generalCfg;
+            Config.general.deleteOldModVersion = generalTab.deleteOldModVersion;
+            Config.general.includeModPrerelease = generalTab.includeModPrerelease;
 
             // An empty path is a valid value and is persisted as such.
-            let pathsCfg = Config.paths;
-            pathsCfg.gameConfig = configurationTab.gameConfigDir;
-            pathsCfg.gameExe = configurationTab.gameExePath;
-            Config.paths = pathsCfg;
+            Config.paths.gameConfig = configurationTab.gameConfigDir;
+            Config.paths.gameExe = configurationTab.gameExePath;
 
-            let appearanceCfg = Config.appearance;
-            appearanceCfg.accentIndex = appearanceTab.accentIndex;
-            Config.appearance = appearanceCfg;
+            Config.appearance.accentIndex = appearanceTab.accentIndex;
+
+            Config.saveToFile();
         }
     }
 }

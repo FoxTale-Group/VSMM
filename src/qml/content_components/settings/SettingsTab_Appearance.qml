@@ -13,7 +13,7 @@ TabPanel {
     readonly property int accentIndex: Theme.accentIndex
     
     // Values currently in Config.
-    readonly property int savedAccentIndex: Config.appearance.accentIndex ?? 0
+    readonly property int savedAccentIndex: Config.appearance.accentIndex
     readonly property bool dirty: settingsTabAppearance.accentIndex !== settingsTabAppearance.savedAccentIndex
 
     function revert() {

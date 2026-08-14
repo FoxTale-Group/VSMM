@@ -19,6 +19,7 @@
 #include <ModEntry.hpp>
 
 #include <QJsonArray>
+#include <QLoggingCategory>
 #include <QTest>
 
 using namespace Qt::StringLiterals;
@@ -28,7 +29,7 @@ namespace {
 [[nodiscard]] semver::version<> ver(const QString &version) {
     semver::version<> parsed;
     const auto result = semver::parse(version.toStdString(), parsed);
-    // Not Q_ASSERT: that would abort the run and behave differently in release builds.
+    // not Q_ASSERT, that would abort the run and behave differently in release builds
     QTest::qVerify(static_cast<bool>(result), "semver::parse(version)", qPrintable(version), __FILE__, __LINE__);
     return parsed;
 }
@@ -43,7 +44,7 @@ namespace {
             .mFileInfo = QFileInfo{u"/mods/CarryOn-1.0.0.zip"_s}};
 }
 
-// One entry of the API's `releases` array. Game versions the release supports go into `tags`.
+// one entry of the API releases array, supported game versions go into tags
 [[nodiscard]] QJsonObject release(const QString &modVersion, const QStringList &gameVersions) {
     QJsonArray tags;
     for (const auto &gameVersion : gameVersions) {
@@ -55,11 +56,10 @@ namespace {
             {"mainfile"_L1, u"https://mods.vintagestory.at/download?fileid=%1"_s.arg(modVersion)}};
 }
 
-// The `mod` object of an API response, trimmed down to what ModEntry reads.
-// Tests that do not care about releases still get one, older than the installed version, so the
-// outcome stays "no update" without tripping ModEntry's empty-releases warning.
+// older than the installed version, so the outcome stays "no update" without the empty-releases warning
 [[nodiscard]] QJsonArray defaultReleases() { return {release(u"0.9.0"_s, {u"1.22.0"_s})}; }
 
+// the mod object of an API response, trimmed down to what ModEntry reads
 [[nodiscard]] QJsonObject modJson(const QJsonArray &releases = defaultReleases()) {
     return {{"name"_L1, "Carry On"_L1}, {"author"_L1, "NerdScurvy"_L1},
             {"type"_L1, "mod"_L1},      {"urlalias"_L1, "carryon"_L1},
@@ -85,7 +85,12 @@ class ModEntryTest : public QObject {
     static constexpr auto GAME_VERSION = "1.22.5";
 
   private slots:
-    // --- Local phase -------------------------------------------------------
+    void initTestCase() {
+        // ModEntry logs uncategorized, so mute the type and not the category, or the pinned warnings go too
+        QLoggingCategory::setFilterRules(u"*.debug=false"_s);
+    }
+
+    // local phase
 
     void localInfoStringifiesAsIdAtVersion() {
         const auto info = localInfo(u"1.2.3-rc.1"_s);
@@ -137,7 +142,7 @@ class ModEntryTest : public QObject {
         QVERIFY(!entry.isFavorite());
     }
 
-    // --- Online phase: scalar fields ---------------------------------------
+    // online phase, scalar fields
 
     void onlineInfoOverridesNameAuthorAndTypeAndTags() {
         vsmm::ModEntry entry{localInfo()};
@@ -148,7 +153,7 @@ class ModEntryTest : public QObject {
         QCOMPARE(entry.getAuthor(), u"NerdScurvy"_s);
         QCOMPARE(entry.getType(), u"mod"_s);
         QCOMPARE(entry.getTags(), QStringList({u"Storage"_s, u"QoL"_s}));
-        // The local version is what is installed, so online info must never touch it.
+        // local version is what is installed, so online info must never touch it
         QCOMPARE(str(entry.getVersion()), u"1.0.0"_s);
         QCOMPARE(entry.getId(), u"carryon"_s);
     }
@@ -163,8 +168,7 @@ class ModEntryTest : public QObject {
 
     void invalidNameFallsBackToLocalName_data() {
         QTest::addColumn<QJsonValue>("name");
-        // Only a non-string name is reported; an empty or blank one is a valid string that simply
-        // trims away, so it falls back silently.
+        // only a non-string name is reported, an empty or blank one just trims away and falls back silently
         QTest::addColumn<bool>("warns");
         QTest::newRow("missing") << QJsonValue{QJsonValue::Undefined} << true;
         QTest::newRow("null") << QJsonValue{QJsonValue::Null} << true;
@@ -222,7 +226,7 @@ class ModEntryTest : public QObject {
         QCOMPARE(entry.getTags(), QStringList({u"Storage"_s, u"QoL"_s}));
     }
 
-    // --- Online phase: mod url ---------------------------------------------
+    // online phase, mod url
 
     void urlAliasWinsOverAssetId() {
         vsmm::ModEntry entry{localInfo()};
@@ -258,9 +262,9 @@ class ModEntryTest : public QObject {
         QVERIFY(entry.getUrl().isEmpty());
     }
 
-    // --- Online phase: latest release / update detection --------------------
+    // online phase, latest release & update detection
 
-    // Game is 1.22.5 and the release only advertises 1.22.0: patch numbers are treated as compatible.
+    // game is 1.22.5 and the release only advertises 1.22.0, patch numbers count as compatible
     void newerCompatibleReleaseIsAnUpdate() {
         vsmm::ModEntry entry{localInfo()};
 
@@ -274,8 +278,7 @@ class ModEntryTest : public QObject {
         QCOMPARE(latest.mUrl, QUrl{u"https://mods.vintagestory.at/download?fileid=1.1.0"_s});
     }
 
-    // The API orders releases by publication date, not by version, so the scan has to look at every
-    // release and keep the highest one that supports the installed game version.
+    // API orders releases by date, not by version, so keep the highest one that supports the game version
     void highestCompatibleReleaseWins_data() {
         QTest::addColumn<QString>("installedVersion");
         QTest::addColumn<QJsonArray>("releases");
@@ -289,20 +292,19 @@ class ModEntryTest : public QObject {
         QTest::newRow("newer-behind-older")
             << u"1.0.0"_s << QJsonArray{release(u"1.0.0"_s, {u"1.22.0"_s}), release(u"2.0.0"_s, {u"1.22.0"_s})}
             << u"2.0.0"_s;
-        // Shape from the live /api/mod/carryon response: a 1.x maintenance release published after
-        // the 2.0 prereleases sits first in the array.
+        // live /api/mod/carryon shape, a 1.x release published after the 2.0 prereleases sits first
         QTest::newRow("carryon-maintenance-release-first")
             << u"2.0.0-pre.1"_s
             << QJsonArray{release(u"1.14.3"_s, {u"1.22.0"_s}), release(u"2.0.0-pre.8"_s, {u"1.22.0"_s}),
                           release(u"2.0.0-pre.7"_s, {u"1.22.0"_s})}
             << u"2.0.0-pre.8"_s;
-        // Terra Prety: a 6.x release published after the 7.x line, and 7.8.2 after 7.9.2.
+        // Terra Prety: a 6.x release published after the 7.x line, and 7.8.2 after 7.9.2
         QTest::newRow("terraprety-unsorted")
             << u"7.9.2"_s
             << QJsonArray{release(u"6.2.0"_s, {u"1.22.2"_s}), release(u"7.10.2"_s, {u"1.22.0"_s}),
                           release(u"7.8.2"_s, {u"1.22.0"_s}), release(u"7.10.1"_s, {u"1.22.0"_s})}
             << u"7.10.2"_s;
-        // The newest release dropped support for the installed game version; the previous one has it.
+        // newest release dropped the installed game version, the previous one still has it
         QTest::newRow("newest-incompatible-falls-back")
             << u"1.0.0"_s << QJsonArray{release(u"2.0.0"_s, {u"1.23.0"_s}), release(u"1.5.0"_s, {u"1.22.0"_s})}
             << u"1.5.0"_s;
@@ -339,7 +341,7 @@ class ModEntryTest : public QObject {
 
     void incompatibleGameVersionIsNotAnUpdate_data() {
         QTest::addColumn<QStringList>("gameVersions");
-        // A tag that is merely incompatible is silent; one that is not a version is reported.
+        // an incompatible tag is silent, a tag that is not a version gets reported
         QTest::addColumn<QByteArray>("expectedError");
         QTest::newRow("older-minor") << QStringList{u"1.21.9"_s} << QByteArray{};
         QTest::newRow("newer-minor") << QStringList{u"1.23.0"_s} << QByteArray{};
@@ -371,8 +373,7 @@ class ModEntryTest : public QObject {
         QVERIFY(entry.hasUpdate());
     }
 
-    // A prerelease is only eligible when the installed version is itself a prerelease, or the user
-    // opted in. Every row offers the same two releases, so only those two inputs vary.
+    // a prerelease is eligible only when the installed version is one too, or the user opted in
     void prereleaseIsOnlyOfferedWhenEligible_data() {
         QTest::addColumn<QString>("installedVersion");
         QTest::addColumn<bool>("includePrerelease");
@@ -398,7 +399,7 @@ class ModEntryTest : public QObject {
 
     void malformedReleaseIsSkippedButScanContinues_data() {
         QTest::addColumn<QJsonObject>("badRelease");
-        // Skipping a release is only acceptable if it is also reported.
+        // skipping a release is only ok if it is also reported
         QTest::addColumn<QByteArray>("expectedError");
         QTest::newRow("modversion-missing") << withoutKey(release(u"9.9.9"_s, {u"1.22.0"_s}), "modversion"_L1)
                                             << QByteArray{"\"Carry On: Invalid JSON format: no modversion\""};
@@ -446,7 +447,7 @@ class ModEntryTest : public QObject {
         entry.initOnlineInfo(withKey(modJson(), "releases"_L1, releases), ver(GAME_VERSION), false);
 
         QVERIFY(!entry.hasUpdate());
-        // The rest of the online info must still land.
+        // the rest of the online info must still land
         QCOMPARE(entry.getName(), u"Carry On"_s);
     }
 

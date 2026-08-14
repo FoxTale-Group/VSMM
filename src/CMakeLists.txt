@@ -22,6 +22,7 @@ set(QML_IMPORT_PATH
         CACHE STRING "Qt Creator QML Import Paths" FORCE)
 
 # Add libs and qml modules subdirectories
+add_subdirectory(interfaces Interfaces)
 add_subdirectory(httpclient)
 add_subdirectory(config Config)
 add_subdirectory(zip)
@@ -32,6 +33,10 @@ add_subdirectory(modlistmodel ModListModel)
 add_subdirectory(modloader ModLoader)
 add_subdirectory(modsortfiltermodel ModSortFilterModel)
 add_subdirectory(gamemngr GameMngr)
+
+if (BUILD_TESTING)
+    add_subdirectory(tests)
+endif ()
 
 # Set main app executable sources
 if (UNIX AND NOT APPLE)

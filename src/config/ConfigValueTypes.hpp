@@ -18,34 +18,31 @@
 
 #pragma once
 
-#include "ConfigValueTypes.hpp"
-#include <ConfigExport.hpp>
-#include <IConfig.hpp>
-#include <QDir>
-#include <QFile>
-#include <QJsonObject>
+#include <ConfigTypes.hpp>
 #include <qqmlintegration.h>
 
 namespace vsmm {
-class CONFIG_EXPORT Config : public IConfig {
-    Q_OBJECT
-    QML_NAMED_ELEMENT(Config)
-    QML_SINGLETON
-
-  public:
-    Config();
-    ~Config() override;
-    void validate() override;
-
-    void setFavorites(QStringList favorites) override;
-
-    void setGeneral(const GeneralSettings &data) override;
-    void setPaths(const PathSettings &data) override;
-    void setAppearance(const AppearanceSettings &data) override;
-
-    Q_INVOKABLE void saveToFile() const;
-
-  private:
-    QFile mConfigFile;
+struct GeneralSettingsForeign {
+    Q_GADGET
+    QML_VALUE_TYPE(generalSettings)
+    QML_FOREIGN(vsmm::GeneralSettings)
 };
+
+struct PathSettingsForeign {
+    Q_GADGET
+    QML_VALUE_TYPE(pathSettings)
+    QML_FOREIGN(vsmm::PathSettings)
+};
+
+struct AppearanceSettingsForeign {
+    Q_GADGET
+    QML_VALUE_TYPE(appearanceSettings)
+    QML_FOREIGN(vsmm::AppearanceSettings)
+};
+
+namespace AppearanceForeign {
+Q_NAMESPACE
+QML_FOREIGN_NAMESPACE(vsmm::appearance)
+QML_NAMED_ELEMENT(appearance)
+} // namespace AppearanceForeign
 } // namespace vsmm

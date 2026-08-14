@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <Config.hpp>
 #include <GameMngr.hpp>
+#include <IConfig.hpp>
 #include <ModEntry.hpp>
 #include <ModStoreExport.hpp>
 
@@ -40,7 +40,7 @@ class MODSTORE_EXPORT ModStore : public QObject {
   public:
     explicit ModStore(QObject *parent = nullptr);
 
-    void setConfig(Config *config);
+    void setConfig(IConfig *config);
     void setGameMngr(GameMngr *gameMngr);
 
     void add(ModEntry::LocalInfo localModInfo);
@@ -91,7 +91,7 @@ class MODSTORE_EXPORT ModStore : public QObject {
     // either update happening or mods are being reloaded
     bool mWorkPending{true};
 
-    Config *mConfig{nullptr};
+    IConfig *mConfig{nullptr};
     GameMngr *mGameMngr{nullptr};
     QSet<QString> mFavoriteMods;
 };

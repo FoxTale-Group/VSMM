@@ -15,8 +15,8 @@ TabPanel {
     readonly property string gameExePath: gameExePathField.text
 
     // Values currently in Config.
-    readonly property string savedGameConfigDir: Config.paths.gameConfig ?? ""
-    readonly property string savedGameExePath: Config.paths.gameExe ?? ""
+    readonly property string savedGameConfigDir: Config.paths.gameConfig
+    readonly property string savedGameExePath: Config.paths.gameExe
 
     readonly property bool dirty: settingsTabConfiguration.gameConfigDir !== settingsTabConfiguration.savedGameConfigDir
                                || settingsTabConfiguration.gameExePath !== settingsTabConfiguration.savedGameExePath

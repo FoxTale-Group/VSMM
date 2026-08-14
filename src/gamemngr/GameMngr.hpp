@@ -17,8 +17,10 @@
  */
 
 #pragma once
-#include <Config.hpp>
 #include <GameMngrExport.hpp>
+#include <IConfig.hpp>
+#include <QDir>
+#include <QJsonObject>
 #include <QObject>
 #include <QProcess>
 #include <QTimer>
@@ -36,14 +38,12 @@ class GAMEMNGR_EXPORT GameMngr : public QObject {
     // empty if the version is unknown
     Q_PROPERTY(QString gameVersion READ getGameVersionString NOTIFY gameVersionChanged)
 
-    static constexpr QLatin1StringView CONFIG_GAMEDIR_JSON_KEY{"gameConfig"};
-    static constexpr QLatin1StringView CONFIG_GAMEEXE_JSON_KEY{"gameExe"};
-
     const QStringList CLIENT_SETTINGS_VER_SUPPORT = {QStringLiteral("1.16")};
 
   public:
     GameMngr();
-    void setConfig(Config *config);
+    ~GameMngr() override;
+    void setConfig(IConfig *config);
     [[nodiscard]] const QList<QDir> &getModsDirs() const;
     [[nodiscard]] const std::optional<semver::version<>> &getGameVersion() const;
     [[nodiscard]] QString getGameVersionString() const;
@@ -64,7 +64,7 @@ class GAMEMNGR_EXPORT GameMngr : public QObject {
     void readModsPaths(const QJsonObject &clientSettings);
     [[nodiscard]] QPair<bool, QString> checkClientSettingsVer(const QJsonObject &clientSettings) const;
 
-    Config *mConfig{nullptr};
+    IConfig *mConfig{nullptr};
     QList<QDir> mModsDirs;
     std::optional<semver::version<>> mGameVersion;
     bool mModsDirsParsed{false};

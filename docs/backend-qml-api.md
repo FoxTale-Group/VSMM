@@ -3,7 +3,7 @@
 Everything the C++ backend makes available to the QML layer: singletons, their properties,
 invokable methods, model roles, the image provider, and context properties.
 
-Compiled from the headers on 2026-08-10. Each entry cites its source file so it can be
+Compiled from the headers on 2026-08-13. Each entry cites its source file so it can be
 verified and kept honest — if something here disagrees with the code, the code wins.
 
 ---
@@ -34,13 +34,13 @@ Label { text: ModStore.installedModsCount }
 ```
 
 Instances are created by the engine and wired together in `App::initQmlEngine()`
-(`src/App.cpp:74-90`).
+(`src/App.cpp:74-104`).
 
 ### Overview
 
 | Singleton | Module | Properties | Invokables | Use it for |
 |---|---|---|---|---|
-| `Config` | `Config` | 3 | — | reading / writing user settings |
+| `Config` | `Config` | 3 | 1 | reading / writing user settings |
 | `ModStore` | `ModStore` | 4 | 8 | mod counts, selection state, all mutations |
 | `ModSortFilterModel` | `ModSortFilterModel` | 1 | — | the model to feed a `ListView` |
 | `ModListModel` | `ModListModel` | — | — | source model; defines the delegate roles |
@@ -51,61 +51,85 @@ Instances are created by the engine and wired together in `App::initQmlEngine()`
 
 ## Config
 
-`src/config/Config.hpp:31-45` · persisted to `config.json` in `AppConfigLocation`
+`src/interfaces/IConfig.hpp:30-32` · implemented by `src/config/Config.hpp:30-50` · persisted
+to `config.json` in `AppConfigLocation`
 
-Three read/write properties, each a `QVariantHash` — a string→variant map, not a typed
-object.
+Three read/write properties, each a **typed `Q_GADGET` value type** declared in
+`src/interfaces/ConfigTypes.hpp`, not a string→variant map.
+
+> The properties are declared on the abstract `IConfig` base, not on `Config` itself, so
+> grepping `Config.hpp` for them finds nothing. QML is unaffected: it sees them on the
+> `Config` singleton through the metaobject as usual. `IConfig` is not a QML type.
 
 | Property | Type | Access | Notify |
 |---|---|---|---|
-| `general` | `QVariantHash` | read / write | `generalChanged` |
-| `paths` | `QVariantHash` | read / write | `pathsChanged` |
-| `appearance` | `QVariantHash` | read / write | `appearanceChanged` |
+| `general` | `GeneralSettings` | read / write | `generalChanged` |
+| `paths` | `PathSettings` | read / write | `pathsChanged` |
+| `appearance` | `AppearanceSettings` | read / write | `appearanceChanged` |
 
-### Keys inside each hash
+### Members of each section
 
-| Hash | Key | Type | Meaning |
-|---|---|---|---|
-| `general` | `deleteOldModVersion` | bool | remove the previous version when a newer one is added manually |
-| `general` | `includeModPrerelease` | bool | consider pre-release versions when checking for updates |
-| `paths` | `gameConfig` | string | the `VintagestoryData` folder |
-| `paths` | `gameExe` | string | the Vintage Story executable |
-| `appearance` | — | — | reserved; no keys defined yet (Settings → Appearance is still a stub) |
+| Section | Member | Type in QML | Default | Meaning |
+|---|---|---|---|---|
+| `general` | `deleteOldModVersion` | bool | `true` | remove the previous version when a newer one is added manually |
+| `general` | `includeModPrerelease` | bool | `false` | consider pre-release versions when checking for updates |
+| `paths` | `gameConfig` | string | `""` | the `VintagestoryData` folder |
+| `paths` | `gameExe` | string | `""` | the Vintage Story executable |
+| `appearance` | `theme` | int | `0` (`Dark`) | `vsmm::appearance::Theme`, `0` = Dark, `1` = Light |
+| `appearance` | `accentIndex` | int | `0` | index of the selected accent colour |
 
-Key names come from `Config.hpp:44-45` and `GameMngr.hpp:34-35`.
+Members and defaults come from `ConfigTypes.hpp:51-147`. Unlike the old hashes, **every
+member always exists**, so no `??` guard is needed on a read.
+
+`theme` reaches QML as a plain number: the enum lives in a `Q_NAMESPACE` that is not
+registered as a QML type, so `Theme.Light` cannot be named from QML, only `1`.
 
 ### Reading
 
 ```qml
-Label { text: Config.paths.gameConfig ?? "" }
+Label { text: Config.paths.gameConfig }
 ```
 
-Always guard with `??` — a key that has never been written is `undefined`.
+### Writing — assign the member, then save
 
-### Writing — read, mutate a copy, assign back
-
-`QVariantHash` is a **value type**. Mutating it in place does nothing; you must assign the
-whole hash back so the setter runs and the notify fires:
+Value-type write-back means a member assignment runs the whole section setter, so it works
+directly, no copy-and-assign-back dance:
 
 ```qml
-let pathsCfg = Config.paths          // copy
-pathsCfg.gameConfig = "/new/path"    // mutate the copy
-Config.paths = pathsCfg              // assign back — this persists
+Config.paths.gameConfig = "/new/path"   // runs Config::setPaths, fires pathsChanged
+Config.saveToFile()                     // required, the write alone does not persist
 ```
 
-`Settings.qml:117-135` is the working reference for this pattern.
+Three consequences of going through the setter each time:
+
+- **One notify per assignment**, not one per batch. Setting `gameConfig` and then `gameExe`
+  emits `pathsChanged` twice.
+- **Assigning an unchanged value is a no-op** and emits nothing, so a save-everything handler
+  costs only the signals that really changed.
+- Only the matching path signal follows: writing `gameExe` fires `gameExePathChanged`, writing
+  `gameConfig` fires `gameConfigPathChanged` (`Config.cpp:95-103`).
+
+`Settings.qml:112-125` (`saveToConfig()`) is the working reference.
+
+### Invokable methods
+
+| Method | Signature | Effect |
+|---|---|---|
+| `saveToFile()` | — | writes all three sections plus favorites to `config.json` |
+
+Nothing else persists on its own. The destructor also saves (`Config.cpp:69`), which is why
+values survive a clean shutdown without an explicit call.
 
 ### Not exposed to QML
 
-`getFavorites()`, `setFavorites()`, `getPath()`, `validate()` and the templated
-`getGeneral<T>()` / `getAppearance<T>()` are plain C++ members with no `Q_INVOKABLE` —
-they exist for the backend only.
+`getFavorites()`, `setFavorites()` and `validate()` are plain C++ members with no
+`Q_INVOKABLE` — they exist for the backend only.
 
 ---
 
 ## ModStore
 
-`src/modstore/ModStore.hpp:33-55` · the single entry point for anything that changes mods
+`src/modstore/ModStore.hpp:31-97` · the single entry point for anything that changes mods
 
 ### Properties — all read-only
 
@@ -119,7 +143,7 @@ they exist for the backend only.
 `installedModsCount` and `updatesCount` **share one notify signal**, so both re-evaluate
 whenever either changes. Harmless, but worth knowing if you ever profile bindings.
 
-`workPending` starts as `true` (`ModStore.hpp:69`) — the store considers itself busy until
+`workPending` starts as `true` (`ModStore.hpp:92`) — the store considers itself busy until
 the first reload finishes, so anything gated on it is disabled at startup by design.
 
 ### Invokable methods
@@ -155,7 +179,7 @@ They are technically reachable from QML, but treat them as private.
 
 ## ModSortFilterModel
 
-`src/modsortfiltermodel/ModSortFilterModel.hpp:28-30` · a `QSortFilterProxyModel` over `ModListModel`
+`src/modsortfiltermodel/ModSortFilterModel.hpp:26-47` · a `QSortFilterProxyModel` over `ModListModel`
 
 | Property | Type | Access | Notify |
 |---|---|---|---|
@@ -185,7 +209,7 @@ Two behaviours worth knowing, both from `ModSortFilterModel.cpp`:
 
 ## ModListModel
 
-`src/modlistmodel/ModListModel.hpp:33-50` · the source model — bind views to
+`src/modlistmodel/ModListModel.hpp:31-73` · the source model — bind views to
 `ModSortFilterModel` instead
 
 No properties or invokables. Its contribution is **the role names available inside a
@@ -226,7 +250,7 @@ Rectangle { visible: modHasUpdate }
 
 ## GameMngr
 
-`src/gamemngr/GameMngr.hpp:31-60`
+`src/gamemngr/GameMngr.hpp:34-83`
 
 | Property | Type | Notify | Meaning |
 |---|---|---|---|
@@ -251,7 +275,7 @@ Label {
 The version is read by running the executable in a subprocess, so it is **not available at
 startup** — bind to the property rather than reading it once. It is re-read whenever
 `Config.paths.gameExe` changes, and reverts to an empty string if the read fails or times
-out. Update detection is disabled while it is empty (`App.cpp:87` logs a critical).
+out. Update detection is disabled while it is empty (`App.cpp:88` logs a critical).
 
 `getModsDirs()` is C++-only.
 
@@ -259,7 +283,7 @@ out. Update detection is disabled while it is empty (`App.cpp:87` logs a critica
 
 ## ModLoader
 
-`src/modloader/ModLoader.hpp:36-37`
+`src/modloader/ModLoader.hpp:34-37`
 
 Registered as a singleton but exposes **no properties and no invokable methods**, so there is
 nothing to call from QML. It is driven entirely by signals from `ModStore`. Listed here only
@@ -294,7 +318,7 @@ Image {
 
 ## Context properties
 
-Set on the root context in `App.cpp:60-72`:
+Set on the root context in `App.cpp:60-71`:
 
 | Name | Type | True when |
 |---|---|---|
@@ -312,10 +336,10 @@ branching grows beyond a couple of sites, a typed singleton would serve better.
 
 ## Known rough edges
 
-**`QVariantHash` defeats tooling.** `Config.general` and `Config.paths` are untyped maps, so
-`qmllint` reports `Member "gameConfig" not found on type "QVariantHash"` and you get no
-completion on config keys. The warnings are expected and cannot be fixed from QML — it needs
-the C++ side to expose a `Q_GADGET` with real properties, or individual `Q_PROPERTY`s.
+**Config settings are no longer untyped maps.** The `QVariantHash` sections that used to make
+`qmllint` report `Member "gameConfig" not found on type "QVariantHash"` are now `Q_GADGET`
+types with real properties, so member access resolves. What remains is the `theme` enum: it is
+reachable only as a number until `vsmm::appearance::Theme` is registered as a QML type.
 
 **No error channel.** Nothing surfaces failures to QML — a failed download, an unreadable
 archive or a bad game path is only logged. There is no property or signal to bind an error
