@@ -21,6 +21,13 @@ set(QML_IMPORT_PATH
         "${QT_QML_OUTPUT_DIRECTORY};${CMAKE_CURRENT_SOURCE_DIR}/qml/styles"
         CACHE STRING "Qt Creator QML Import Paths" FORCE)
 
+# VSMM's own libraries ship in a private directory, so give them a distinguishing prefix:
+# libvsmm-Config.so rather than libConfig.so. This is what lets the RPM packaging filter
+# them out of Provides/Requires by pattern, so a library added later is covered without
+# anyone remembering to update a list. Directory-scoped, so it reaches every lib below and
+# nothing outside src/ (semver is fetched before this subdirectory is added).
+set(CMAKE_SHARED_LIBRARY_PREFIX "libvsmm-")
+
 # Add libs and qml modules subdirectories
 add_subdirectory(interfaces Interfaces)
 add_subdirectory(httpclient)
@@ -93,6 +100,12 @@ qt_add_qml_module(${PROJECT_NAME}
             ModLoader
             ModSortFilterModel
             GameMngr)
+
+# QML is precompiled to bytecode but not compiled ahead of time. AOT output calls
+# QQmlPrivate::AOTCompiledContext, which lives behind Qt's Qt_6_PRIVATE_API symbol version;
+# distributions do not advertise that version, so rpm generates a dependency nothing can
+# satisfy. Bytecode alone keeps the startup benefit and links only public Qt symbols.
+set_target_properties(${PROJECT_NAME} PROPERTIES QT_QMLCACHEGEN_ARGUMENTS "--only-bytecode")
 
 # Custom Qt Quick Controls style "VSMMStyle", resolved at runtime by QQuickStyle::setStyle("VSMMStyle").
 # It is a plain style directory (qmldir + control impls) placed on the default qrc import
@@ -177,6 +190,22 @@ if (UNIX AND NOT APPLE)
     # Rell the DEB/RPM packagers to automatically find library dependencies
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
     set(CPACK_RPM_PACKAGE_AUTOREQPROV "yes")
+
+    # Qt loads its SVG image plugin at runtime, so nothing links libQt6Svg and the automatic
+    # scanner cannot see it. Without this the package installs cleanly and every icon fails
+    # to render. Given as a soname rather than a package name so it resolves on any RPM
+    # distribution, which name them differently (qt6-qtsvg, libQt6Svg6, ...).
+    set(CPACK_RPM_PACKAGE_REQUIRES "libQt6Svg.so.6()(64bit)")
+
+    # VSMM's own libraries are shipped inside this package, so rpm must neither advertise
+    # them globally nor demand them from outside. Both macros are needed: dropping only the
+    # Provides would leave Requires that nothing satisfies. Matching on the libvsmm- prefix
+    # means a library added later is covered automatically.
+    set(CPACK_RPM_SPEC_MORE_DEFINE [=[
+        %global __provides_exclude_from ^/usr/lib/vsmm/.*$
+        %global __requires_exclude ^libvsmm-.*\.so.*$
+        ]=])
+    
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
             "/usr/share/applications"
             "/usr/share/icons"
