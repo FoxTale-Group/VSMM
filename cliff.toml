@@ -61,6 +61,7 @@ commit_parsers = [
   { message = "^perf",      group = "<!-- 2 -->⚡ Performance" },
   { message = "^refactor",  group = "<!-- 3 -->♻️ Refactor" },
   { message = "^test",      group = "<!-- 4 -->🧪 Testing" },
+  { message = "^deps",      group = "<!-- 5 -->📦 Dependencies" },
   # everything below is dropped from the changelog:
   { message = "^docs",      skip = true },
   { message = "^style",     skip = true },
