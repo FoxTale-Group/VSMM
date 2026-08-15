@@ -1,6 +1,6 @@
-project(ModEntryTest)
+project(ModEntryUnitTest)
 
-set(SOURCES ModEntryTest.cpp)
+set(SOURCES ModEntryUnitTest.cpp)
 qt_add_executable(${PROJECT_NAME} ${SOURCES})
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
 add_dependencies(${PROJECT_NAME} ModEntry)

@@ -28,7 +28,7 @@
 
 using namespace Qt::StringLiterals;
 
-class ConfigTest : public QObject {
+class ConfigIntegrationTest : public QObject {
     Q_OBJECT
 
     [[nodiscard]] static QString configDir() {
@@ -274,5 +274,5 @@ class ConfigTest : public QObject {
     }
 };
 
-QTEST_GUILESS_MAIN(ConfigTest)
-#include "ConfigTest.moc"
+QTEST_GUILESS_MAIN(ConfigIntegrationTest)
+#include "ConfigIntegrationTest.moc"

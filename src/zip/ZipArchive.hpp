@@ -20,6 +20,7 @@
 
 #include <QString>
 #include <ZipArchiveExport.hpp>
+#include <expected>
 #include <zip.h>
 
 namespace vsmm {
@@ -29,15 +30,14 @@ class ZIPARCHIVE_EXPORT ZipArchive {
     using FileContentSize = zip_int64_t;
 
     explicit ZipArchive(QString file);
-    ZipArchive(ZipArchive &) = delete;
-    ZipArchive &operator=(ZipArchive &) = delete;
+    Q_DISABLE_COPY(ZipArchive)
 
     ZipArchive(ZipArchive &&other) noexcept;
     ZipArchive &operator=(ZipArchive &&other) noexcept;
 
-    [[nodiscard]] QPair<bool, int> open();
-    [[nodiscard]] FileIndex getFileIndex(QUtf8StringView fileName) const;
-    [[nodiscard]] QByteArray getFileContent(FileIndex fileIndex) const;
+    [[nodiscard]] std::expected<void, QString> open();
+    [[nodiscard]] std::expected<FileIndex, QString> getFileIndex(QUtf8StringView fileName) const;
+    [[nodiscard]] std::expected<QByteArray, QString> getFileContent(FileIndex fileIndex) const;
     ~ZipArchive();
 
   private:
