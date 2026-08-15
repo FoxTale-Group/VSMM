@@ -46,7 +46,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-          key: ${{ runner.os }}-vcpkg-${{ hashFiles('.github/workflows/build-windows.yml') }} # Reset cache when workflow is changed
+          key: ${{ runner.os }}-vcpkg-libzip-1
           restore-keys: |
             ${{ runner.os }}-vcpkg-
 
