@@ -48,7 +48,7 @@ Rectangle {
         layer.enabled: true
     }
 
-    // Mod icon from icon provider
+    // Mod icon from icon provider, masked through its own layer effect
     Image {
         id: mainImage
         source: modIcon.coverUrl
@@ -57,17 +57,15 @@ Rectangle {
         asynchronous: true
         sourceSize.width: modIcon.width
         sourceSize.height: modIcon.height
-        visible: false          // drawn through the effect below
-        layer.enabled: true     // keeps its texture realized even while hidden
-    }
-
-    // Icon cropped to the rounded mask, shown only when ready
-    MultiEffect {
-        anchors.fill: parent
-        source: mainImage
-        maskEnabled: true
-        maskSource: maskTemplate
         visible: mainImage.status === Image.Ready
+
+        // layer.effect, not a sibling MultiEffect: the item stays visible, so its node keeps
+        // updating and a late-arriving image is not stuck at the texture captured on realization
+        layer.enabled: mainImage.status === Image.Ready
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            maskSource: maskTemplate
+        }
     }
 
     // Icon image border
