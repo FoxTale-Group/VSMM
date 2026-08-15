@@ -1,6 +1,6 @@
-project(ConfigTest)
+project(ConfigIntegrationTest)
 
-set(SOURCES ConfigTest.cpp)
+set(SOURCES ConfigIntegrationTest.cpp)
 qt_add_executable(${PROJECT_NAME} ${SOURCES})
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
 add_dependencies(${PROJECT_NAME} Config)

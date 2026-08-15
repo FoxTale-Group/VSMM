@@ -212,7 +212,7 @@ void ModLoader::load_(QFileInfo &&fileInfo) {
                 Qt::QueuedConnection);
             return;
         }
-        qCWarning(cModLoader, "%s", qUtf8Printable(std::move(localInfo).value<QString>()));
+        qCCritical(cModLoader, "%s", qUtf8Printable(std::move(localInfo).value<QString>()));
         QMetaObject::invokeMethod(this, [this] { decrementModsLoadingInProgress(); }, Qt::QueuedConnection);
     });
 }
@@ -232,20 +232,20 @@ QVariant ModLoader::getLocalInfoFromZip(QFileInfo &&fileInfo) {
     const QString absoluteFilePath = fileInfo.absoluteFilePath();
     ZipArchive zipArchive(absoluteFilePath);
 
-    if (const auto [open, errCode] = zipArchive.open(); !open) {
-        return u"Failed to open zip file: %1 {%2}"_s.arg(absoluteFilePath).arg(errCode);
+    if (const auto opened = zipArchive.open(); !opened) {
+        return opened.error();
     }
 
-    ZipArchive::FileIndex zipFileId = zipArchive.getFileIndex("modinfo.json");
-    if (zipFileId == -1) {
-        return u"Failed to locate modinfo.json in zip file: %1"_s.arg(absoluteFilePath);
+    const auto zipFileId = zipArchive.getFileIndex("modinfo.json");
+    if (!zipFileId) {
+        return zipFileId.error();
     }
 
-    auto fileBuffer = zipArchive.getFileContent(zipFileId);
-    if (fileBuffer.isEmpty()) {
-        return u"Failed to read modinfo.json from zip file: %1"_s.arg(absoluteFilePath);
+    const auto fileBuffer = zipArchive.getFileContent(*zipFileId);
+    if (!fileBuffer) {
+        return fileBuffer.error();
     }
-    return parseLocalJson(fileBuffer, std::move(fileInfo));
+    return parseLocalJson(*fileBuffer, std::move(fileInfo));
 }
 
 QVariant ModLoader::parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo) {

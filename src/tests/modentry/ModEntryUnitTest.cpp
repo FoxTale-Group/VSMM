@@ -79,7 +79,7 @@ QJsonObject withoutKey(QJsonObject json, QLatin1StringView key) {
 
 } // namespace
 
-class ModEntryTest : public QObject {
+class ModEntryUnitTest : public QObject {
     Q_OBJECT
 
     static constexpr auto GAME_VERSION = "1.22.5";
@@ -462,5 +462,5 @@ class ModEntryTest : public QObject {
     }
 };
 
-QTEST_GUILESS_MAIN(ModEntryTest)
-#include "ModEntryTest.moc"
+QTEST_GUILESS_MAIN(ModEntryUnitTest)
+#include "ModEntryUnitTest.moc"
