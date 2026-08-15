@@ -17,6 +17,7 @@
  */
 
 #include "App.hpp"
+#include <QLoggingCategory>
 
 template <> struct std::formatter<QString, char> : std::formatter<std::string_view, char> {
     auto format(const QString &s, std::format_context &ctx) const {
@@ -68,6 +69,10 @@ void qtMsgHandler(QtMsgType type, const QMessageLogContext &ctx, const QString &
 int main(int argc, char *argv[]) {
     qSetMessagePattern("[%{time hh:mm:ss.zzz}] %{category} %{type} %{if-debug}%{file}:%{line} %{endif}- %{message}");
     qtMsgHandlerOld = qInstallMessageHandler(qtMsgHandler);
+#ifndef DEBUG
+    // debug logs can be requested through QT_LOGGING_RULES for non debug build
+    QLoggingCategory::setFilterRules(QStringLiteral("*.debug=false"));
+#endif
 
 #ifdef Q_OS_LINUX
     qputenv("QT_QPA_PLATFORMTHEME", "xdgdesktopportal");

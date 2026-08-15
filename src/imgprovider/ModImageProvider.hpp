@@ -30,14 +30,14 @@ class IMGPROVIDER_EXPORT ModImageProvider : public QQuickImageProvider {
     ModImageProvider();
 
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
-    qint64 getCacheKey(const QString &id) const;
-    bool hasImage(const QString &id) const;
+    qint64 getCacheKey(QStringView id) const;
+    bool hasImage(QStringView id) const;
 
   signals:
     void imageAdded(QStringView modId); // used by modlistmodel
 
   public slots:
-    void onImageReceived(const QString &modId, QImage image);
+    void onImageReceived(QStringView modId, QImage image);
     void onModsReloading();
     void onModRemoved(QStringView modId);
 

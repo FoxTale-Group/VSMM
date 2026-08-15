@@ -17,10 +17,13 @@
  */
 
 #include "HttpClient.hpp"
+#include <QLoggingCategory>
 #include <QNetworkReply>
 #include <QStandardPaths>
 #include <QTimer>
 #include <constants.hpp>
+
+Q_STATIC_LOGGING_CATEGORY(cHttpClient, "httpclient");
 
 namespace vsmm {
 using namespace Qt::StringLiterals;
@@ -49,6 +52,8 @@ void HttpClient::sendGetImpl(const QUrl &url, QObject *context, const QString &c
         request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
     }
 
+    qCDebug(cHttpClient, "GET %s (attempt %u)", qUtf8Printable(url.toString()), retryCount + 1);
+
     QNetworkReply *reply = mNetworkManager.get(request);
     connect(reply, &QNetworkReply::finished, context,
             [this, context, reply, url, contentType, onSuccess = std::move(successFn), onFailed = std::move(failedFn),
@@ -57,6 +62,8 @@ void HttpClient::sendGetImpl(const QUrl &url, QObject *context, const QString &c
 
                 if (shouldRetry(reply, contentType, retryCount)) {
                     const std::chrono::milliseconds delay = backoffDelay(reply, retryCount);
+                    qCDebug(cHttpClient, "Retrying %s in %lld ms", qUtf8Printable(url.toString()),
+                            static_cast<long long>(delay.count()));
                     QTimer::singleShot(delay, context,
                                        [this, url, contentType, context, retryCount, onSuccess = std::move(onSuccess),
                                         onFailed = std::move(onFailed)]() mutable {
@@ -68,6 +75,10 @@ void HttpClient::sendGetImpl(const QUrl &url, QObject *context, const QString &c
 
                 if (reply->error() != QNetworkReply::NoError ||
                     reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 200) {
+                    // the caller reports this with its own context, this only pins the url
+                    qCDebug(cHttpClient, "GET %s failed: %s (HTTP %d)", qUtf8Printable(url.toString()),
+                            qUtf8Printable(reply->errorString()),
+                            reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt());
                     if (onFailed) {
                         onFailed(u"Error receiving response. Error: %1 | HTTP Status: %2"_s.arg(reply->errorString())
                                      .arg(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()));
@@ -75,26 +86,33 @@ void HttpClient::sendGetImpl(const QUrl &url, QObject *context, const QString &c
                     return;
                 }
 
-                if (!reply->header(QNetworkRequest::ContentTypeHeader).toString().startsWith(contentType)) {
+                if (const QString received = reply->header(QNetworkRequest::ContentTypeHeader).toString();
+                    !received.startsWith(contentType)) {
+                    qCDebug(cHttpClient, "GET %s returned content type %s, expected %s", qUtf8Printable(url.toString()),
+                            qUtf8Printable(received), qUtf8Printable(contentType));
                     if (onFailed) {
                         onFailed(u"Received data with incorrect content type."_s);
                     }
                     return;
                 }
-                onSuccess(reply->readAll());
+
+                QByteArray data = reply->readAll();
+                qCDebug(cHttpClient, "GET %s returned %lld bytes", qUtf8Printable(url.toString()),
+                        static_cast<long long>(data.size()));
+                onSuccess(std::move(data));
             });
 }
 
 bool HttpClient::shouldRetry(const QNetworkReply *reply, const QString &contentType, uint retryCount) {
     if (reply->error() != QNetworkReply::NoError && retryCount < MAX_RETRIES) {
-        qDebug() << u"Failed to retrieve data: %1. Retrying..."_s.arg(reply->errorString());
+        qCWarning(cHttpClient, "Failed to retrieve data: %s. Retrying...", qUtf8Printable(reply->errorString()));
         return true;
     }
 
     const int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     if (statusCode != 200 && retryCount < MAX_RETRIES &&
         ((statusCode >= 500 && statusCode <= 504 && statusCode != 501) || statusCode == 429)) {
-        qDebug() << u"Failed to retrieve data: HTTP status code %1. Retrying..."_s.arg(statusCode);
+        qCWarning(cHttpClient, "Failed to retrieve data: HTTP status code %d. Retrying...", statusCode);
         return true;
     }
 

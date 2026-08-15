@@ -19,20 +19,43 @@
 #include "ModStore.hpp"
 
 #include <QDir>
+#include <QLoggingCategory>
 #include <QTimer>
 #include <chrono>
+
+Q_STATIC_LOGGING_CATEGORY(cModStore, "modstore");
 
 namespace vsmm {
 ModStore::ModStore(QObject *parent) : QObject{parent} {}
 void ModStore::setConfig(IConfig *config) {
+    if (mConfig) {
+        qCWarning(cModStore, "Config already set");
+        return;
+    }
+    if (!config) {
+        qCFatal(cModStore, "Config is null");
+        return;
+    }
+
     mConfig = config;
 
     // Get favorites from cfg
     for (auto &modId : mConfig->getFavorites()) {
         mFavoriteMods.insert(std::move(modId));
     }
+
+    qCDebug(cModStore, "Config set, %lld favorites loaded", static_cast<long long>(mFavoriteMods.size()));
 }
 void ModStore::setGameMngr(GameMngr *gameMngr) {
+    if (mGameMngr) {
+        qCWarning(cModStore, "GameMngr already set");
+        return;
+    }
+    if (!gameMngr) {
+        qCFatal(cModStore, "GameMngr is null");
+        return;
+    }
+
     mGameMngr = gameMngr;
     connect(mGameMngr, &GameMngr::modsDirsChanged, this, &ModStore::onModsDirChanged);
 }
@@ -41,38 +64,41 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
     using namespace Qt::StringLiterals;
 
     if (localModInfo.mId.isEmpty()) {
+        qCWarning(cModStore, "Refusing mod without an id from %s",
+                  qUtf8Printable(localModInfo.mFileInfo.absoluteFilePath()));
         return;
     }
 
     if (!mConfig) {
-        qFatal() << "Config is not set.";
+        qCFatal(cModStore, "Config is not set");
     }
 
     if (!mGameMngr) {
-        qFatal() << "GameMngr is not set.";
+        qCFatal(cModStore, "GameMngr is not set");
     }
 
     // Check if there is already a mod with the same id
     if (const auto it = mMods.find(localModInfo.mId); it != mMods.end()) {
         if (it->getVersion() >= localModInfo.mVersion) {
-            qInfo() << u"Mod %1 already has newer version in mods folder %2."_s.arg(localModInfo)
-                           .arg(it->getFileInfo().absolutePath());
+            qCInfo(cModStore, "Mod %s already has newer version in mods folder %s",
+                   qUtf8Printable(localModInfo.toString()), qUtf8Printable(it->getFileInfo().absolutePath()));
             return;
         }
-        qInfo() << u"Got newer version of mod %1. Replacing..."_s.arg(localModInfo);
+        qCInfo(cModStore, "Got newer version of mod %s, replacing", qUtf8Printable(localModInfo.toString()));
 
         QString modPath = it->getFileInfo().absolutePath();
         QString newModFilePath = modPath + QDir::separator() + localModInfo.mFileInfo.fileName();
         // remove old mod and copy new one
         auto removeOldVersion = mConfig->general().deleteOldModVersion;
         if (removeOldVersion && !QFile::moveToTrash(it->getFileInfo().absoluteFilePath())) {
-            qWarning() << u"Failed to move mod %1 to trash."_s.arg(*it);
+            qCWarning(cModStore, "Failed to move mod %s to trash", qUtf8Printable(it->toString()));
         }
 
         // Dont copy mod if it's already in the mods folder
         const bool alreadyInModsFolder = modPath.startsWith(localModInfo.mFileInfo.absolutePath());
         if (!alreadyInModsFolder && !QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
-            qWarning() << u"Failed to copy mod %1 to %2."_s.arg(localModInfo).arg(newModFilePath);
+            qCWarning(cModStore, "Failed to copy mod %s to %s", qUtf8Printable(localModInfo.toString()),
+                      qUtf8Printable(newModFilePath));
 
             const qsizetype extPos = newModFilePath.indexOf(".zip"_L1);
             if (extPos == -1) {
@@ -82,7 +108,8 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
 
             // Last try to copy file to mods folder with suffixed version
             if (!QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
-                qWarning() << u"Failed to copy mod %1 to %2."_s.arg(localModInfo).arg(newModFilePath);
+                qCWarning(cModStore, "Failed to copy mod %s to %s", qUtf8Printable(localModInfo.toString()),
+                          qUtf8Printable(newModFilePath));
                 return;
             }
         }
@@ -97,11 +124,13 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
             it->setFavorite(true);
         }
 
+        qCDebug(cModStore, "Mod %s replaced", qUtf8Printable(it->toString()));
         emitSignal(&ModStore::modUpdated, this, it->getId());
         return;
     }
 
     if (mGameMngr->getModsDirs().isEmpty()) {
+        qCWarning(cModStore, "No mods dir to add %s to", qUtf8Printable(localModInfo.toString()));
         return;
     }
 
@@ -114,12 +143,14 @@ void ModStore::add(ModEntry::LocalInfo localModInfo) {
     if (mFavoriteMods.contains(it->getId().toString())) {
         it->setFavorite(true);
     }
+    qCDebug(cModStore, "Mod %s added", qUtf8Printable(it->toString()));
     emitSignal(&ModStore::modAdded, this, it->getId());
 }
 
 void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
     const auto it = mMods.find(id);
     if (it == mMods.end()) {
+        qCWarning(cModStore, "Online info for unknown mod %s", qUtf8Printable(id.toString()));
         return;
     }
     const auto includePrerelease = mConfig->general().includeModPrerelease;
@@ -130,19 +161,26 @@ void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
 }
 
 void ModStore::reload() {
+    qCInfo(cModStore, "Reloading mods");
     mWorkPending = true;
     mMods.clear();
     emit workChanged();
     emitSignal(&ModStore::modsReloading, this);
 }
 
-void ModStore::load(const QUrl &filePath) { emit modAddedFromGUI(filePath); }
+void ModStore::load(const QUrl &filePath) {
+    qCInfo(cModStore, "Adding mod from %s", qUtf8Printable(filePath.toString()));
+    emit modAddedFromGUI(filePath);
+}
 
 void ModStore::update(const QString &id) {
     const auto it = mMods.constFind(id);
     if (it == mMods.end()) {
+        qCWarning(cModStore, "Update requested for unknown mod %s", qUtf8Printable(id));
         return;
     }
+
+    qCInfo(cModStore, "Update requested for %s", qUtf8Printable(it->toString()));
 
     // dont allow mods reload while update is happening
     mWorkPending = true;
@@ -151,6 +189,7 @@ void ModStore::update(const QString &id) {
 }
 
 void ModStore::updateAll() {
+    int requested{0};
     for (const auto &mod : mMods) {
         if (mod.hasUpdate()) {
             if (!mWorkPending) {
@@ -158,11 +197,14 @@ void ModStore::updateAll() {
                 emit workChanged();
             }
             emit modUpdateRequested(mod);
+            requested++;
         }
     }
+    qCInfo(cModStore, "Update requested for all %d outdated mods", requested);
 }
 
 void ModStore::updateSelected() {
+    int requested{0};
     for (const auto &mod : mMods) {
         if (mod.hasUpdate() && mod.isMarkedForUpdate()) {
             if (!mWorkPending) {
@@ -170,13 +212,16 @@ void ModStore::updateSelected() {
                 emit workChanged();
             }
             emit modUpdateRequested(mod);
+            requested++;
         }
     }
+    qCInfo(cModStore, "Update requested for %d selected mods", requested);
 }
 
 void ModStore::markForUpdate(const QString &id, bool marked) {
     if (const auto it = mMods.find(id); it != mMods.end()) {
         it->setMarkedForUpdate(marked);
+        qCDebug(cModStore, "Mod %s marked for update: %s", qUtf8Printable(id), marked ? "true" : "false");
         emit modSelected();
     }
 }
@@ -194,19 +239,19 @@ void ModStore::setFavorite(const QString &id, bool favorite) {
     }
     it->setFavorite(favorite);
     mConfig->setFavorites(mFavoriteMods.values());
+    qCDebug(cModStore, "Mod %s favorite: %s", qUtf8Printable(id), favorite ? "true" : "false");
     emit modUpdated(it->getId());
 }
 
 void ModStore::remove(const QString &id) {
-    using namespace Qt::StringLiterals;
-
     const auto it = mMods.find(id);
     if (it == mMods.end()) {
+        qCWarning(cModStore, "Removal requested for unknown mod %s", qUtf8Printable(id));
         return;
     }
 
     if (!QFile::remove(it->getFileInfo().absoluteFilePath())) {
-        qCritical() << u"Failed to delete %1"_s.arg(id);
+        qCCritical(cModStore, "Failed to delete %s", qUtf8Printable(it->getFileInfo().absoluteFilePath()));
         return;
     }
 
@@ -217,7 +262,7 @@ void ModStore::remove(const QString &id) {
     // update count of installed mods
     emit modsChanged();
 
-    qInfo() << u"Mod %1 deleted"_s.arg(id);
+    qCInfo(cModStore, "Mod %s deleted", qUtf8Printable(id));
 }
 
 bool ModStore::contains(const QString &id) const { return mMods.contains(id); }
@@ -246,7 +291,7 @@ void ModStore::onModsReloaded() {
         mWorkPending = false;
         emit workChanged();
     });
-    qDebug() << "Mods reloaded";
+    qCInfo(cModStore, "Mods reloaded: %d installed, %d with updates", modsCount(), modUpdatesCount());
 }
 
 void ModStore::onModsDirChanged() { reload(); }

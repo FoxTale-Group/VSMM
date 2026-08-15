@@ -18,6 +18,9 @@
 
 #include "ModSortFilterModel.hpp"
 #include <ModListModel.hpp>
+#include <QLoggingCategory>
+
+Q_STATIC_LOGGING_CATEGORY(cModSortFilterModel, "modsortfiltermodel");
 
 namespace vsmm {
 ModSortFilterModel::ModSortFilterModel(QObject *parent) : QSortFilterProxyModel{parent} {
@@ -52,6 +55,8 @@ void ModSortFilterModel::setFilterText(const QString &filterText) {
     beginFilterChange();
     mFilterText = filterText;
     endFilterChange();
+    qCDebug(cModSortFilterModel, "Filter set to '%s', %d of %d rows visible", qUtf8Printable(mFilterText), rowCount(),
+            sourceModel() ? sourceModel()->rowCount() : 0);
     emit filterTextChanged();
 }
 } // namespace vsmm

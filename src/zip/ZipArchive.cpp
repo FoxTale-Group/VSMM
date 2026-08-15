@@ -17,9 +17,11 @@
  */
 
 #include "ZipArchive.hpp"
-#include <QDebug>
+#include <QLoggingCategory>
 #include <QtSwap>
 #include <utility>
+
+Q_STATIC_LOGGING_CATEGORY(cZipArchive, "ziparchive");
 
 namespace vsmm {
 ZipArchive::ZipArchive(QString file) : mFile(std::move(file)) {}
@@ -32,8 +34,11 @@ QPair<bool, int> ZipArchive::open() {
     int errorCode{-1};
     mZipFile = zip_open(mFile.toStdString().c_str(), ZIP_RDONLY, &errorCode);
     if (!mZipFile) {
+        qCWarning(cZipArchive, "Failed to open archive %s (%d)", qUtf8Printable(mFile), errorCode);
         return {false, errorCode};
     }
+
+    qCDebug(cZipArchive, "Opened archive %s", qUtf8Printable(mFile));
     return {true, ZIP_ER_OK};
 }
 
@@ -60,21 +65,23 @@ ZipArchive::FileIndex ZipArchive::getFileIndex(QUtf8StringView fileName) const {
 }
 
 QByteArray ZipArchive::getFileContent(FileIndex fileIndex) const {
-    using namespace Qt::StringLiterals;
     zip_stat_t fileStats;
     if (const int res = zip_stat_index(mZipFile, fileIndex, ZIP_FL_ENC_UTF_8, &fileStats); res != ZIP_ER_OK) {
-        qWarning() << u"Failed to stat file in zip archive: %1 {%2}"_s.arg(mFile).arg(res);
+        qCWarning(cZipArchive, "Failed to stat entry %lld in archive %s (%d)", fileIndex, qUtf8Printable(mFile), res);
         return {};
     }
 
     zip_file_t *modInfoFile = zip_fopen_index(mZipFile, fileIndex, ZIP_FL_ENC_UTF_8);
     if (!modInfoFile) {
+        qCWarning(cZipArchive, "Failed to open entry %lld in archive %s", fileIndex, qUtf8Printable(mFile));
         return {};
     }
 
     QByteArray buffer{static_cast<qsizetype>(fileStats.size), Qt::Uninitialized};
     if (const zip_int64_t bytesRead = zip_fread(modInfoFile, buffer.data(), fileStats.size);
         bytesRead != fileStats.size) {
+        qCWarning(cZipArchive, "Short read of entry %lld in archive %s: %lld of %llu bytes", fileIndex,
+                  qUtf8Printable(mFile), bytesRead, fileStats.size);
         zip_fclose(modInfoFile);
         return {};
     }

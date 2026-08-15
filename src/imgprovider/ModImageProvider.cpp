@@ -17,11 +17,16 @@
  */
 
 #include "ModImageProvider.hpp"
+#include <QLoggingCategory>
+
+Q_STATIC_LOGGING_CATEGORY(cImageProvider, "imageprovider");
 
 namespace vsmm {
 ModImageProvider::ModImageProvider() : QQuickImageProvider(Image) {}
 
 QImage ModImageProvider::requestImage(const QString &id, QSize *size, const QSize &requestedSize) {
+    qCDebug(cImageProvider, "Image requested for %s at %dx%d", qUtf8Printable(id), requestedSize.width(),
+            requestedSize.height());
     QImage image;
     {
         QMutexLocker locker(&mMutex);
@@ -30,29 +35,42 @@ QImage ModImageProvider::requestImage(const QString &id, QSize *size, const QSiz
     }
     if (size)
         *size = image.size();
-    if (requestedSize.isValid() && !image.isNull())
+    if (requestedSize.isValid() && !image.isNull()) {
         image = image.scaled(requestedSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        qCDebug(cImageProvider, "Image for %s scaled to %dx%d", qUtf8Printable(id), requestedSize.width(),
+                requestedSize.height());
+    }
 
     return image;
 }
 
-qint64 ModImageProvider::getCacheKey(const QString &id) const {
+qint64 ModImageProvider::getCacheKey(QStringView id) const {
     QMutexLocker locker(&mMutex);
-    return mImages.value(id).cacheKey();
+    const auto it = mImages.constFind(id);
+    if (it == mImages.constEnd()) {
+        return 0;
+    }
+    const qint64 cacheKey = it->cacheKey();
+    qCDebug(cImageProvider, "Cache key for %s is %lld", qUtf8Printable(id.toString()), cacheKey);
+    return cacheKey;
 }
 
-bool ModImageProvider::hasImage(const QString &id) const {
+bool ModImageProvider::hasImage(QStringView id) const {
     QMutexLocker locker(&mMutex);
-    return mImages.contains(id);
+    const bool hasImage = mImages.contains(id);
+    qCDebug(cImageProvider, "Image for %s present: %s", qUtf8Printable(id.toString()), hasImage ? "true" : "false");
+    return hasImage;
 }
 
-void ModImageProvider::onImageReceived(const QString &modId, QImage image) {
+void ModImageProvider::onImageReceived(QStringView modId, QImage image) {
     {
         QMutexLocker locker(&mMutex);
         if (const auto it = mImages.find(modId); it != mImages.end()) {
             *it = std::move(image);
+            qCDebug(cImageProvider, "Image for %s updated", qUtf8Printable(modId.toString()));
         } else {
-            mImages.insert(modId, std::move(image));
+            mImages.insert(modId.toString(), std::move(image));
+            qCDebug(cImageProvider, "Image for %s added", qUtf8Printable(modId.toString()));
         }
     }
     emit imageAdded(modId);
@@ -60,11 +78,13 @@ void ModImageProvider::onImageReceived(const QString &modId, QImage image) {
 
 void ModImageProvider::onModsReloading() {
     QMutexLocker locker(&mMutex);
+    qCDebug(cImageProvider, "Clearing all images");
     mImages.clear();
 }
 
 void ModImageProvider::onModRemoved(QStringView modId) {
     QMutexLocker locker(&mMutex);
+    qCDebug(cImageProvider, "Removing image for %s", qUtf8Printable(modId.toString()));
     mImages.removeIf([modId](const QPair<QString, QImage> &entry) { return entry.first == modId.toString(); });
 }
 } // namespace vsmm

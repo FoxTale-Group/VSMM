@@ -17,6 +17,9 @@
  */
 
 #include "ModListModel.hpp"
+#include <QLoggingCategory>
+
+Q_STATIC_LOGGING_CATEGORY(cModListModel, "modlistmodel");
 
 namespace vsmm {
 ModListModel::ModListModel(QObject *parent) : QAbstractListModel(parent) {}
@@ -56,12 +59,12 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
     case HasUpdateRole:
         return mod->hasUpdate();
     case IconRole: {
-        if (!mImageProvider || !mImageProvider->hasImage(mod->getId().toString())) {
+        if (!mImageProvider || !mImageProvider->hasImage(mod->getId())) {
             return QString();
         }
         return QStringLiteral("image://modicon/%1?diff=%2")
-            .arg(mod->getId().toString())
-            .arg(mImageProvider->getCacheKey(mod->getId().toString()));
+            .arg(mod->getId())
+            .arg(mImageProvider->getCacheKey(mod->getId()));
     }
     case IdRole:
         return mod->getId().toString();
@@ -83,9 +86,30 @@ QHash<int, QByteArray> ModListModel::roleNames() const {
             {FavoriteRole, "isFavoriteMod"}};
 }
 
-void ModListModel::setModImageProvider(ModImageProvider *provider) { mImageProvider = provider; }
+void ModListModel::setModImageProvider(ModImageProvider *provider) {
+    if (mImageProvider) {
+        qCWarning(cModListModel, "Image provider already set");
+        return;
+    }
+    if (!provider) {
+        qCFatal(cModListModel, "Image provider is null");
+        return;
+    }
+
+    mImageProvider = provider;
+    connect(mImageProvider, &ModImageProvider::imageAdded, this, &ModListModel::onIconUpdated);
+}
 
 void ModListModel::setStore(ModStore *store) {
+    if (mStore) {
+        qCWarning(cModListModel, "ModStore already set");
+        return;
+    }
+    if (!store) {
+        qCFatal(cModListModel, "ModStore is null");
+        return;
+    }
+
     mStore = store;
     connect(store, &ModStore::modAdded, this, &ModListModel::onModAdded);
     connect(store, &ModStore::modUpdated, this, &ModListModel::onModUpdated);
@@ -95,6 +119,7 @@ void ModListModel::setStore(ModStore *store) {
 
 void ModListModel::onModAdded(QStringView modId) {
     if (mIdToRow.contains(modId)) {
+        qCDebug(cModListModel, "Mod %s is already in the model", qUtf8Printable(modId.toString()));
         return;
     }
 
@@ -104,11 +129,13 @@ void ModListModel::onModAdded(QStringView modId) {
     mOrder.append(modIdStr);
     mIdToRow.insert(modIdStr, row);
     endInsertRows();
+    qCDebug(cModListModel, "Mod %s inserted at row %d", qUtf8Printable(modIdStr), row);
 }
 
 void ModListModel::onModUpdated(QStringView modId) {
     const auto it = mIdToRow.constFind(modId);
     if (it == mIdToRow.constEnd()) {
+        qCDebug(cModListModel, "Update for mod %s outside the model", qUtf8Printable(modId.toString()));
         return;
     }
     if (const QModelIndex idx = index(*it); idx.isValid()) {
@@ -116,12 +143,13 @@ void ModListModel::onModUpdated(QStringView modId) {
     }
 }
 
-void ModListModel::iconUpdate(QStringView modId) {
+void ModListModel::onIconUpdated(QStringView modId) {
     const auto it = mIdToRow.constFind(modId);
     if (it == mIdToRow.constEnd()) {
         return;
     }
     if (const QModelIndex idx = index(*it); idx.isValid()) {
+        qCDebug(cModListModel, "Icon for mod %s updated at row %d", qUtf8Printable(modId.toString()), *it);
         emit dataChanged(idx, idx, {IconRole});
     }
 }
@@ -130,6 +158,7 @@ void ModListModel::onModsReloading() {
     if (mOrder.isEmpty()) {
         return;
     }
+    qCDebug(cModListModel, "Dropping %lld rows for reload", static_cast<long long>(mOrder.size()));
     beginRemoveRows({}, 0, static_cast<int>(mOrder.size() - 1));
     mOrder.clear();
     mIdToRow.clear();
@@ -139,10 +168,12 @@ void ModListModel::onModsReloading() {
 void ModListModel::onModRemoved(QStringView modId) {
     const auto it = mIdToRow.constFind(modId);
     if (it == mIdToRow.constEnd()) {
+        qCDebug(cModListModel, "Removal of mod %s outside the model", qUtf8Printable(modId.toString()));
         return;
     }
 
     const int row = *it;
+    qCDebug(cModListModel, "Mod %s removed from row %d", qUtf8Printable(modId.toString()), row);
     beginRemoveRows({}, row, row);
     mOrder.removeIf([modId](const QString &modId_) { return modId == modId_; });
     // Regenerate id to row

@@ -183,7 +183,7 @@ class ModEntryTest : public QObject {
         vsmm::ModEntry entry{localInfo()};
 
         if (warns) {
-            QTest::ignoreMessage(QtWarningMsg, "\"Carry On (local): Invalid JSON format: name is not a string\"");
+            QTest::ignoreMessage(QtWarningMsg, "Carry On (local): Invalid JSON format: name is not a string");
         }
         entry.initOnlineInfo(withKey(modJson(), "name"_L1, name), ver(GAME_VERSION), false);
 
@@ -193,7 +193,7 @@ class ModEntryTest : public QObject {
     void invalidAuthorKeepsLocalAuthor() {
         vsmm::ModEntry entry{localInfo()};
 
-        QTest::ignoreMessage(QtWarningMsg, "\"Carry On: Invalid JSON format: author is not a string\"");
+        QTest::ignoreMessage(QtWarningMsg, "Carry On: Invalid JSON format: author is not a string");
         entry.initOnlineInfo(withKey(modJson(), "author"_L1, 42), ver(GAME_VERSION), false);
 
         QCOMPARE(entry.getAuthor(), u"local author"_s);
@@ -202,7 +202,7 @@ class ModEntryTest : public QObject {
     void invalidTypeLeavesTypeEmpty() {
         vsmm::ModEntry entry{localInfo()};
 
-        QTest::ignoreMessage(QtWarningMsg, "\"Carry On: Invalid JSON format: type is not a string\"");
+        QTest::ignoreMessage(QtWarningMsg, "Carry On: Invalid JSON format: type is not a string");
         entry.initOnlineInfo(withoutKey(modJson(), "type"_L1), ver(GAME_VERSION), false);
 
         QVERIFY(entry.getType().isEmpty());
@@ -211,7 +211,7 @@ class ModEntryTest : public QObject {
     void nonArrayTagsLeaveTagsEmpty() {
         vsmm::ModEntry entry{localInfo()};
 
-        QTest::ignoreMessage(QtWarningMsg, "\"Carry On: Invalid JSON format: tags is not a list\"");
+        QTest::ignoreMessage(QtWarningMsg, "Carry On: Invalid JSON format: tags is not a list");
         entry.initOnlineInfo(withKey(modJson(), "tags"_L1, "Storage"_L1), ver(GAME_VERSION), false);
 
         QVERIFY(entry.getTags().isEmpty());
@@ -255,7 +255,7 @@ class ModEntryTest : public QObject {
     void urlStaysEmptyWithoutAliasAndAssetId() {
         vsmm::ModEntry entry{localInfo()};
 
-        QTest::ignoreMessage(QtWarningMsg, "\"Carry On: Invalid JSON format: assetid is not a number\"");
+        QTest::ignoreMessage(QtWarningMsg, "Carry On: Invalid JSON format: assetid is not a number");
         entry.initOnlineInfo(withoutKey(withKey(modJson(), "urlalias"_L1, QJsonValue::Null), "assetid"_L1),
                              ver(GAME_VERSION), false);
 
@@ -347,7 +347,7 @@ class ModEntryTest : public QObject {
         QTest::newRow("newer-minor") << QStringList{u"1.23.0"_s} << QByteArray{};
         QTest::newRow("other-major") << QStringList{u"2.22.5"_s} << QByteArray{};
         QTest::newRow("unparsable") << QStringList{u"v1.22.5"_s}
-                                    << QByteArray{"\"Carry On: Cannot parse version 'v1.22.5'\""};
+                                    << QByteArray{"Carry On: Cannot parse version 'v1.22.5'"};
         QTest::newRow("empty-tag-list") << QStringList{} << QByteArray{};
     }
 
@@ -402,16 +402,15 @@ class ModEntryTest : public QObject {
         // skipping a release is only ok if it is also reported
         QTest::addColumn<QByteArray>("expectedError");
         QTest::newRow("modversion-missing") << withoutKey(release(u"9.9.9"_s, {u"1.22.0"_s}), "modversion"_L1)
-                                            << QByteArray{"\"Carry On: Invalid JSON format: no modversion\""};
+                                            << QByteArray{"Carry On: Invalid JSON format: no modversion"};
         QTest::newRow("modversion-not-a-string")
             << withKey(release(u"9.9.9"_s, {u"1.22.0"_s}), "modversion"_L1, QJsonValue{9})
-            << QByteArray{"\"Carry On: Invalid JSON format: no modversion\""};
+            << QByteArray{"Carry On: Invalid JSON format: no modversion"};
         QTest::newRow("modversion-unparsable")
             << withKey(release(u"9.9.9"_s, {u"1.22.0"_s}), "modversion"_L1, "not-a-version"_L1)
-            << QByteArray{"\"Carry On: Cannot parse version 'not-a-version'\""};
-        QTest::newRow("tags-not-an-array")
-            << withKey(release(u"9.9.9"_s, {u"1.22.0"_s}), "tags"_L1, "1.22.0"_L1)
-            << QByteArray{"\"Carry On: Invalid JSON format: release tags is not an array\""};
+            << QByteArray{"Carry On: Cannot parse version 'not-a-version'"};
+        QTest::newRow("tags-not-an-array") << withKey(release(u"9.9.9"_s, {u"1.22.0"_s}), "tags"_L1, "1.22.0"_L1)
+                                           << QByteArray{"Carry On: Invalid JSON format: release tags is not an array"};
     }
 
     void malformedReleaseIsSkippedButScanContinues() {
@@ -430,12 +429,12 @@ class ModEntryTest : public QObject {
     void missingReleasesLeaveNoUpdate_data() {
         QTest::addColumn<QJsonValue>("releases");
         QTest::addColumn<QByteArray>("expectedError");
-        const QByteArray notAnArray{"\"Carry On: Invalid JSON format: releases is not an array\""};
+        const QByteArray notAnArray{"Carry On: Invalid JSON format: releases is not an array"};
         QTest::newRow("missing") << QJsonValue{QJsonValue::Undefined} << notAnArray;
         QTest::newRow("null") << QJsonValue{QJsonValue::Null} << notAnArray;
         QTest::newRow("not-an-array") << QJsonValue{"1.1.0"_L1} << notAnArray;
         QTest::newRow("empty-array") << QJsonValue{QJsonArray{}}
-                                     << QByteArray{"\"Carry On: Invalid JSON format: releases array is empty\""};
+                                     << QByteArray{"Carry On: Invalid JSON format: releases array is empty"};
     }
 
     void missingReleasesLeaveNoUpdate() {
