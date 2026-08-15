@@ -19,7 +19,6 @@
 #pragma once
 
 #include <ModEntry.hpp>
-#include <ModImageProvider.hpp>
 #include <ModListModelExport.hpp>
 #include <ModStore.hpp>
 
@@ -53,11 +52,9 @@ class MODLISTMODEL_EXPORT ModListModel : public QAbstractListModel {
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
-    void setModImageProvider(ModImageProvider *provider);
     void setStore(ModStore *store);
 
   private slots:
-    void onIconUpdated(QStringView modId);
     void onModAdded(QStringView modId);
     void onModUpdated(QStringView modId);
     void onModsReloading();
@@ -67,6 +64,5 @@ class MODLISTMODEL_EXPORT ModListModel : public QAbstractListModel {
     ModStore *mStore{nullptr};
     QStringList mOrder;           // mods ids
     QHash<QString, int> mIdToRow; // mod id -> row index
-    ModImageProvider *mImageProvider{nullptr};
 };
 } // namespace vsmm

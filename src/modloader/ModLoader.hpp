@@ -19,7 +19,6 @@
 #pragma once
 
 #include <ModEntry.hpp>
-#include <ModImageProvider.hpp>
 #include <ModStore.hpp>
 
 #include <GameMngr.hpp>
@@ -39,7 +38,6 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     static constexpr QLatin1StringView DOWNLOAD_CONTENT_TYPE{"application/zip"};
     static constexpr QLatin1StringView ONLINE_CONTENT_TYPE{"application/json"};
     static constexpr QLatin1StringView ONLINE_JSON_ROOT_KEY{"mod"};
-    static constexpr QLatin1StringView ONLINE_LOGOFILE_JSON_KEY{"logofile"};
     static constexpr QLatin1StringView ONLINE_STATUSCODE_JSON_KEY{"statuscode"};
     static constexpr QLatin1StringView LOCAL_JSON_VERSION_KEY{"version"};
     static constexpr QLatin1StringView LOCAL_JSON_MODID_KEY{"modid"};
@@ -55,8 +53,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     void load(QFileInfo &&fileInfo);
 
   signals:
-    void modIconDownloaded(QStringView modId, QImage image); // used by imgprovider
-    void allModsReloaded();                                  // used by modstore
+    void allModsReloaded(); // used by modstore
 
   public slots:
     void onModsReloading();
@@ -67,7 +64,6 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     void load_(QFileInfo &&fileInfo);
 
     void onModInfoRetrieved(QString modId, QByteArray data);
-    void onModIconRetrieved(QString modId, QByteArray data);
     void onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion);
     void incrementModsLoadingInProgress();
     void decrementModsLoadingInProgress();
@@ -81,7 +77,6 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     HttpClient *mHttpClient{nullptr};
     QAtomicInteger<quint32> mModsLoadingInProgress{0};
     QThreadPool mThreadPoolExtractZips{this};
-    QThreadPool mThreadPoolProcessIcon{this};
     QThreadPool mThreadPoolProcessUpdate{this};
 };
 } // namespace vsmm

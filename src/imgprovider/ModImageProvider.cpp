@@ -18,73 +18,176 @@
 
 #include "ModImageProvider.hpp"
 #include <QLoggingCategory>
+#include <QQuickImageResponse>
+#include <QUrlQuery>
+#include <utility>
 
 Q_STATIC_LOGGING_CATEGORY(cImageProvider, "imageprovider");
 
-namespace vsmm {
-ModImageProvider::ModImageProvider() : QQuickImageProvider(Image) {}
+namespace {
+class AsyncImageResponse : public QQuickImageResponse {
+  public:
+    explicit AsyncImageResponse(QString modId, const QSize requestedSize)
+        : mModId{std::move(modId)}, mRequestedSize{requestedSize} {}
 
-QImage ModImageProvider::requestImage(const QString &id, QSize *size, const QSize &requestedSize) {
-    qCDebug(cImageProvider, "Image requested for %s at %dx%d", qUtf8Printable(id), requestedSize.width(),
-            requestedSize.height());
-    QImage image;
-    {
-        QMutexLocker locker(&mMutex);
-        QString key = id.section('?', 0, 0);
-        image = mImages.value(key);
-    }
-    if (size)
-        *size = image.size();
-    if (requestedSize.isValid() && !image.isNull()) {
-        image = image.scaled(requestedSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        qCDebug(cImageProvider, "Image for %s scaled to %dx%d", qUtf8Printable(id), requestedSize.width(),
-                requestedSize.height());
-    }
-
-    return image;
-}
-
-qint64 ModImageProvider::getCacheKey(QStringView id) const {
-    QMutexLocker locker(&mMutex);
-    const auto it = mImages.constFind(id);
-    if (it == mImages.constEnd()) {
-        return 0;
-    }
-    const qint64 cacheKey = it->cacheKey();
-    qCDebug(cImageProvider, "Cache key for %s is %lld", qUtf8Printable(id.toString()), cacheKey);
-    return cacheKey;
-}
-
-bool ModImageProvider::hasImage(QStringView id) const {
-    QMutexLocker locker(&mMutex);
-    const bool hasImage = mImages.contains(id);
-    qCDebug(cImageProvider, "Image for %s present: %s", qUtf8Printable(id.toString()), hasImage ? "true" : "false");
-    return hasImage;
-}
-
-void ModImageProvider::onImageReceived(QStringView modId, QImage image) {
-    {
-        QMutexLocker locker(&mMutex);
-        if (const auto it = mImages.find(modId); it != mImages.end()) {
-            *it = std::move(image);
-            qCDebug(cImageProvider, "Image for %s updated", qUtf8Printable(modId.toString()));
-        } else {
-            mImages.insert(modId.toString(), std::move(image));
-            qCDebug(cImageProvider, "Image for %s added", qUtf8Printable(modId.toString()));
+    void resolve(QImage image, QString error = {}) {
+        if (mFinished || mCancelled) {
+            qCDebug(cImageProvider, "Response for %s already resolved", qUtf8Printable(mModId));
+            return;
         }
+
+        mFinished = true;
+        if (!error.isEmpty()) {
+            mErrorString = std::move(error);
+        } else if (mRequestedSize.isValid()) {
+            image = image.scaled(mRequestedSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        }
+
+        mImage = std::move(image);
+        qCDebug(cImageProvider, "Response for %s resolved", qUtf8Printable(mModId));
+        emit finished();
     }
-    emit imageAdded(modId);
+
+    [[nodiscard]] QString errorString() const override { return mErrorString; }
+
+    void cancel() override {
+        if (mFinished) {
+            return;
+        }
+        qCDebug(cImageProvider, "Requested to cancel image processing for %s", qUtf8Printable(mModId));
+        mCancelled = true;
+        mFinished = true;
+        mErrorString = QStringLiteral("Cancelled");
+        emit finished();
+    }
+
+    [[nodiscard]] QQuickTextureFactory *textureFactory() const override {
+        return QQuickTextureFactory::textureFactoryForImage(mImage);
+    }
+
+    [[nodiscard]] QStringView modId() const { return mModId; }
+
+  private:
+    QString mModId;
+    QSize mRequestedSize;
+    QImage mImage;
+    QString mErrorString;
+    bool mFinished{false};
+    bool mCancelled{false};
+};
+} // namespace
+
+namespace vsmm {
+
+ModImageProvider::~ModImageProvider() { mDecodeImagesPool.waitForDone(); }
+
+QQuickImageResponse *ModImageProvider::requestImageResponse(const QString &id, const QSize &requestedSize) {
+    QString modId = id.section(u'?', 0, 0);
+
+    QMutexLocker locker(&mMutex);
+    // check if the mod has icon
+    if (mNoIcon.contains(modId)) {
+        qCDebug(cImageProvider, "Returning no icon for %s", qUtf8Printable(modId));
+        auto *response = new AsyncImageResponse(modId, requestedSize);
+        response->resolve({}, QStringLiteral("No icon for mod"));
+        return response;
+    }
+    // check if the mod has an icon in the cache
+    if (QImage *image = mCache.object(modId); image) {
+        qCDebug(cImageProvider, "Returning cached image for %s", qUtf8Printable(modId));
+        auto *response = new AsyncImageResponse(modId, requestedSize);
+        response->resolve(*image);
+        return response;
+    }
+
+    auto *response = new AsyncImageResponse{modId, requestedSize};
+    connect(this, &ModImageProvider::imageDownloaded, response,
+            [response, this](const QString &downloadedId, QImage image, QString error) {
+                if (downloadedId == response->modId()) {
+                    if (!disconnect(response)) {
+                        qCWarning(cImageProvider, "Failed to disconnect image response");
+                    }
+                    response->resolve(std::move(image), std::move(error));
+                }
+            });
+
+    if (!mInProgress.contains(modId)) {
+        mInProgress.insert(modId);
+        QUrlQuery query{id.section(u'?', 1)};
+        QUrl logoUrl{query.queryItemValue(QStringLiteral("url"), QUrl::FullyDecoded)};
+        QMetaObject::invokeMethod(
+            this,
+            [this, modId, logoUrl = std::move(logoUrl)] mutable { download(std::move(modId), std::move(logoUrl)); },
+            Qt::QueuedConnection);
+    }
+    return response;
+}
+
+void ModImageProvider::setHttpClient(HttpClient *httpClient) {
+    if (mHttpClient) {
+        qCWarning(cImageProvider, "Http client already set");
+        return;
+    }
+    if (!httpClient) {
+        qCFatal(cImageProvider, "Http client is null");
+    }
+
+    mHttpClient = httpClient;
 }
 
 void ModImageProvider::onModsReloading() {
     QMutexLocker locker(&mMutex);
     qCDebug(cImageProvider, "Clearing all images");
-    mImages.clear();
+    mNoIcon.clear();
+    mCache.clear();
 }
 
 void ModImageProvider::onModRemoved(QStringView modId) {
+    const QString id = modId.toString();
     QMutexLocker locker(&mMutex);
-    qCDebug(cImageProvider, "Removing image for %s", qUtf8Printable(modId.toString()));
-    mImages.removeIf([modId](const QPair<QString, QImage> &entry) { return entry.first == modId.toString(); });
+    qCDebug(cImageProvider, "Removing image for %s", qUtf8Printable(id));
+    mCache.remove(id);
+    mNoIcon.remove(id);
+}
+
+void ModImageProvider::download(QString modId, QUrl url) {
+    if (!mHttpClient) {
+        qCFatal(cImageProvider, "Http client is not set, cannot fetch icons");
+    }
+
+    mHttpClient->sendGet(
+        url, this, QStringLiteral("image/"),
+        [this, modId](QByteArray data) mutable {
+            mDecodeImagesPool.start([this, modId = std::move(modId), data = std::move(data)] mutable {
+                QImage image;
+                if (!image.loadFromData(data) || image.isNull()) {
+                    qCWarning(cImageProvider, "Failed to decode icon for %s: invalid image data",
+                              qUtf8Printable(modId));
+                    finish(std::move(modId), {}, QStringLiteral("Invalid image data"), true);
+                    return;
+                }
+                finish(std::move(modId), std::move(image), {});
+            });
+        },
+        [this, modId](QString error) {
+            qCWarning(cImageProvider, "Failed to download icon for %s: %s", qUtf8Printable(modId),
+                      qUtf8Printable(error));
+            finish(modId, {}, std::move(error));
+        });
+}
+
+void ModImageProvider::finish(QString modId, QImage image, QString error, bool permanentError) {
+    {
+        QMutexLocker locker(&mMutex);
+        mInProgress.remove(modId);
+        if (error.isEmpty()) {
+            if (!mCache.insert(modId, new QImage(image), image.sizeInBytes())) {
+                qCWarning(cImageProvider, "Failed to cache icon for %s", qUtf8Printable(modId));
+            }
+        } else if (permanentError) {
+            mNoIcon.insert(modId);
+        }
+    }
+    emit imageDownloaded(std::move(modId), std::move(image), std::move(error));
 }
 } // namespace vsmm

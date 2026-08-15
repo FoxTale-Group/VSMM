@@ -32,6 +32,7 @@ int ModListModel::rowCount(const QModelIndex &parent) const {
 }
 
 QVariant ModListModel::data(const QModelIndex &index, int role) const {
+    using namespace Qt::StringLiterals;
     if (!mStore || !index.isValid() || index.row() < 0 || index.row() >= mOrder.size()) {
         return {};
     }
@@ -59,12 +60,13 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
     case HasUpdateRole:
         return mod->hasUpdate();
     case IconRole: {
-        if (!mImageProvider || !mImageProvider->hasImage(mod->getId())) {
+        const QUrl logoUrl = mod->getLogoUrl();
+        // wait for online info
+        if (logoUrl.isEmpty()) {
             return QString();
         }
-        return QStringLiteral("image://modicon/%1?diff=%2")
-            .arg(mod->getId())
-            .arg(mImageProvider->getCacheKey(mod->getId()));
+        return u"image://modicon/%1?url=%2"_s.arg(mod->getId().toString(),
+                                                  QString::fromLatin1(QUrl::toPercentEncoding(logoUrl.toString())));
     }
     case IdRole:
         return mod->getId().toString();
@@ -84,20 +86,6 @@ QHash<int, QByteArray> ModListModel::roleNames() const {
             {TypeRole, "modSide"},          {HasUpdateRole, "modHasUpdate"},
             {IconRole, "modThumbnail"},     {IdRole, "modId"},
             {FavoriteRole, "isFavoriteMod"}};
-}
-
-void ModListModel::setModImageProvider(ModImageProvider *provider) {
-    if (mImageProvider) {
-        qCWarning(cModListModel, "Image provider already set");
-        return;
-    }
-    if (!provider) {
-        qCFatal(cModListModel, "Image provider is null");
-        return;
-    }
-
-    mImageProvider = provider;
-    connect(mImageProvider, &ModImageProvider::imageAdded, this, &ModListModel::onIconUpdated);
 }
 
 void ModListModel::setStore(ModStore *store) {
@@ -140,17 +128,6 @@ void ModListModel::onModUpdated(QStringView modId) {
     }
     if (const QModelIndex idx = index(*it); idx.isValid()) {
         emit dataChanged(idx, idx);
-    }
-}
-
-void ModListModel::onIconUpdated(QStringView modId) {
-    const auto it = mIdToRow.constFind(modId);
-    if (it == mIdToRow.constEnd()) {
-        return;
-    }
-    if (const QModelIndex idx = index(*it); idx.isValid()) {
-        qCDebug(cModListModel, "Icon for mod %s updated at row %d", qUtf8Printable(modId.toString()), *it);
-        emit dataChanged(idx, idx, {IconRole});
     }
 }
 

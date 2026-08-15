@@ -71,13 +71,17 @@ class MODENTRY_EXPORT ModEntry {
     [[nodiscard]] const QStringList &getTags() const;
     [[nodiscard]] QStringView getType() const;
     [[nodiscard]] bool hasUpdate() const;
+    [[nodiscard]] const QUrl &getLogoUrl() const;
 
   private:
+    static constexpr QLatin1StringView ONLINE_LOGOFILE_JSON_KEY{"logofile"};
+
     struct OnlineInfo {
         QString mName, mAuthor, mType;
         QStringList mTags;
         QUrl mUrl;
         LatestVersion mLatestVersion;
+        QUrl mLogoUrl;
     };
 
     void initName(const QJsonObject &json);
@@ -86,6 +90,7 @@ class MODENTRY_EXPORT ModEntry {
     void initTags(const QJsonObject &json);
     void initModUrl(const QJsonObject &json);
     void initType(const QJsonObject &json);
+    void initLogoUrl(const QJsonObject &json);
 
     [[nodiscard]] QPair<QJsonObject, semver::version<>>
     getLatestVersion(QJsonArray releases, const semver::version<> &gameVersion, bool cfgIncludePrerelease) const;
