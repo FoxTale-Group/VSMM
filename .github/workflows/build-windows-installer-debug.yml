@@ -7,7 +7,7 @@ jobs:
     runs-on: windows-latest
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg_cache
-      SCCACHE_DIR: ${{ github.workspace }}/sccache_cache
+      # sccache uses a single backend. Do not also set SCCACHE_DIR, it would be ignored.
       SCCACHE_GHA_ENABLED: "true"
 
     steps:
@@ -34,31 +34,20 @@ jobs:
         uses: actions/cache@v6
         with:
          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-         key: ${{ runner.os }}-vcpkg-${{ hashFiles('.github/workflows/build-windows-installer-debug.yml') }} # Reset cache when workflow is changed
+         # Keyed on the dependency manifest so it survives unrelated edits to this
+         # workflow. run_id makes the exact key always miss, which is what forces a
+         # re-save: vcpkg picks its version from the runner image's ports tree, so the
+         # contents can change without vcpkg.json changing.
+         key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}-${{ github.run_id }}
          restore-keys: |
+            ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}-
             ${{ runner.os }}-vcpkg-
-
-      - name: Install libzip using vcpkg
-        run: vcpkg install libzip:x64-windows
 
       - name: Run sccache-cache if non-release action
         if: github.event_name != 'release'
         uses: mozilla-actions/sccache-action@v0.0.10
         with:
           version: "v0.10.0"
-
-      - name: Create sccache directory
-        run: New-Item -ItemType Directory -Force -Path ${{ env.SCCACHE_DIR }}
-
-      - name: Cache C++ Object Files
-        uses: actions/cache@v6
-        with:
-          path: ${{ env.SCCACHE_DIR }}
-          # The key uses the exact commit SHA, but restore-keys allows it to
-          # safely pull the cache from the previous run even if the SHA changes.
-          key: ${{ runner.os }}-sccache-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-
 
       - name: Configure CMake Build
         shell: cmd

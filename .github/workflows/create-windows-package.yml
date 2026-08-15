@@ -26,9 +26,6 @@ jobs:
       - name: Install NSIS
         run: choco install nsis
 
-      - name: Install libzip with vcpkg
-        run: vcpkg install libzip:x64-windows
-
       - name: Fetch Repository
         uses: actions/checkout@v7
 

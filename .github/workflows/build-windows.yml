@@ -42,16 +42,21 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
 
+      - name: Show vcpkg commit
+        run: git -C "$env:VCPKG_INSTALLATION_ROOT" rev-parse HEAD
+
       - name: Cache vcpkg binaries
         uses: actions/cache@v6
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-          key: ${{ runner.os }}-vcpkg-libzip-1
+          # Keyed on the dependency manifest so it survives unrelated edits to this
+          # workflow. run_id makes the exact key always miss, which is what forces a
+          # re-save: vcpkg picks its version from the runner image's ports tree, so the
+          # contents can change without vcpkg.json changing.
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}-${{ github.run_id }}
           restore-keys: |
+            ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}-
             ${{ runner.os }}-vcpkg-
-
-      - name: Install libzip with vcpkg
-        run: vcpkg install libzip:x64-windows
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4.3.1
