@@ -11,10 +11,10 @@ jobs:
       - name: PR Conventional Name Validation
         uses:  ytanikin/pr-conventional-commits@1.5.2
         with:
-          task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert"]'
+          task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert","deps"]'
           add_label: 'false'
       - name: Commit Conventional Name Validation
         uses: webiny/action-conventional-commits@v1.4.2
         with:
           GITHUB_TOKEN: ${{ github.token }}
-          allowed-commit-types: "feat,fix,docs,test,ci,refactor,perf,chore,revert"
+          allowed-commit-types: "feat,fix,docs,test,ci,refactor,perf,chore,revert,deps"

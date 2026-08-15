@@ -1,0 +1,100 @@
+name: Check vcpkg dependencies updates
+
+on:
+  schedule:
+    # Daily at 06:00 UTC.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-libzip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub App token
+        id: create-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.RELEASE_BOT_CLIENTID }}
+          private-key: ${{ secrets.RELEASE_BOT_KEY }}
+
+      - name: Fetch repository
+        uses: actions/checkout@v7
+        with:
+          ref: next
+          token: ${{ steps.create-token.outputs.token }}
+
+      - name: Read the pinned version
+        id: pinned
+        run: |
+          jq -r '.overrides[] | select(.name == "libzip")
+                 | "version=\(.version)", "portVersion=\(."port-version" // 0)"' \
+             vcpkg.json >> "$GITHUB_OUTPUT"
+
+      - name: Read the latest version in the vcpkg registry
+        id: upstream
+        run: |
+          port=$(curl -fsSL https://raw.githubusercontent.com/microsoft/vcpkg/master/ports/libzip/vcpkg.json)
+          sha=$(curl -fsSL https://api.github.com/repos/microsoft/vcpkg/commits/master | jq -r '.sha')
+          {
+            echo "version=$(jq -r '.version' <<< "$port")"
+            echo "portVersion=$(jq -r '."port-version" // 0' <<< "$port")"
+            echo "sha=$sha"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether an update is needed
+        id: compare
+        env:
+          PINNED: ${{ steps.pinned.outputs.version }}#${{ steps.pinned.outputs.portVersion }}
+          LATEST: ${{ steps.upstream.outputs.version }}#${{ steps.upstream.outputs.portVersion }}
+        run: |
+          if [ "$PINNED" = "$LATEST" ]; then
+            echo "libzip is current at $PINNED"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "libzip $PINNED -> $LATEST"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update vcpkg.json
+        if: steps.compare.outputs.changed == 'true'
+        run: |
+          jq --arg sha '${{ steps.upstream.outputs.sha }}' \
+             --arg v   '${{ steps.upstream.outputs.version }}' \
+             --argjson pv ${{ steps.upstream.outputs.portVersion }} '
+            ."builtin-baseline" = $sha
+            | .overrides = [
+                .overrides[]
+                | if .name == "libzip"
+                  then .version = $v
+                       | if $pv > 0 then ."port-version" = $pv
+                                    else del(."port-version") end
+                  else . end
+              ]
+          ' vcpkg.json > vcpkg.json.new
+          mv vcpkg.json.new vcpkg.json
+          cat vcpkg.json
+
+      - name: Open pull request
+        if: steps.compare.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ steps.create-token.outputs.token }}
+          base: next
+          # A fixed branch name means a later run amends this PR instead of opening a
+          # second one every day until it is merged.
+          branch: deps/libzip
+          delete-branch: true
+          committer: '${{ steps.create-token.outputs.app-slug }}[bot] <301098493+${{ steps.create-token.outputs.app-slug }}[bot]@users.noreply.github.com>'
+          author: '${{ steps.create-token.outputs.app-slug }}[bot] <301098493+${{ steps.create-token.outputs.app-slug }}[bot]@users.noreply.github.com>'
+          signoff: true
+          commit-message: 'deps: bump libzip to ${{ steps.upstream.outputs.version }}'
+          title: 'deps: bump libzip to ${{ steps.upstream.outputs.version }}'
+          body: |
+            libzip `${{ steps.pinned.outputs.version }}#${{ steps.pinned.outputs.portVersion }}`
+            to `${{ steps.upstream.outputs.version }}#${{ steps.upstream.outputs.portVersion }}`.
+
+            `builtin-baseline` moves to `${{ steps.upstream.outputs.sha }}`, which also
+            repins the transitive dependencies (zlib, bzip2).
+
+            VSMM feeds downloaded mod archives to libzip, so check the release notes for
+            security fixes before merging: https://github.com/nih-at/libzip/releases

@@ -1,9 +1,11 @@
 name: Build Windows & Test
 on:
   pull_request:
-    branches:
-      - main
-      - next
+    branches: [main, next]
+  # Caches are scoped by ref: a PR reads its base branch's cache but never another PR's.
+  # Without a run on push, main and next hold no cache and every PR starts cold.
+  push:
+    branches: [main, next]
 
 env:
   DEFAULT_BUILD_TYPE: Debug
@@ -17,10 +19,42 @@ jobs:
     runs-on: windows-latest
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg_cache
-      SCCACHE_DIR: ${{ github.workspace }}/sccache_cache
+      # sccache uses a single backend. Do not also set SCCACHE_DIR, it would be ignored.
       SCCACHE_GHA_ENABLED: "true"
 
     steps:
+      - name: Exclude workspace from Defender
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = 'Continue'
+          foreach ($path in "${{ github.workspace }}", "$env:VCPKG_INSTALLATION_ROOT") {
+            if ($path) { Add-MpPreference -ExclusionPath $path }
+          }
+          foreach ($proc in 'cl.exe','link.exe','ninja.exe','sccache.exe') {
+            Add-MpPreference -ExclusionProcess $proc
+          }
+
+      - name: Fetch repository
+        uses: actions/checkout@v7
+
+      - name: Create cache directories
+        run: |
+          New-Item -ItemType Directory -Force -Path ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          # Keyed on the dependency manifest so it survives unrelated edits to this
+          # workflow. run_id makes the exact key always miss, which is what forces a
+          # re-save: vcpkg picks its version from the runner image's ports tree, so the
+          # contents can change without vcpkg.json changing.
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}-
+            ${{ runner.os }}-vcpkg-
+
       - name: Install Qt
         uses: jurplel/install-qt-action@v4.3.1
         with:
@@ -31,42 +65,10 @@ jobs:
           cache: true
           cache-key-prefix: 'qt-v6.10.0'
 
-      - name: Install NSIS
-        run: choco install nsis
-
-      - name: Fetch repository
-        uses: actions/checkout@v7
-
-      - name: Create cache directories
-        run: | 
-          New-Item -ItemType Directory -Force -Path ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-          New-Item -ItemType Directory -Force -Path ${{ env.SCCACHE_DIR }} 
-
-      - name: Cache vcpkg binaries
-        uses: actions/cache@v6
-        with:
-          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-          key: ${{ runner.os }}-vcpkg-${{ hashFiles('.github/workflows/build-windows.yml') }} # Reset cache when workflow is changed
-          restore-keys: |
-            ${{ runner.os }}-vcpkg-
-
-      - name: Install libzip with vcpkg
-        run: vcpkg install libzip:x64-windows
-
       - name: Setup Build SCCache
         uses: mozilla-actions/sccache-action@v0.0.10
         with:
           version: "v0.10.0"
-
-      - name: Fetch Cached C++ Object Files
-        uses: actions/cache@v6
-        with:
-          path: ${{ env.SCCACHE_DIR }}
-          # The key uses the exact commit SHA, but restore-keys allows it to
-          # safely pull the cache from the previous run even if the SHA changes.
-          key: ${{ runner.os }}-sccache-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-
 
       - name: Configure CMake Build
         shell: cmd
@@ -84,3 +86,7 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build-win --output-on-failure --no-tests=error -V
+
+      - name: SCCache Stats
+        if: always()
+        run: sccache --show-stats
