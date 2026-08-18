@@ -4,7 +4,9 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.impl
 import QtQuick.Effects
-import vsmm
+import VSMM.Theme
+import VSMM.ModStore
+import VSMM.LayoutOrganization
 
 Rectangle {
     id: modEntryRoot

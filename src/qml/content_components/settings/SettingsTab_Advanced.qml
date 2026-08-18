@@ -3,7 +3,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
-import vsmm
+import VSMM.Theme
+import VSMM.Templates
 
 TabPanel {
     id: settingsTabAdvanced

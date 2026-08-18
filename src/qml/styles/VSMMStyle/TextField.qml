@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Templates as T
 import QtQuick.Controls.impl // IconImage
-import vsmm
+import VSMM.Theme
 
 T.TextField {
     id: control

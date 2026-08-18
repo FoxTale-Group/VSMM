@@ -4,7 +4,11 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import vsmm
+import VSMM.Theme
+import VSMM.Helpers
+import VSMM.Config
+import VSMM.Templates
+import VSMM.LayoutOrganization
 import VSMMStyle
 
 TabPanel {

@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Templates as T
-import vsmm
+import VSMM.Theme
 
 T.ScrollBar {
     id: control

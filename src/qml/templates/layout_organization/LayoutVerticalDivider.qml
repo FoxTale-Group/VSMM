@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
-import vsmm
+import VSMM.Theme
 
 Rectangle {
     Layout.fillHeight: true

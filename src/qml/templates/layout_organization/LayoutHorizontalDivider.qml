@@ -1,7 +1,7 @@
 import QtQml
 import QtQuick
 import QtQuick.Layouts
-import vsmm
+import VSMM.Theme
 
 Rectangle {
     Layout.fillWidth: true;

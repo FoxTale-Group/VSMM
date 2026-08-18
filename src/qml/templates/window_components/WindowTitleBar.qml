@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
 import QtQuick.Window
+import VSMM.Theme
 
 Item {
     id: titleBar

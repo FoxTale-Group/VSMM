@@ -8,6 +8,10 @@ configure_file(constants.hpp.in constants.hpp)
 # Set unified target directory for sub-libs generated qmldir and .qmltypes
 set(QT_QML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml_imports)
 
+# VSMMStyle is a plain qrc directory, not a QML module, so every module that imports it
+# needs this on its IMPORT_PATH for qmlls and qmllint to resolve the types
+set(VSMM_QML_STYLES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/qml/styles)
+
 # Point Qt Creator's code model at the generated modules, plus the VSMMStyle style sources
 # so `import VSMMStyle` resolves in the editor (the style otherwise only ever exists as a
 # qrc blob, invisible to tooling).
@@ -18,7 +22,7 @@ set(QT_QML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml_imports)
 #
 # STRING, not PATH -- this is a ";"-separated list; PATH marks it as a single directory.
 set(QML_IMPORT_PATH
-        "${QT_QML_OUTPUT_DIRECTORY};${CMAKE_CURRENT_SOURCE_DIR}/qml/styles"
+        "${QT_QML_OUTPUT_DIRECTORY};${VSMM_QML_STYLES_PATH}"
         CACHE STRING "Qt Creator QML Import Paths" FORCE)
 
 # Add libs and qml modules subdirectories
@@ -33,6 +37,18 @@ add_subdirectory(modlistmodel ModListModel)
 add_subdirectory(modloader ModLoader)
 add_subdirectory(modsortfiltermodel ModSortFilterModel)
 add_subdirectory(gamemngr GameMngr)
+
+# QML-only modules, one per qml subdirectory; the second argument keeps their binary dirs
+# apart because each calls project(<Name>)
+add_subdirectory(qml Theme)
+add_subdirectory(qml/js Helpers)
+add_subdirectory(qml/animations Animations)
+add_subdirectory(qml/templates/layout_organization LayoutOrganization)
+add_subdirectory(qml/templates/window_components WindowComponents)
+add_subdirectory(qml/templates Templates)
+add_subdirectory(qml/content_components/modlist ModList)
+add_subdirectory(qml/content_components ContentComponents)
+add_subdirectory(qml/content_components/settings SettingsTabs)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)
@@ -58,41 +74,42 @@ set(PROJECT_DEPENDENCIES_AND_LIBRARIES
         ModLoader
         ModSortFilterModel
         HttpClient
-        GameMngr)
+        GameMngr
+        Theme
+        Helpers
+        Animations
+        LayoutOrganization
+        WindowComponents
+        Templates
+        ModList
+        ContentComponents
+        SettingsTabs)
 add_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES_AND_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_DEPENDENCIES_AND_LIBRARIES} Qt6::QuickControls2)
 
 # Include target dir
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-# Get all SVG icons
-file(GLOB ICON_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS "../assets/icons/*.svg")
-
-# Get all QML and JS files
-file(GLOB_RECURSE QML_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS "qml/*.qml" "qml/js/*.js")
-
-# The custom Qt Quick Controls style ("VSMMStyle") is its own module (see below); keep
-# it out of the "vsmm" app module so its Button.qml isn't registered as a vsmm type.
-list(FILTER QML_FILES EXCLUDE REGEX "qml/styles/")
-
-# Setup qml/Theme.qml as QML Singleton type
-set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-
 qt_add_qml_module(${PROJECT_NAME}
-        URI vsmm
+        URI VSMM.App
         VERSION 1.0
-        QML_FILES ${QML_FILES}
-        RESOURCES ${ICON_FILES} ../assets/logo/VSMM.png
-        # Feeds the generated .qmlls.ini (and the qmllint target) so tooling can resolve
-        # `import VSMMStyle` -- the style lives here as a plain directory, not a QML module.
-        IMPORT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/qml/styles
+        QML_FILES
+            qml/Main.qml
+            qml/Settings.qml
+            qml/AddMod.qml
+        IMPORT_PATH ${VSMM_QML_STYLES_PATH}
+        # full URIs, not target names; QTP0005 does not translate IMPORTS entries
         IMPORTS
-            Config
-            ModStore
-            ModListModel
-            ModLoader
-            ModSortFilterModel
-            GameMngr)
+            VSMM.Theme
+            VSMM.Helpers
+            VSMM.Templates
+            VSMM.LayoutOrganization
+            VSMM.ModList
+            VSMM.ContentComponents
+            VSMM.SettingsTabs
+            VSMM.Config
+            VSMM.GameMngr
+            VSMM.ModStore)
 
 # Custom Qt Quick Controls style "VSMMStyle", resolved at runtime by QQuickStyle::setStyle("VSMMStyle").
 # It is a plain style directory (qmldir + control impls) placed on the default qrc import

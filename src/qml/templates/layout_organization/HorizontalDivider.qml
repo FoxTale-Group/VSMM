@@ -1,6 +1,6 @@
 import QtQml
 import QtQuick
-import vsmm
+import VSMM.Theme
 
 Rectangle {
     anchors.left: parent.left

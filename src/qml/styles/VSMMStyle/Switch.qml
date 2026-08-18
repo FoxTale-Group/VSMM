@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Templates as T
-import vsmm
+import VSMM.Theme
 
 T.Switch {
     id: control

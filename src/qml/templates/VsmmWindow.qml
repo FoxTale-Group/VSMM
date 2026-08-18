@@ -2,7 +2,8 @@ import QtQml
 import QtQuick
 import QtQuick.Controls
 
-import vsmm
+import VSMM.Theme
+import VSMM.WindowComponents
 
 ApplicationWindow
 {

@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Templates as T
 import QtQuick.Controls.impl // IconLabel
-import vsmm
+import VSMM.Theme
 
 T.Button {
     id: rootButton
