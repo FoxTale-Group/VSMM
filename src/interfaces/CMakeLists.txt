@@ -2,7 +2,9 @@ project(Interfaces VERSION 1.0)
 include(GenerateExportHeader)
 
 set(SOURCES IConfig.hpp
-        ConfigTypes.hpp)
+        IHttpClient.hpp
+        ConfigTypes.hpp
+        Interfaces.cpp)
 qt_add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
 target_include_directories(${PROJECT_NAME}

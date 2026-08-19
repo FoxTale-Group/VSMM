@@ -86,7 +86,7 @@ bool ModLoader::initModsList() {
     return true;
 }
 
-void ModLoader::setHttpClient(HttpClient *httpClient) {
+void ModLoader::setHttpClient(IHttpClient *httpClient) {
     if (mHttpClient) {
         qCWarning(cModLoader, "HttpClient already set");
         return;

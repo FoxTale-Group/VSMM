@@ -18,11 +18,13 @@
 
 #pragma once
 
-#include <HttpClient.hpp>
+#include <IHttpClient.hpp>
 #include <ImgProviderExport.hpp>
 #include <QCache>
 #include <QMutex>
 #include <QQuickImageProvider>
+#include <QSet>
+#include <QThreadPool>
 
 namespace vsmm {
 
@@ -33,7 +35,7 @@ class IMGPROVIDER_EXPORT ModImageProvider : public QQuickAsyncImageProvider {
     ModImageProvider() = default;
     ~ModImageProvider() override;
     QQuickImageResponse *requestImageResponse(const QString &id, const QSize &requestedSize) override;
-    void setHttpClient(HttpClient *httpClient);
+    void setHttpClient(IHttpClient *httpClient);
 
   signals:
     void imageDownloaded(QString id, QImage image, QString error);
@@ -46,7 +48,7 @@ class IMGPROVIDER_EXPORT ModImageProvider : public QQuickAsyncImageProvider {
     void download(QString modId, QUrl url);
     void finish(QString modId, QImage image, QString error, bool permanentError = false);
     static constexpr qsizetype CACHE_SIZE{32 * 1024 * 1024}; // 32 MiB
-    HttpClient *mHttpClient{nullptr};
+    IHttpClient *mHttpClient{nullptr};
     QCache<QString, QImage> mCache{CACHE_SIZE};
     QSet<QString> mInProgress, mNoIcon;
     QThreadPool mDecodeImagesPool{this};
