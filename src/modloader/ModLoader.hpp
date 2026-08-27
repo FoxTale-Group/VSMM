@@ -22,7 +22,7 @@
 #include <ModStore.hpp>
 
 #include <GameMngr.hpp>
-#include <HttpClient.hpp>
+#include <IHttpClient.hpp>
 #include <ModLoaderExport.hpp>
 
 #include <QDir>
@@ -47,7 +47,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
   public:
     ModLoader();
     bool initModsList();
-    void setHttpClient(HttpClient *httpClient);
+    void setHttpClient(IHttpClient *httpClient);
     void setGameMngr(GameMngr *gameMngr);
     void setStore(ModStore *store);
     void load(QFileInfo &&fileInfo);
@@ -74,7 +74,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
 
     GameMngr *mGameMngr{nullptr};
     ModStore *mStore{nullptr};
-    HttpClient *mHttpClient{nullptr};
+    IHttpClient *mHttpClient{nullptr};
     QAtomicInteger<quint32> mModsLoadingInProgress{0};
     QThreadPool mThreadPoolExtractZips{this};
     QThreadPool mThreadPoolProcessUpdate{this};

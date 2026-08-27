@@ -35,7 +35,7 @@ class INTERFACES_EXPORT IConfig : public QObject {
     static constexpr QLatin1StringView CONFIG_FILE_NAME{"config.json"};
     static constexpr QLatin1StringView FAVORITES_KEY_NAME{"favorites"};
 
-    ~IConfig() override = default;
+    ~IConfig() override;
 
     [[nodiscard]] virtual GeneralSettings general() const { return mGeneral; }
     [[nodiscard]] virtual PathSettings paths() const { return mPaths; }

@@ -19,6 +19,7 @@
 #include "HttpClient.hpp"
 #include <QLoggingCategory>
 #include <QNetworkReply>
+#include <QPointer>
 #include <QStandardPaths>
 #include <QTimer>
 #include <constants.hpp>
@@ -55,20 +56,22 @@ void HttpClient::sendGetImpl(const QUrl &url, QObject *context, const QString &c
     qCDebug(cHttpClient, "GET %s (attempt %u)", qUtf8Printable(url.toString()), retryCount + 1);
 
     QNetworkReply *reply = mNetworkManager.get(request);
+    connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
     connect(reply, &QNetworkReply::finished, context,
             [this, context, reply, url, contentType, onSuccess = std::move(successFn), onFailed = std::move(failedFn),
              retryCount] mutable {
-                reply->deleteLater();
-
-                if (shouldRetry(reply, contentType, retryCount)) {
+                if (shouldRetry(reply, retryCount)) {
                     const std::chrono::milliseconds delay = backoffDelay(reply, retryCount);
                     qCDebug(cHttpClient, "Retrying %s in %lld ms", qUtf8Printable(url.toString()),
                             static_cast<long long>(delay.count()));
                     QTimer::singleShot(delay, context,
-                                       [this, url, contentType, context, retryCount, onSuccess = std::move(onSuccess),
-                                        onFailed = std::move(onFailed)]() mutable {
-                                           sendGetImpl(url, context, contentType, std::move(onSuccess),
-                                                       std::move(onFailed), retryCount + 1);
+                                       [self = QPointer{this}, url, contentType, context, retryCount,
+                                        onSuccess = std::move(onSuccess), onFailed = std::move(onFailed)]() mutable {
+                                           if (!self) {
+                                               return;
+                                           }
+                                           self->sendGetImpl(url, context, contentType, std::move(onSuccess),
+                                                             std::move(onFailed), retryCount + 1);
                                        });
                     return;
                 }
@@ -103,7 +106,7 @@ void HttpClient::sendGetImpl(const QUrl &url, QObject *context, const QString &c
             });
 }
 
-bool HttpClient::shouldRetry(const QNetworkReply *reply, const QString &contentType [[maybe_unused]], uint retryCount) {
+bool HttpClient::shouldRetry(const QNetworkReply *reply, uint retryCount) {
     const int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     auto isPermanentStatus = [](const int code) {
         return (code >= 400 && code < 500 && code != 429 && code != 408) || code == 501;

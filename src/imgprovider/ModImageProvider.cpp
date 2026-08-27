@@ -123,7 +123,7 @@ QQuickImageResponse *ModImageProvider::requestImageResponse(const QString &id, c
     return response;
 }
 
-void ModImageProvider::setHttpClient(HttpClient *httpClient) {
+void ModImageProvider::setHttpClient(IHttpClient *httpClient) {
     if (mHttpClient) {
         qCWarning(cImageProvider, "Http client already set");
         return;
