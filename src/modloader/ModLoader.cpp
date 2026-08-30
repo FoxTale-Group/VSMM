@@ -99,7 +99,7 @@ void ModLoader::setHttpClient(IHttpClient *httpClient) {
     mHttpClient = httpClient;
 }
 
-void ModLoader::setGameMngr(GameMngr *gameMngr) {
+void ModLoader::setGameMngr(IGameMngr *gameMngr) {
     if (mGameMngr) {
         qCWarning(cModLoader, "GameMngr already set");
         return;

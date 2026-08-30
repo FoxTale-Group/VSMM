@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <GameMngr.hpp>
 #include <IConfig.hpp>
+#include <IGameMngr.hpp>
 #include <ModEntry.hpp>
 #include <ModStoreExport.hpp>
 
@@ -41,7 +41,7 @@ class MODSTORE_EXPORT ModStore : public QObject {
     explicit ModStore(QObject *parent = nullptr);
 
     void setConfig(IConfig *config);
-    void setGameMngr(GameMngr *gameMngr);
+    void setGameMngr(IGameMngr *gameMngr);
 
     void add(ModEntry::LocalInfo localModInfo);
     void updateOnline(QStringView id, QJsonObject onlineInfo);
@@ -92,7 +92,7 @@ class MODSTORE_EXPORT ModStore : public QObject {
     bool mWorkPending{true};
 
     IConfig *mConfig{nullptr};
-    GameMngr *mGameMngr{nullptr};
+    IGameMngr *mGameMngr{nullptr};
     QSet<QString> mFavoriteMods;
 };
 } // namespace vsmm

@@ -26,6 +26,7 @@
 #include <constants.hpp>
 #include <qqmlcontext.h>
 
+#include <GameMngr.hpp>
 #include <ModListModel.hpp>
 #include <ModLoader.hpp>
 #include <ModSortFilterModel.hpp>
