@@ -47,27 +47,23 @@ jobs:
           cd ${{ steps.configure.outputs.buildDir }} && ninja package && cd ${{ github.workspace }}
 
       # Build AppImage. 
-      # The script downloads linuxdeploy itself, so nothing has to be installed beforehand. 
-      # linuxdeploy writes to the build directory root; move it next to the CPack output 
-      # so every package shares one directory and the uploaded artifact stays flat.
+      # Moved into pkg/ so the uploaded artifact stays flat.
       - name: Build AppImage
         run: |
           ./scripts/build_appimage.py "${{ steps.configure.outputs.buildDir }}"
           mv "${{ steps.configure.outputs.buildDir }}"/*.AppImage \
              "${{ steps.configure.outputs.buildDir }}/pkg/"
 
-      # Catch a bundle that is missing a Qt plugin or QML module. Those failures do not show
-      # up at build time: the AppImage is produced successfully and then aborts on launch.
+      # Exit 124 (timeout) is success: a missing Qt plugin or QML module still builds fine
+      # and only aborts on launch.
       - name: Smoke-test AppImage
         env:
-          # The runner has no FUSE, and no display.
+          # Runner has no FUSE and no display.
           APPIMAGE_EXTRACT_AND_RUN: 1
           QT_QPA_PLATFORM: offscreen
         run: |
           appimage=$(ls "${{ steps.configure.outputs.buildDir }}"/pkg/*.AppImage)
           echo "launching $appimage"
-          # A healthy run never exits on its own, so `timeout` killing it after 15s (code
-          # 124) is the success case. Any other code means it died during startup.
           set +e
           timeout 15 "$appimage"
           code=$?
