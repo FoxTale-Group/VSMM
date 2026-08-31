@@ -8,6 +8,7 @@ target_link_libraries(TestMocks INTERFACE Interfaces)
 
 add_subdirectory(config)
 add_subdirectory(modentry)
+add_subdirectory(modstore)
 add_subdirectory(gamemngr)
 add_subdirectory(httpclient)
 add_subdirectory(imgprovider)
