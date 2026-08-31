@@ -6,13 +6,13 @@ import QtQuick
 QtObject {
     id: themeRoot
 
-    readonly property string appLogo: "qrc:/qt/qml/vsmm/assets/logo/VSMM.png"
+    readonly property string appLogo: "qrc:/qt/qml/VSMM/Theme/assets/logo/VSMM.png"
 
     property bool isDarkTheme: true
 
     component IconSet: QtObject
     {
-        readonly property string _iconsPath: "qrc:/qt/qml/vsmm/assets/icons/"
+        readonly property string _iconsPath: "qrc:/qt/qml/VSMM/Theme/assets/icons/"
 
         readonly property string addIcon:            _iconsPath + "add"              + ".svg"
         readonly property string addBoxIcon:         _iconsPath + "add_box"          + ".svg"

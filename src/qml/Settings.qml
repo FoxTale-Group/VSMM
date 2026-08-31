@@ -2,7 +2,11 @@ import QtQml
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import vsmm
+import VSMM.Theme
+import VSMM.Config
+import VSMM.Templates
+import VSMM.LayoutOrganization
+import VSMM.SettingsTabs
 import VSMMStyle
 
 VsmmWindow {

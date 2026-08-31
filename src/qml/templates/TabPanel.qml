@@ -3,7 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
-import vsmm
+import VSMM.Theme
 
 Rectangle {
     color: "transparent"

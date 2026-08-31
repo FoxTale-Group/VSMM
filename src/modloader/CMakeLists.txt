@@ -11,7 +11,7 @@ target_include_directories(${PROJECT_NAME}
         PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
 target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Core Qt6::Quick Qt6::Qml ModEntry ModStore ZipArchive Interfaces GameMngr)
 qt_add_qml_module(${PROJECT_NAME}
-        URI ${PROJECT_NAME}
+        URI VSMM.${PROJECT_NAME}
         VERSION ${PROJECT_VERSION}
         SOURCES ${SOURCES})
 install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib/vsmm)
