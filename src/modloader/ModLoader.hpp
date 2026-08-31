@@ -51,17 +51,17 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     void setGameMngr(IGameMngr *gameMngr);
     void setStore(ModStore *store);
     void load(QFileInfo &&fileInfo);
+    Q_INVOKABLE void load(const QUrl &filePath);
 
   signals:
     void allModsReloaded(); // used by modstore
 
   public slots:
     void onModsReloading();
-    void onLoadFromGUI(const QUrl &filePath);
     void onModUpdateRequested(const ModEntry &mod);
 
   private:
-    void load_(QFileInfo &&fileInfo);
+    void load_(QFileInfo &&fileInfo, ModStore::ModLoadType modLoadType);
 
     void onModInfoRetrieved(QString modId, QByteArray data);
     void onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion);

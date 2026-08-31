@@ -124,19 +124,19 @@ void ModLoader::setStore(ModStore *store) {
 
     mStore = store;
     connect(mStore, &ModStore::modsReloading, this, &ModLoader::onModsReloading);
-    connect(mStore, &ModStore::modAddedFromGUI, this, &ModLoader::onLoadFromGUI);
     connect(mStore, &ModStore::modUpdateRequested, this, &ModLoader::onModUpdateRequested);
     connect(this, &ModLoader::allModsReloaded, mStore, &ModStore::onModsReloaded);
 }
 
 void ModLoader::load(QFileInfo &&fileInfo) {
     incrementModsLoadingInProgress();
-    load_(std::move(fileInfo));
+    load_(std::move(fileInfo), ModStore::ModLoadType::Init);
 }
-void ModLoader::onLoadFromGUI(const QUrl &filePath) {
+void ModLoader::load(const QUrl &filePath) {
     incrementModsLoadingInProgress();
-    load_(QFileInfo{filePath.toLocalFile()});
+    load_(QFileInfo{filePath.toLocalFile()}, ModStore::ModLoadType::GUI);
 }
+
 void ModLoader::onModUpdateRequested(const ModEntry &mod) {
     if (!mod.hasUpdate()) {
         return;
@@ -173,7 +173,9 @@ void ModLoader::onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion la
         }
         modUpdateFile.close();
         QFileInfo fileInfo{modUpdateFile.fileName()};
-        QMetaObject::invokeMethod(this, [this, fileInfo] mutable { load_(std::move(fileInfo)); }, Qt::QueuedConnection);
+        QMetaObject::invokeMethod(
+            this, [this, fileInfo] mutable { load_(std::move(fileInfo), ModStore::ModLoadType::Update); },
+            Qt::QueuedConnection);
     });
 }
 
@@ -187,17 +189,17 @@ void ModLoader::decrementModsLoadingInProgress() {
 
 void ModLoader::onModsReloading() { initModsList(); }
 
-void ModLoader::load_(QFileInfo &&fileInfo) {
-    mThreadPoolExtractZips.start([this, fileInfo] mutable {
+void ModLoader::load_(QFileInfo &&fileInfo, ModStore::ModLoadType modLoadType) {
+    mThreadPoolExtractZips.start([this, fileInfo, modLoadType] mutable {
         auto localInfo = getLocalInfoFromZip(std::move(fileInfo));
 
         if (localInfo.isValid() && localInfo.canConvert<ModEntry::LocalInfo>()) {
             QMetaObject::invokeMethod(
                 this,
-                [this, modInfo_ = std::move(localInfo).value<ModEntry::LocalInfo>()] mutable {
+                [this, modInfo_ = std::move(localInfo).value<ModEntry::LocalInfo>(), modLoadType] mutable {
                     // Copy id for info retrieval
                     QString modId = modInfo_.mId;
-                    mStore->add(std::move(modInfo_));
+                    mStore->add(std::move(modInfo_), modLoadType);
                     mHttpClient->sendGet(
                         GetModUrlApi(modId), this, ONLINE_CONTENT_TYPE,
                         [this, modId](QByteArray data) mutable {

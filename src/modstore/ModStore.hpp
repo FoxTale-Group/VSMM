@@ -38,15 +38,16 @@ class MODSTORE_EXPORT ModStore : public QObject {
     Q_PROPERTY(bool modsSelected READ modsSelected NOTIFY modSelected)
 
   public:
+    enum class ModLoadType : std::uint8_t { Init = 0, GUI, Update };
+
     explicit ModStore(QObject *parent = nullptr);
 
     void setConfig(IConfig *config);
     void setGameMngr(IGameMngr *gameMngr);
 
-    void add(ModEntry::LocalInfo localModInfo);
+    void add(ModEntry::LocalInfo localModInfo, ModLoadType loadType);
     void updateOnline(QStringView id, QJsonObject onlineInfo);
     Q_INVOKABLE void reload();
-    Q_INVOKABLE void load(const QUrl &filePath);
     Q_INVOKABLE void update(const QString &id);
     Q_INVOKABLE void updateAll();
     Q_INVOKABLE void updateSelected();
@@ -67,7 +68,6 @@ class MODSTORE_EXPORT ModStore : public QObject {
     void modAdded(QStringView modId);             // used by modlistmodel
     void modUpdated(QStringView modId);           // used by modlistmodel
     void modsReloading();                         // used by modlistmodel, modloader & imgprovider
-    void modAddedFromGUI(const QUrl &filePath);   // used by modloader
     void modUpdateRequested(const ModEntry &mod); // used by modloader
     void modRemoved(QStringView modId);           // used by modlistmodel & imgprovider
 
@@ -85,6 +85,10 @@ class MODSTORE_EXPORT ModStore : public QObject {
     }
 
     [[nodiscard]] bool modsSelected() const;
+    void addOnInit(ModEntry::LocalInfo localModInfo);
+    void addFromGUI(ModEntry::LocalInfo localModInfo);
+    void updateMod(ModEntry::LocalInfo localModInfo);
+    static void toUniqueFileName(QString &name);
 
     QHash<QString, ModEntry> mMods;
 

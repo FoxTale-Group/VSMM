@@ -149,7 +149,7 @@ VsmmWindow {
             console.log("Sending to C++: " + path)
             console.log("Showing in UI: " + fileName)
 
-            ModStore.load(path)
+            ModLoader.load(path)
             addModWindow.close()
 
         } else {
