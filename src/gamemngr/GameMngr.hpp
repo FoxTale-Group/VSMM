@@ -19,6 +19,7 @@
 #pragma once
 #include <GameMngrExport.hpp>
 #include <IConfig.hpp>
+#include <IGameMngr.hpp>
 #include <QDir>
 #include <QJsonObject>
 #include <QObject>
@@ -31,12 +32,10 @@
 #include <optional>
 
 namespace vsmm {
-class GAMEMNGR_EXPORT GameMngr : public QObject {
+class GAMEMNGR_EXPORT GameMngr : public IGameMngr {
     Q_OBJECT
     QML_NAMED_ELEMENT(GameMngr)
     QML_SINGLETON
-    // empty if the version is unknown
-    Q_PROPERTY(QString gameVersion READ getGameVersionString NOTIFY gameVersionChanged)
 
     const QStringList CLIENT_SETTINGS_VER_SUPPORT = {QStringLiteral("1.16")};
 
@@ -44,14 +43,9 @@ class GAMEMNGR_EXPORT GameMngr : public QObject {
     GameMngr();
     ~GameMngr() override;
     void setConfig(IConfig *config);
-    [[nodiscard]] const QList<QDir> &getModsDirs() const;
-    [[nodiscard]] const std::optional<semver::version<>> &getGameVersion() const;
-    [[nodiscard]] QString getGameVersionString() const;
-    Q_INVOKABLE void launchGame() const;
-
-  signals:
-    void modsDirsChanged();    // used by modstore
-    void gameVersionChanged(); // used by qml
+    [[nodiscard]] const QList<QDir> &getModsDirs() const override;
+    [[nodiscard]] const std::optional<semver::version<>> &getGameVersion() const override;
+    void launchGame() const override;
 
   private:
     void initGameVersion();

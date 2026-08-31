@@ -21,7 +21,7 @@
 #include <ModEntry.hpp>
 #include <ModStore.hpp>
 
-#include <GameMngr.hpp>
+#include <IGameMngr.hpp>
 #include <IHttpClient.hpp>
 #include <ModLoaderExport.hpp>
 
@@ -48,7 +48,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     ModLoader();
     bool initModsList();
     void setHttpClient(IHttpClient *httpClient);
-    void setGameMngr(GameMngr *gameMngr);
+    void setGameMngr(IGameMngr *gameMngr);
     void setStore(ModStore *store);
     void load(QFileInfo &&fileInfo);
 
@@ -72,7 +72,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     [[nodiscard]] static QVariant parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo);
     [[nodiscard]] static QJsonObject createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId);
 
-    GameMngr *mGameMngr{nullptr};
+    IGameMngr *mGameMngr{nullptr};
     ModStore *mStore{nullptr};
     IHttpClient *mHttpClient{nullptr};
     QAtomicInteger<quint32> mModsLoadingInProgress{0};

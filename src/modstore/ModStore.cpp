@@ -46,7 +46,7 @@ void ModStore::setConfig(IConfig *config) {
 
     qCDebug(cModStore, "Config set, %lld favorites loaded", static_cast<long long>(mFavoriteMods.size()));
 }
-void ModStore::setGameMngr(GameMngr *gameMngr) {
+void ModStore::setGameMngr(IGameMngr *gameMngr) {
     if (mGameMngr) {
         qCWarning(cModStore, "GameMngr already set");
         return;
@@ -57,7 +57,7 @@ void ModStore::setGameMngr(GameMngr *gameMngr) {
     }
 
     mGameMngr = gameMngr;
-    connect(mGameMngr, &GameMngr::modsDirsChanged, this, &ModStore::onModsDirChanged);
+    connect(mGameMngr, &IGameMngr::modsDirsChanged, this, &ModStore::onModsDirChanged);
 }
 
 void ModStore::add(ModEntry::LocalInfo localModInfo) {

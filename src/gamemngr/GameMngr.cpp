@@ -70,10 +70,6 @@ const QList<QDir> &GameMngr::getModsDirs() const { return mModsDirs; }
 
 const std::optional<semver::version<>> &GameMngr::getGameVersion() const { return mGameVersion; }
 
-QString GameMngr::getGameVersionString() const {
-    return mGameVersion ? QString::fromStdString(mGameVersion->to_string()) : QString{};
-}
-
 bool GameMngr::setupProcess(QProcess &process, const QStringList &arguments) const {
     const QString gameExePath = mConfig->paths().gameExe;
     if (gameExePath.isEmpty()) {
