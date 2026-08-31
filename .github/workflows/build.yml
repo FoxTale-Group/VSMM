@@ -46,3 +46,42 @@ jobs:
           cmake --build ${{github.workspace}}/build
       - name: Test
         run: ctest --test-dir ${{github.workspace}}/build --output-on-failure --no-tests=error -V
+
+      # The linuxdeploy tools track their "continuous" tag, which is mutable, so the cache
+      # key carries the ISO week: PRs almost always hit the cache, and the tools still get
+      # re-fetched regularly enough to catch an upstream regression here.
+      - name: Tool cache key
+        id: toolkey
+        run: echo "week=$(date -u +%Y-%W)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache AppImage tools
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/vsmm-appimage-tools
+          key: ${{ runner.os }}-linuxdeploy-continuous-${{ steps.toolkey.outputs.week }}
+          restore-keys: |
+            ${{ runner.os }}-linuxdeploy-continuous-
+
+      - name: Build AppImage
+        run: ./scripts/build_appimage.py "${{github.workspace}}/build"
+
+      # A healthy launch never returns, so `timeout` killing it (code 124) is the success
+      # case. Any other code means it aborted during startup, which is how a missing Qt
+      # plugin or QML module shows up: the build succeeds and the app dies on launch.
+      - name: Smoke-test AppImage
+        env:
+          # The runner has no FUSE, and no display.
+          APPIMAGE_EXTRACT_AND_RUN: 1
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          appimage=$(ls "${{github.workspace}}"/build/*.AppImage)
+          echo "launching $appimage"
+          set +e
+          timeout 15 "$appimage"
+          code=$?
+          set -e
+          if [ "$code" -ne 124 ]; then
+            echo "::error::AppImage exited with code $code during startup instead of running"
+            exit 1
+          fi
+          echo "AppImage started and stayed running"
