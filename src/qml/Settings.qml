@@ -3,31 +3,33 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import vsmm
-import "js/StringHelpers.js" as StrUtils
+import VSMMStyle
 
 VsmmWindow {
-    id: _settingsWindow
+    id: settingsWindow
 
     width: 800; height: 600; minimumWidth: 600; minimumHeight: 400;
 
-    windowTitle: qsTr("Settings"); windowIcon: Theme.icons.iSettings;
+    windowTitle: qsTr("Settings"); windowIcon: Theme.icons.settingsIcon;
 
     dialog: true; movable: false; resizable: false;
     modality: Qt.ApplicationModal
 
-    property bool settingsChanged: false
+    // True while any tab holds a value that differs from Config.
+    readonly property bool settingsChanged: generalTab.dirty || configurationTab.dirty || appearanceTab.dirty
 
     ColumnLayout {
         anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20; anchors.topMargin: 5; anchors.bottomMargin: 10;
         spacing: 0
 
-        VsmmTabBar {
+        TabBar {
             id: settingsTabBar
+            Layout.fillWidth: true
 
-            VsmmTabButton { text: qsTr("General")}
-            VsmmTabButton { text: qsTr("Paths")}
-            VsmmTabButton { text: qsTr("Appearance")}
-            //VsmmTabButton { text: qsTr("Advanced")}
+            TabButton { text: qsTr("General") }
+            TabButton { text: qsTr("Configuration") }
+            TabButton { text: qsTr("Appearance") }
+            //TabButton { text: qsTr("Advanced") }
         }
 
         StackLayout {
@@ -37,9 +39,9 @@ VsmmWindow {
 
             currentIndex: settingsTabBar.currentIndex
 
-            SettingsTab_General{ id: generalTab; onSettingsEdited: (edited) => _settingsWindow.settingsChanged = edited}
-            SettingsTab_Paths{ id: pathsTab; onSettingsEdited: (edited) => _settingsWindow.settingsChanged = edited}
-            SettingsTab_Appearance{ id: appearanceTab; onSettingsEdited: (edited) => _settingsWindow.settingsChanged = edited}
+            SettingsTab_General{ id: generalTab }
+            SettingsTab_Configuration{ id: configurationTab }
+            SettingsTab_Appearance{ id: appearanceTab }
             //SettingsTab_Advanced{ id: advancedTab}
         }
 
@@ -51,48 +53,46 @@ VsmmWindow {
 
             LayoutHorizontalSpacer{}
 
-            VsmmButton {
-                text: settingsChanged ? "* " + qsTr("Save") : qsTr("Save")
+            Button {
+                text: qsTr("Save")
 
-                defaultColor: settingsChanged ? Theme.colors.buttonDefault : Theme.colors.buttonInactive
                 enabled: settingsChanged
 
+                defaultColor: Theme.colors.accent
                 display: AbstractButton.TextOnly
                 Layout.preferredHeight: 30
 
                 onClicked: {
-                    _settingsWindow.saveToConfig()
-                    settingsChanged = false
+                    settingsWindow.saveToConfig()
                     console.log("Settings applied")
                 }
             }
 
-            VsmmButton {
-                text: qsTr("Save & Close")
+            Button {
+                text: qsTr("Save && Close")
 
-                defaultColor: settingsChanged ? Theme.colors.buttonDefault : Theme.colors.buttonInactive
                 enabled: settingsChanged
 
+                defaultColor: Theme.colors.accent
                 display: AbstractButton.TextOnly
                 Layout.preferredHeight: 30
 
                 onClicked: {
-                    _settingsWindow.saveToConfig()
+                    settingsWindow.saveToConfig()
                     console.log("Settings applied")
-                    settingsChanged = false
-                    _settingsWindow.close()
+                    settingsWindow.close()
                 }
             }
 
-            VsmmButton {
+            Button {
                 text: qsTr("Close")
 
                 display: AbstractButton.TextOnly
                 Layout.preferredHeight: 30
 
                 onClicked: {
-                    _settingsWindow.resetToCurrentConfig()
-                    _settingsWindow.close()
+                    settingsWindow.resetToCurrentConfig()
+                    settingsWindow.close()
                 }
             }
 
@@ -102,31 +102,25 @@ VsmmWindow {
 
     Component.onCompleted: resetToCurrentConfig()
 
+    // Restores every tab's controls to the persisted values, discarding edits.
     function resetToCurrentConfig() {
-        if(Config) {
-            generalTab.deleteOldModVersion = Config.general.deleteOldModVersion ?? true
-            pathsTab.gameConfigDir = Config.paths.gameConfig ?? ""
-            pathsTab.gameExePath = Config.paths.gameExe ?? ""
-        }
-        settingsChanged = false
+        generalTab.revert();
+        configurationTab.revert();
+        appearanceTab.revert();
     }
 
     function saveToConfig() {
         if(Config) {
-            let generalCfg = Config.general;
-            generalCfg.deleteOldModVersion = generalTab.deleteOldModVersion;
-            Config.general = generalCfg;
+            Config.general.deleteOldModVersion = generalTab.deleteOldModVersion;
+            Config.general.includeModPrerelease = generalTab.includeModPrerelease;
 
-            let pathsCfg = Config.paths;
-            if(!StrUtils.isNullOrWhitespace(pathsTab.gameConfigDir)) {
-                pathsCfg.gameConfig = pathsTab.gameConfigDir
-            }
+            // An empty path is a valid value and is persisted as such.
+            Config.paths.gameConfig = configurationTab.gameConfigDir;
+            Config.paths.gameExe = configurationTab.gameExePath;
 
-            if(!StrUtils.isNullOrWhitespace(pathsTab.gameExePath)) {
-                pathsCfg.gameExe = pathsTab.gameExePath
-            }
+            Config.appearance.accentIndex = appearanceTab.accentIndex;
 
-            Config.paths = pathsCfg;
+            Config.saveToFile();
         }
     }
 }

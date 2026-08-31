@@ -7,14 +7,14 @@ import QtQuick.Effects
 import vsmm
 
 Rectangle {
-    id: _modEntry
+    id: modEntryRoot
     width: modListView.width
     height: 64
     color: "transparent"
 
-    HoverHandler {id: _ModEntryHoverHandler}
+    HoverHandler {id: modEntryHoverHandler}
 
-    // Divider
+    // Divider between every mod entry
     HorizontalDivider {
         anchors.leftMargin: 6; anchors.rightMargin: 16
         visible: index !== modListView.count - 1
@@ -27,8 +27,9 @@ Rectangle {
         spacing: 10
 
         CheckBox {
-            id: _selectForUpdate
+            id: selectForUpdate
             checked: false
+            font.pixelSize: Theme.fonts.body
             Layout.topMargin: 16
             Layout.bottomMargin: 16
             Layout.leftMargin: 0
@@ -36,13 +37,12 @@ Rectangle {
             padding: 0
 
             onCheckedChanged: {
-                // TODO: Implement selecting and saving mod to update queue
-                if (_selectForUpdate.checked) {
-                    console.log(name + " is selected for update")
+                if (selectForUpdate.checked) {
+                    console.log(modName + " is selected for update")
                 } else {
-                    console.log(name + " is not selected for update anymore")
+                    console.log(modName + " is not selected for update anymore")
                 }
-                ModStore.markForUpdate(modid, checked)
+                ModStore.markForUpdate(modId, checked)
             }
         }
 
@@ -58,64 +58,63 @@ Rectangle {
 
                 // Mod Name
                 Label {
-                    text: name
-                    font.pixelSize: 14
-                    font.weight: Font.Medium
+                    text: modName
                     color: Theme.colors.label
+                    font.pixelSize: Theme.fonts.label
                     Layout.maximumWidth: 200
                     elide: Text.ElideRight
                 }
 
                 // Mod Author
                 Label {
-                    text: qsTr("by %1").arg(author)
-                    font.pixelSize: 12
+                    text: qsTr("by %1").arg(modAuthor)
+                    font.pixelSize: Theme.fonts.body
                     color: Theme.colors.labelAlt
                 }
 
                 // Dot divider
                 Label {
                     text: "·"
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.fonts.label
                     color: Theme.colors.labelAlt
                 }
 
                 // Mod version
                 Label {
-                    text: qsTr("v%1").arg(version)
-                    font.pixelSize: 11
+                    text: qsTr("v%1").arg(modVersion)
+                    font.pixelSize: Theme.fonts.body
                     color: Theme.colors.labelVersion
                 }
 
                 // Update available badge
                 Rectangle {
-                    visible: hasUpdate
-                    radius: 6
+                    visible: modHasUpdate
+                    radius: Theme.radius.badge
                     color: Theme.colors.modUpdateBadgeBg
-                    implicitWidth: _updateLabel.width + 16
+                    implicitWidth: updateLabel.width + 16
                     implicitHeight: 18
 
                     Label {
-                        id: _updateLabel
+                        id: updateLabel
                         anchors.centerIn: parent
-                        text: qsTr("v%1 available").arg(latestVersion)
-                        font.pixelSize: 11
+                        text: qsTr("v%1 available").arg(modLatestVersion)
+                        font.pixelSize: Theme.fonts.body
                         color: Theme.colors.modUpdateBadgeText
                     }
                 }
                 // Latest version badge
                 Rectangle {
-                    visible: !hasUpdate
-                    radius: 6
+                    visible: !modHasUpdate
+                    radius: Theme.radius.badge
                     color: Theme.colors.modLatestBadgeBg
-                    implicitWidth: _latestLabel.width + 16
+                    implicitWidth: latestLabel.width + 16
                     implicitHeight: 18
 
                     Label {
-                        id: _latestLabel
+                        id: latestLabel
                         anchors.centerIn: parent
                         text: qsTr("Latest")
-                        font.pixelSize: 11
+                        font.pixelSize: Theme.fonts.body
                         color: Theme.colors.modLatestBadgeText
                     }
                 }
@@ -123,19 +122,19 @@ Rectangle {
 
             // Second Row: Mod Tags
             RowLayout {
-                Layout.maximumWidth: _modEntry.width * 0.7
+                Layout.maximumWidth: modEntryRoot.width * 0.55 // Restricted width of tags section, so mod entry buttons fit within window
                 spacing: 8
                 clip: true
 
                 Repeater {
-                    model: tags
+                    model: modTags
                     delegate: Label {
                         text: modelData
-                        font.pixelSize: 10
+                        font.pixelSize: Theme.fonts.meta
                         color: Theme.colors.modTagText
                         background: Rectangle {
                             color: Theme.colors.modTagBg
-                            radius: 4
+                            radius: Theme.radius.chip
                         }
                         padding: 2
                     }

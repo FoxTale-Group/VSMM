@@ -17,39 +17,62 @@
  */
 
 #pragma once
-#include <Config.hpp>
 #include <GameMngrExport.hpp>
+#include <IConfig.hpp>
+#include <IGameMngr.hpp>
+#include <QDir>
+#include <QJsonObject>
 #include <QObject>
+#include <QProcess>
+#include <QTimer>
 #include <qqmlintegration.h>
 
+#include <semver.hpp>
+
+#include <optional>
+
 namespace vsmm {
-class GAMEMNGR_EXPORT GameMngr : public QObject {
+class GAMEMNGR_EXPORT GameMngr : public IGameMngr {
     Q_OBJECT
     QML_NAMED_ELEMENT(GameMngr)
     QML_SINGLETON
 
-    static constexpr QLatin1StringView CONFIG_GAMEDIR_JSON_KEY{"gameConfig"};
-    static constexpr QLatin1StringView CONFIG_GAMEEXE_JSON_KEY{"gameExe"};
-
     const QStringList CLIENT_SETTINGS_VER_SUPPORT = {QStringLiteral("1.16")};
 
   public:
-    GameMngr() = default;
-    void setConfig(Config *config);
-    [[nodiscard]] const QList<QDir> &getModsDirs() const;
-    Q_INVOKABLE void launchGame() const;
-
-  signals:
-    void modsDirsChanged(); // used by modstore
+    GameMngr();
+    ~GameMngr() override;
+    void setConfig(IConfig *config);
+    [[nodiscard]] const QList<QDir> &getModsDirs() const override;
+    [[nodiscard]] const std::optional<semver::version<>> &getGameVersion() const override;
+    void launchGame() const override;
 
   private:
+    void initGameVersion();
+    bool setupProcess(QProcess &process, const QStringList &arguments) const;
+    bool beginVersionRead();
+    void killVersionProcess();
+    void finishVersionRead(std::optional<semver::version<>> version = {});
+    void notifyModsDirsChanged();
+    void readClientCfg();
     void readModsPaths(const QJsonObject &clientSettings);
     [[nodiscard]] QPair<bool, QString> checkClientSettingsVer(const QJsonObject &clientSettings) const;
 
-    Config *mConfig{nullptr};
+    IConfig *mConfig{nullptr};
     QList<QDir> mModsDirs;
+    std::optional<semver::version<>> mGameVersion;
+    bool mModsDirsParsed{false};
+    bool mModsDirsChangedPending{false};
+
+    // version checking
+    QTimer mVersionTimeout{this};
+    QProcess mVersionProcess{this};
 
   private slots:
     void parseClientCfg();
+    void refreshGameVersion();
+    void onVersionProcessFinished(int errCode, QProcess::ExitStatus exitStatus);
+    void onVersionProcessFailed(QProcess::ProcessError error);
+    void onVersionReadTimeout();
 };
 } // namespace vsmm

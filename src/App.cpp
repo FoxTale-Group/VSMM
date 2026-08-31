@@ -20,13 +20,18 @@
 #include <Config.hpp>
 #include <QCommandLineParser>
 #include <QIcon>
+#include <QLoggingCategory>
+#include <QQuickStyle>
 #include <QStandardPaths>
 #include <constants.hpp>
 #include <qqmlcontext.h>
 
+#include <GameMngr.hpp>
 #include <ModListModel.hpp>
 #include <ModLoader.hpp>
 #include <ModSortFilterModel.hpp>
+
+Q_STATIC_LOGGING_CATEGORY(cApp, "app");
 
 namespace vsmm {
 App::App(int &argc, char *argv[]) : QGuiApplication{argc, argv} {
@@ -40,16 +45,38 @@ App::App(int &argc, char *argv[]) : QGuiApplication{argc, argv} {
     parser.addVersionOption();
     parser.process(*this);
 
+    qCInfo(cApp, "%s %s starting", qUtf8Printable(APP_DISPLAY_NAME), qUtf8Printable(APP_VERSION));
+
     connect(&mQmlEngine, &QQmlApplicationEngine::objectCreationFailed,
-            [](const QUrl &url) { qFatal() << QString("QML object creation failed %1").arg(url.toString()); });
+            [](const QUrl &url) { qCFatal(cApp, "QML object creation failed: %s", qUtf8Printable(url.toString())); });
 
     initQmlEngine();
 }
 
 void App::initQmlEngine() {
+    // Must run before any QML control is created. Controls the VSMMStyle style doesn't
+    // provide (everything except Button, for now) fall back to Basic.
+    QQuickStyle::setStyle("VSMMStyle");
+    QQuickStyle::setFallbackStyle("Basic");
+
     mModImageProvider = new ModImageProvider();
+    mModImageProvider->setHttpClient(&mHttpClient);
     mQmlEngine.addImageProvider("modicon", mModImageProvider);
     mQmlEngine.loadFromModule("vsmm", "Main");
+
+#if defined(Q_OS_LINUX)
+    mQmlEngine.rootContext()->setContextProperty("IS_LINUX", true);
+    mQmlEngine.rootContext()->setContextProperty("IS_WINDOWS", false);
+    mQmlEngine.rootContext()->setContextProperty("IS_MACOS", false);
+#elif defined(Q_OS_WINDOWS)
+    mQmlEngine.rootContext()->setContextProperty("IS_LINUX", false);
+    mQmlEngine.rootContext()->setContextProperty("IS_WINDOWS", true);
+    mQmlEngine.rootContext()->setContextProperty("IS_MACOS", false);
+#elif defined(Q_OS_MACOS)
+    mQmlEngine.rootContext()->setContextProperty("IS_LINUX", false);
+    mQmlEngine.rootContext()->setContextProperty("IS_WINDOWS", false);
+    mQmlEngine.rootContext()->setContextProperty("IS_MACOS", true);
+#endif
 
     auto config = mQmlEngine.singletonInstance<Config *>("vsmm", "Config");
     auto gameMngr = mQmlEngine.singletonInstance<GameMngr *>("vsmm", "GameMngr");
@@ -59,11 +86,13 @@ void App::initQmlEngine() {
     auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmm", "ModListModel");
 
     modListModel->setStore(modStore);
-    modListModel->setModImageProvider(mModImageProvider);
 
     modSortFilterModel->setSourceModel(modListModel);
 
     gameMngr->setConfig(config);
+    if (!gameMngr->getGameVersion()) {
+        qCCritical(cApp, "Game version unknown, update detection is disabled");
+    }
 
     modStore->setConfig(config);
     modStore->setGameMngr(gameMngr);
@@ -72,10 +101,10 @@ void App::initQmlEngine() {
     modLoader->setStore(modStore);
     modLoader->setGameMngr(gameMngr);
 
-    connect(modLoader, &ModLoader::modIconDownloaded, mModImageProvider, &ModImageProvider::onImageReceived);
-    connect(mModImageProvider, &ModImageProvider::imageAdded, modListModel, &ModListModel::iconUpdate);
     connect(modStore, &ModStore::modsReloading, mModImageProvider, &ModImageProvider::onModsReloading);
+    connect(modStore, &ModStore::modRemoved, mModImageProvider, &ModImageProvider::onModRemoved);
 
+    qCDebug(cApp, "Backend wired, validating config");
     config->validate();
 }
 } // namespace vsmm

@@ -18,62 +18,34 @@
 
 #pragma once
 
+#include "ConfigValueTypes.hpp"
 #include <ConfigExport.hpp>
+#include <IConfig.hpp>
 #include <QDir>
 #include <QFile>
 #include <QJsonObject>
-#include <QSaveFile>
 #include <qqmlintegration.h>
 
 namespace vsmm {
-class CONFIG_EXPORT Config : public QObject {
+class CONFIG_EXPORT Config : public IConfig {
     Q_OBJECT
     QML_NAMED_ELEMENT(Config)
     QML_SINGLETON
-    Q_PROPERTY(QVariantHash general READ getGeneral WRITE setGeneral NOTIFY generalChanged)
-    Q_PROPERTY(QVariantHash paths READ getPaths WRITE setPaths NOTIFY pathsChanged)
-    Q_PROPERTY(QVariantHash appearance READ getAppearance WRITE setAppearance NOTIFY appearanceChanged)
-
-    static constexpr QLatin1StringView CONFIG_FILE_NAME{"config.json"};
-    static constexpr QLatin1StringView GENERAL_JSON_KEY{"general"};
-    static constexpr QLatin1StringView APPEARANCE_JSON_KEY{"appearance"};
-    static constexpr QLatin1StringView PATHS_JSON_KEY{"paths"};
 
   public:
-    static constexpr QLatin1StringView DELETE_OLD_VERSION_JSON_KEY{"deleteOldModVersion"};
-
     Config();
     ~Config() override;
-    void validate();
+    void validate() override;
 
-    [[nodiscard]] QString getPath(QLatin1StringView key) const;
+    void setFavorites(QStringList favorites) override;
 
-    template <typename T> [[nodiscard]] T getGeneral(QLatin1StringView key) const {
-        return mConfig[GENERAL_JSON_KEY].toHash()[key].value<T>();
-    }
-    template <typename T> [[nodiscard]] T getAppearance(QLatin1StringView key) const {
-        return mConfig[APPEARANCE_JSON_KEY].toHash()[key].value<T>();
-    }
+    void setGeneral(const GeneralSettings &data) override;
+    void setPaths(const PathSettings &data) override;
+    void setAppearance(const AppearanceSettings &data) override;
 
-  signals:
-    void generalChanged();    // NOTIFY config — QML bindings only
-    void pathsChanged();      // NOTIFY config — QML bindings only
-    void appearanceChanged(); // NOTIFY config — QML bindings only
-
-    void gameConfigPathChanged(); // used by gamemngr
+    Q_INVOKABLE void saveToFile() const;
 
   private:
-    [[nodiscard]] QVariantHash getGeneral() const;
-    [[nodiscard]] QVariantHash getPaths() const;
-    [[nodiscard]] QVariantHash getAppearance() const;
-
-    void setGeneral(const QVariantHash &data);
-    void setPaths(const QVariantHash &data);
-    void setAppearance(const QVariantHash &data);
-
-    void saveToFile() const;
-    QVariantHash mConfig;
     QFile mConfigFile;
-    bool mConfigReady{false};
 };
 } // namespace vsmm

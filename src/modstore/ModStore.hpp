@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <Config.hpp>
-#include <GameMngr.hpp>
+#include <IConfig.hpp>
+#include <IGameMngr.hpp>
 #include <ModEntry.hpp>
 #include <ModStoreExport.hpp>
 
@@ -35,21 +35,25 @@ class MODSTORE_EXPORT ModStore : public QObject {
     Q_PROPERTY(int installedModsCount READ modsCount NOTIFY modsChanged)
     Q_PROPERTY(int updatesCount READ modUpdatesCount NOTIFY modsChanged)
     Q_PROPERTY(bool workPending READ isWorkPending NOTIFY workChanged)
+    Q_PROPERTY(bool modsSelected READ modsSelected NOTIFY modSelected)
 
   public:
+    enum class ModLoadType : std::uint8_t { Init = 0, GUI, Update };
+
     explicit ModStore(QObject *parent = nullptr);
 
-    void setConfig(Config *config);
-    void setGameMngr(GameMngr *gameMngr);
+    void setConfig(IConfig *config);
+    void setGameMngr(IGameMngr *gameMngr);
 
-    void add(ModEntry::LocalInfo localModInfo);
+    void add(ModEntry::LocalInfo localModInfo, ModLoadType loadType);
     void updateOnline(QStringView id, QJsonObject onlineInfo);
     Q_INVOKABLE void reload();
-    Q_INVOKABLE void load(const QUrl &filePath);
     Q_INVOKABLE void update(const QString &id);
     Q_INVOKABLE void updateAll();
     Q_INVOKABLE void updateSelected();
     Q_INVOKABLE void markForUpdate(const QString &id, bool marked);
+    Q_INVOKABLE void setFavorite(const QString &id, bool favorite);
+    Q_INVOKABLE void remove(const QString &id);
 
     [[nodiscard]] bool contains(const QString &id) const;
     [[nodiscard]] const ModEntry *find(const QString &id) const;
@@ -58,13 +62,14 @@ class MODSTORE_EXPORT ModStore : public QObject {
     [[nodiscard]] bool isWorkPending() const;
 
   signals:
+    void modSelected();                           // NOTIFY modsSelected — QML bindings only
     void modsChanged();                           // NOTIFY installedModsCount/updatesCount — QML bindings only
     void workChanged();                           // NOTIFY workPending — QML bindings only
-    void modAdded(const ModEntry &mod);           // used by modlistmodel
-    void modUpdated(const ModEntry &mod);         // used by modlistmodel
+    void modAdded(QStringView modId);             // used by modlistmodel
+    void modUpdated(QStringView modId);           // used by modlistmodel
     void modsReloading();                         // used by modlistmodel, modloader & imgprovider
-    void modAddedFromGUI(const QUrl &filePath);   // used by modloader
     void modUpdateRequested(const ModEntry &mod); // used by modloader
+    void modRemoved(QStringView modId);           // used by modlistmodel & imgprovider
 
   public slots:
     void onModsReloaded();
@@ -79,12 +84,19 @@ class MODSTORE_EXPORT ModStore : public QObject {
         emit modsChanged();
     }
 
+    [[nodiscard]] bool modsSelected() const;
+    void addOnInit(ModEntry::LocalInfo localModInfo);
+    void addFromGUI(ModEntry::LocalInfo localModInfo);
+    void updateMod(ModEntry::LocalInfo localModInfo);
+    static void toUniqueFileName(QString &name);
+
     QHash<QString, ModEntry> mMods;
 
     // either update happening or mods are being reloaded
     bool mWorkPending{true};
 
-    Config *mConfig{nullptr};
-    GameMngr *mGameMngr{nullptr};
+    IConfig *mConfig{nullptr};
+    IGameMngr *mGameMngr{nullptr};
+    QSet<QString> mFavoriteMods;
 };
 } // namespace vsmm

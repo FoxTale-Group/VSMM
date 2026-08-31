@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 4.3)
+cmake_minimum_required(VERSION 4.2)
 set(VSMM_RELEASE_VERSION "0.2.0-alpha.2" CACHE STRING "Project version" FORCE)
 project(VSMM
-        DESCRIPTION "Mod Checker For Vintage Story"
+        DESCRIPTION "Mod Manager For Vintage Story"
         HOMEPAGE_URL "https://github.com/FoxTale-Group/VSMM"
         LANGUAGES CXX)
 set(APP_DISPLAY_NAME "Vintage Story Mod Manager")
@@ -14,18 +14,27 @@ endif ()
 find_package(libzip CONFIG REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Core Quick Qml Network QuickControls2)
 
+# Emit .qmlls.ini next to the QML sources, pointing the QML Language Server at this build
+# directory. Without it qmlls cannot find the generated qmldir/.qmltypes and silently
+# returns ZERO completions -- no autocompletion for Theme.colors.*, VSMMStyle types, or any
+# of the C++-backed singletons. The generated files hold absolute paths, so they are
+# gitignored.
+set(QT_QML_GENERATE_QMLLS_INI ON)
+
 qt_standard_project_setup()
 
 include(FetchContent)
 FetchContent_Declare(
-        cpp-semver
-        GIT_REPOSITORY https://github.com/z4kn4fein/cpp-semver.git
-        GIT_TAG v0.4.0)
-FetchContent_MakeAvailable(cpp-semver)
+        semver
+        GIT_REPOSITORY https://github.com/Neargye/semver.git
+        GIT_TAG v1.0.0)
+FetchContent_MakeAvailable(semver)
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     add_compile_definitions(DEBUG)
 endif()
 
+include(CTest)
+set(CMAKE_CTEST_ARGUMENTS -V)
 set(CMAKE_INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/vsmm")
 add_subdirectory(src bin)

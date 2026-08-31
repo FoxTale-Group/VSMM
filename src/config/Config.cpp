@@ -21,13 +21,16 @@
 #include <QDir>
 #include <QJsonArray>
 #include <QLoggingCategory>
+#include <QSaveFile>
 #include <QStandardPaths>
 
 Q_STATIC_LOGGING_CATEGORY(cConfig, "config");
 
 namespace vsmm {
 Config::Config() {
-    QDir().mkdir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
+    if (!QDir().mkpath(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation))) {
+        qCWarning(cConfig, "Could not create config directory");
+    }
     mConfigFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + QDir::separator() +
                             CONFIG_FILE_NAME.toString());
 
@@ -40,7 +43,7 @@ Config::Config() {
     QJsonDocument jsonDoc = QJsonDocument::fromJson(mConfigFile.readAll(), &jsonError);
 
     if (jsonError.error != QJsonParseError::NoError) {
-        qCFatal(cConfig) << jsonError.errorString();
+        qCFatal(cConfig, "Config file is not valid JSON: %s", qUtf8Printable(jsonError.errorString()));
         return;
     }
 
@@ -50,59 +53,70 @@ Config::Config() {
         return;
     }
 
-    mConfig = jsonDoc.object().toVariantHash();
+    auto config = jsonDoc.object().toVariantHash();
+    if (!config[GeneralSettings::KEY_NAME].isNull() && config[GeneralSettings::KEY_NAME].isValid()) {
+        mGeneral = GeneralSettings::fromHash(config[GeneralSettings::KEY_NAME].toHash());
+    }
+    if (!config[PathSettings::KEY_NAME].isNull() && config[PathSettings::KEY_NAME].isValid()) {
+        mPaths = PathSettings::fromHash(config[PathSettings::KEY_NAME].toHash());
+    }
+    if (!config[AppearanceSettings::KEY_NAME].isNull() && config[AppearanceSettings::KEY_NAME].isValid()) {
+        mAppearance = AppearanceSettings::fromHash(config[AppearanceSettings::KEY_NAME].toHash());
+    }
+    if (!config[FAVORITES_KEY_NAME].isNull() && config[FAVORITES_KEY_NAME].isValid()) {
+        mFavorites = config[FAVORITES_KEY_NAME].toStringList();
+    }
+
+    qCInfo(cConfig, "Config loaded");
 }
 
 Config::~Config() { saveToFile(); }
 
-QString Config::getPath(QLatin1StringView key) const { return mConfig[PATHS_JSON_KEY].toHash()[key].toString(); }
+void Config::setFavorites(QStringList favorites) {
+    mFavorites = std::move(favorites);
+    saveToFile();
+    qCDebug(cConfig, "Favorites set to %s", qUtf8Printable(mFavorites.join(QStringLiteral(", "))));
+}
 
-QVariantHash Config::getGeneral() const { return mConfig[GENERAL_JSON_KEY].toHash(); }
-QVariantHash Config::getPaths() const { return mConfig[PATHS_JSON_KEY].toHash(); }
-QVariantHash Config::getAppearance() const { return mConfig[APPEARANCE_JSON_KEY].toHash(); }
-
-void Config::setGeneral(const QVariantHash &data) {
-    if (mConfig[GENERAL_JSON_KEY].toHash() == data) {
+void Config::setGeneral(const GeneralSettings &data) {
+    if (general() == data) {
         return;
     }
-
-    mConfig[GENERAL_JSON_KEY] = QVariant::fromValue(data);
-    saveToFile();
+    mGeneral = data;
     emit generalChanged();
-    qCDebug(cConfig) << "emitted generalChanged";
+    qCInfo(cConfig, "General settings changed");
 }
 
-void Config::setPaths(const QVariantHash &data) {
-    using namespace Qt::StringLiterals;
-    constexpr QLatin1StringView CONFIG_DIR_KEY_NAME{"gameConfig"};
-
-    if (mConfig[PATHS_JSON_KEY].toHash() == data) {
+void Config::setPaths(const PathSettings &data) {
+    const PathSettings oldPaths = paths();
+    if (oldPaths == data) {
         return;
     }
 
-    const QDir oldConfigDir = getPath(CONFIG_DIR_KEY_NAME);
-
-    mConfig[PATHS_JSON_KEY] = QVariant::fromValue(data);
-    saveToFile();
+    mPaths = data;
     emit pathsChanged();
-    qCDebug(cConfig) << "emitted pathsChanged";
 
-    // Check if config dir path changed
-    if (oldConfigDir != mConfig[PATHS_JSON_KEY].toHash()[CONFIG_DIR_KEY_NAME].toString()) {
-        emit gameConfigPathChanged();
-        qCDebug(cConfig) << "emitted gameConfigPathChanged";
+    if (oldPaths.gameExe != data.gameExe) {
+        emit gameExePathChanged();
+        qCDebug(cConfig, "Game exe path changed");
     }
+
+    if (oldPaths.gameConfig != data.gameConfig) {
+        emit gameConfigPathChanged();
+        qCDebug(cConfig, "Game config path changed");
+    }
+
+    qCInfo(cConfig, "Paths settings changed");
 }
 
-void Config::setAppearance(const QVariantHash &data) {
-    if (mConfig[APPEARANCE_JSON_KEY].toHash() == data) {
+void Config::setAppearance(const AppearanceSettings &data) {
+    if (appearance() == data) {
         return;
     }
 
-    mConfig[APPEARANCE_JSON_KEY] = QVariant::fromValue(data);
-    saveToFile();
+    mAppearance = data;
     emit appearanceChanged();
-    qCDebug(cConfig) << "emitted appearanceChanged";
+    qCInfo(cConfig, "Appearance settings changed");
 }
 
 void Config::saveToFile() const {
@@ -111,27 +125,24 @@ void Config::saveToFile() const {
         qCWarning(cConfig, "Failed to open config file for writing");
         return;
     }
-    newConfigFile.write(QJsonDocument(QJsonObject::fromVariantHash(mConfig)).toJson());
+    QVariantHash configHash;
+    configHash[GeneralSettings::KEY_NAME] = mGeneral.toHash();
+    configHash[PathSettings::KEY_NAME] = mPaths.toHash();
+    configHash[AppearanceSettings::KEY_NAME] = mAppearance.toHash();
+    configHash[FAVORITES_KEY_NAME] = mFavorites;
+    newConfigFile.write(QJsonDocument(QJsonObject::fromVariantHash(configHash)).toJson());
     if (!newConfigFile.commit()) {
         qCWarning(cConfig, "Failed to write config file");
         return;
     }
-    qCInfo(cConfig, "Config saved");
+    qCInfo(cConfig, "Config saved to file");
 }
 
 void Config::validate() {
     using namespace Qt::StringLiterals;
 
-    if (!mConfig[GENERAL_JSON_KEY].isValid() || mConfig[GENERAL_JSON_KEY].isNull() ||
-        !mConfig[GENERAL_JSON_KEY].canConvert<QVariantHash>()) {
-        qCCritical(cConfig, "VSMM config is not a valid");
-        return;
-    }
-
-    auto general = mConfig[PATHS_JSON_KEY].toHash();
-    auto configGamePath = general["gameConfig"_L1].toString();
-    QDir configGameDir{configGamePath};
-    if (configGamePath.isEmpty() || !configGameDir.exists()) {
+    const auto &configGamePath = mPaths.gameConfig;
+    if (const QDir configGameDir{configGamePath}; configGamePath.isEmpty() || !configGameDir.exists()) {
         qCCritical(cConfig, "Config game path does not exist");
         return;
     }
@@ -140,7 +151,7 @@ void Config::validate() {
     emit appearanceChanged();
     emit pathsChanged();
     emit gameConfigPathChanged();
-    qCDebug(cConfig) << "emitted QML signals & gameConfigPathChanged";
+    qCInfo(cConfig, "Config validated");
 }
 
 } // namespace vsmm

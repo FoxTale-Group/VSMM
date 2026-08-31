@@ -5,11 +5,13 @@ import QtQuick.Layouts
 import QtQuick.Controls.impl
 import QtQuick.Effects
 import vsmm
+import VSMMStyle
 
 RowLayout {
     spacing: 2
+    Layout.rightMargin: 8
     clip: true
-    opacity: _ModEntryHoverHandler.hovered ? 1.0 : 0.0
+    opacity: modEntryHoverHandler.hovered ? 1.0 : 0.0
     visible: opacity > 0
 
     Behavior on opacity {
@@ -19,75 +21,73 @@ RowLayout {
         }
     }
 
-    VsmmModEntryButton {
-        icon.source: Theme.icons.iDownloadOne
+    Button {
+        modEntry: true
+        icon.source: Theme.icons.downloadOneIcon
 
         Layout.preferredHeight: 35
         Layout.preferredWidth: 35
 
-        tooltipText: hasUpdate ? qsTr("Download update for '%1'").arg(name) : ""
+        tooltipText: modHasUpdate ? qsTr("Download update for '%1'").arg(modName) : ""
 
+        // Shaded from the update role's base rather than from `defaultColor`, which is
+        // transparent here and so has nothing to derive from.
         defaultColor: "transparent"
-        hoverColor: hasUpdate ? Theme.colors.buttonUpdateHover : "transparent"
-        pressColor: hasUpdate ? Theme.colors.buttonUpdatePress : "transparent"
+        hoverColor: modHasUpdate ? Theme.shade(Theme.colors.buttonUpdate, Theme.hoverShade) : "transparent"
+        pressColor: modHasUpdate ? Theme.shade(Theme.colors.buttonUpdate, Theme.pressShade) : "transparent"
 
-        iconColor: hasUpdate ? Theme.colors.buttonUpdateLabel : Theme.colors.labelVersion
+        iconColor: modHasUpdate ? Theme.colors.buttonUpdateLabel : Theme.colors.labelVersion
 
-        enabled: hasUpdate
+        enabled: modHasUpdate
 
         onClicked: {
-            console.log("Updating mod" + name)
-            ModStore.update(modid)
+            console.log("Updating mod" + modName)
+            ModStore.update(modId)
         }
     }
 
-    VsmmModEntryButton {
-        icon.source: Theme.icons.iCheckUpdate
+
+    Button {
+        modEntry: true
+
+        icon.source: isFavoriteMod ? Theme.icons.favoriteFilledIcon : Theme.icons.favoriteIcon
+        iconColor: isFavoriteMod ? Theme.colors.modFavButton : Theme.colors.icon
 
         Layout.preferredHeight: 35
         Layout.preferredWidth: 35
 
-        tooltipText: qsTr("Check update for '%1'").arg(name)
+        tooltipText: !isFavoriteMod ? qsTr("Add '%1' to favorites").arg(modName) : qsTr("Remove '%1' from favorites").arg(modName)
 
         onClicked: {
-            // TODO: Implement check for update for single mod
-            console.log("Checking update for " + name)
+            if (!isFavoriteMod) {
+                console.info("Added '" + modName + "' to favorites")
+            } else {
+                console.info("Removed '" + modName + "' from favorites")
+            }
+            ModStore.setFavorite(modId, !isFavoriteMod);
         }
     }
 
-    VsmmModEntryButton {
-        property bool favorited: false
+    Button {
+        modEntry: true
 
-        icon.source: favorited ? Theme.icons.iFavoriteFilled : Theme.icons.iFavorite
-        iconColor: favorited ? Theme.colors.modFavButton : Theme.colors.icon
+        icon.source: Theme.icons.openLinkIcon
 
         Layout.preferredHeight: 35
         Layout.preferredWidth: 35
 
-        tooltipText: qsTr("Add '%1' to favorites").arg(name)
+        tooltipText: qsTr("Open '%1' mod page").arg(modName)
 
         onClicked: {
-            favorited = !favorited
-            console.log("Added '" + name + "' to favorites")
+            console.info("Opening " + modName + " modpage: " + modUrl)
+            Qt.openUrlExternally(modUrl)
         }
     }
 
-    VsmmModEntryButton {
-        icon.source: Theme.icons.iOpenLink
+    Button {
+        modEntry: true
 
-        Layout.preferredHeight: 35
-        Layout.preferredWidth: 35
-
-        tooltipText: qsTr("Open '%1' mod page").arg(name)
-
-        onClicked: {
-            console.info("Opening " + name + " modpage: " + url)
-            Qt.openUrlExternally(url)
-        }
-    }
-
-    VsmmModEntryButton {
-        icon.source: Theme.icons.iDelete
+        icon.source: Theme.icons.deleteIcon
         iconColor: Theme.colors.modDelButtonIcon
 
         Layout.leftMargin: 5
@@ -95,14 +95,14 @@ RowLayout {
         Layout.preferredHeight: 35
         Layout.preferredWidth: 35
 
-        tooltipText: qsTr("Delete mod '%1'").arg(name)
+        tooltipText: qsTr("Delete mod '%1'").arg(modName)
 
         hoverColor: Theme.colors.modDelButtonHover
         pressColor: Theme.colors.modDelButtonPress
 
         onClicked: {
-            console.info("Deleting " + name)
-            // TODO: Implement mod deleting functionality
+            console.info("Deleting " + modName)
+            ModStore.remove(modId)
         }
     }
 }

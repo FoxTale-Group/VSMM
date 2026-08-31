@@ -11,6 +11,10 @@ on:
           - beta
           - rc
           - stable
+      version:
+        description: 'Override version (e.g. v0.3.0-alpha.1)'
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
@@ -26,6 +30,7 @@ jobs:
           fetch-depth: 0
       - name: Get Next Version
         id: semver
+        if: inputs.version == ''
         uses: ietf-tools/semver-action@v1.11.0
         with:
           token: ${{ github.token }}
@@ -36,11 +41,27 @@ jobs:
           noVersionBumpBehavior: 'current'
           skipInvalidTags: true
           maxTagsToFetch: '30'
-          scopeList: 'ui,controls,theme,modlist,loader,store,network,search,settings,backend,gamemngr'
+          scopeList: 'ui,controls,theme,modlist,loader,store,network,search,settings,backend,gamemngr,zip,imgprovider'
+          patchList: 'fix, bugfix, perf, refactor, test, tests, deps'
       - name: Determine release channel
         id: channel
+        env:
+          OVERRIDE: ${{ inputs.version }}
         run: |
-          if [ "${{ inputs.releaseType }}" = "stable" ]; then
+          if [ -n "${OVERRIDE}" ]; then
+            if ! printf '%s' "${OVERRIDE}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$'; then
+              echo "::error::Invalid version override '${OVERRIDE}'"
+              exit 1
+            fi
+            if git rev-parse -q --verify "refs/tags/${OVERRIDE}" >/dev/null; then
+              echo "::error::Tag ${OVERRIDE} already exists"
+              exit 1
+            fi
+            case "${OVERRIDE}" in *-*) isPre=true ;; *) isPre=false ;; esac
+            echo "isPrerelease=$isPre" >> "$GITHUB_OUTPUT"
+            echo "version=${OVERRIDE}" >> "$GITHUB_OUTPUT"
+            echo "versionStrict=${OVERRIDE#v}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ inputs.releaseType }}" = "stable" ]; then
             echo "isPrerelease=false" >> "$GITHUB_OUTPUT"
             echo "version=${{ steps.semver.outputs.next }}" >> "$GITHUB_OUTPUT"
             echo "versionStrict=${{ steps.semver.outputs.nextStrict }}" >> "$GITHUB_OUTPUT"
@@ -53,7 +74,7 @@ jobs:
             echo "versionStrict=${{ steps.semver.outputs.nextStrict }}-${{ inputs.releaseType }}.${releaseNum}" >> "$GITHUB_OUTPUT"
           fi
     outputs:
-      bumpVersion: ${{ steps.semver.outputs.bump }}
+      bumpVersion: ${{ inputs.version != '' && 'override' || steps.semver.outputs.bump }}
       releaseVersion: ${{ steps.channel.outputs.version }} # with v prefix
       releaseVersionStrict: ${{ steps.channel.outputs.versionStrict }} # without v prefix
       isPrerelease: ${{ steps.channel.outputs.isPrerelease }}

@@ -14,10 +14,10 @@ Rectangle {
     Layout.rightMargin: 0
     implicitWidth: 40
     implicitHeight: 40
-    radius: 8
+    radius: Theme.radius.card
     color: Theme.colors.modIconBg
 
-    property string coverUrl: modicon
+    property string coverUrl: modThumbnail
 
     // Fallback icon with background
     Rectangle {
@@ -29,7 +29,7 @@ Rectangle {
 
         IconImage {
             id: fallbackIcon
-            source: Theme.icons.iExtension
+            source: Theme.icons.extensionIcon
             color: Theme.colors.icon
             anchors.fill: parent
             anchors.margins: 4
@@ -48,7 +48,7 @@ Rectangle {
         layer.enabled: true
     }
 
-    // Mod icon from icon provider
+    // Mod icon from icon provider, masked through its own layer effect
     Image {
         id: mainImage
         source: modIcon.coverUrl
@@ -57,20 +57,18 @@ Rectangle {
         asynchronous: true
         sourceSize.width: modIcon.width
         sourceSize.height: modIcon.height
-        visible: false          // drawn through the effect below
-        layer.enabled: true     // keeps its texture realized even while hidden
-    }
-
-    // LAYER 2: Icon cropped to the rounded mask, shown only when ready
-    MultiEffect {
-        anchors.fill: parent
-        source: mainImage
-        maskEnabled: true
-        maskSource: maskTemplate
         visible: mainImage.status === Image.Ready
+
+        // layer.effect, not a sibling MultiEffect: the item stays visible, so its node keeps
+        // updating and a late-arriving image is not stuck at the texture captured on realization
+        layer.enabled: mainImage.status === Image.Ready
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            maskSource: maskTemplate
+        }
     }
 
-    // LAYER 3: Icon image border
+    // Icon image border
     Rectangle {
         color: "transparent"
         anchors.fill: parent

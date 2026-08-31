@@ -1,13 +1,15 @@
 project(Config VERSION 1.0)
 include(GenerateExportHeader)
 
-set(SOURCES Config.cpp Config.hpp)
+set(SOURCES Config.cpp Config.hpp
+        ConfigValueTypes.hpp)
 qt_add_library(${PROJECT_NAME} SHARED ${SOURCES})
+add_dependencies(${PROJECT_NAME} Interfaces)
 
 target_include_directories(${PROJECT_NAME}
                             PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
                             INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Core Qt6::Quick Qt6::Qml)
+target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Core Qt6::Quick Qt6::Qml Interfaces)
 qt_add_qml_module(${PROJECT_NAME}
         URI ${PROJECT_NAME}
         VERSION ${PROJECT_VERSION}

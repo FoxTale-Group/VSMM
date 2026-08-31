@@ -19,12 +19,13 @@
 #pragma once
 
 #include <HttpClientExport.hpp>
+#include <IHttpClient.hpp>
 #include <QNetworkAccessManager>
 #include <QNetworkDiskCache>
 #include <QThreadPool>
 
 namespace vsmm {
-class HTTPCLIENT_EXPORT HttpClient : public QObject {
+class HTTPCLIENT_EXPORT HttpClient : public QObject, public IHttpClient {
     Q_OBJECT
 
     static constexpr auto MAX_RETRIES{3u};
@@ -33,17 +34,15 @@ class HTTPCLIENT_EXPORT HttpClient : public QObject {
     static constexpr std::chrono::milliseconds MAX_BACKOFF{10'000};
 
   public:
-    using SuccessFn = std::function<void(QByteArray)>;
-    using FailedFn = std::function<void(const QString &)>;
-
     explicit HttpClient(QObject *parent = nullptr);
+    ~HttpClient() override = default;
     void sendGet(const QUrl &url, QObject *context, const QString &contentType, SuccessFn successFn,
-                 FailedFn failedFn = nullptr);
+                 FailedFn failedFn) override;
 
   private:
     void sendGetImpl(const QUrl &url, QObject *context, const QString &contentType, SuccessFn successFn,
                      FailedFn failedFn = nullptr, uint retryCount = 0);
-    [[nodiscard]] static bool shouldRetry(const QNetworkReply *reply, const QString &contentType, uint retryCount);
+    [[nodiscard]] static bool shouldRetry(const QNetworkReply *reply, uint retryCount);
     [[nodiscard]] static std::chrono::milliseconds backoffDelay(const QNetworkReply *reply, uint retryCount);
 
     QNetworkAccessManager mNetworkManager;

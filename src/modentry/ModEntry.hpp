@@ -21,7 +21,7 @@
 #include <ModEntryExport.hpp>
 #include <QFileInfo>
 #include <QJsonObject>
-#include <semver/semver.hpp>
+#include <semver.hpp>
 
 namespace vsmm {
 
@@ -29,17 +29,17 @@ class MODENTRY_EXPORT ModEntry {
   public:
     struct LatestVersion {
         QUrl mUrl;
-        semver::version mVersion;
+        semver::version<> mVersion;
         QString mFileName;
         QStringList mSupportedVersions;
         bool mHasUpdate{false};
     };
     struct LocalInfo {
         QString mName, mId, mAuthor;
-        semver::version mVersion{};
+        semver::version<> mVersion{};
         QFileInfo mFileInfo;
         [[nodiscard]] QString toString() const {
-            return QStringLiteral("%1@%2").arg(mId).arg(QString::fromStdString(mVersion.str()));
+            return QStringLiteral("%1@%2").arg(mId).arg(QString::fromStdString(mVersion.to_string()));
         }
 
         // ReSharper disable once CppNonExplicitConversionOperator
@@ -53,44 +53,55 @@ class MODENTRY_EXPORT ModEntry {
     // ReSharper disable once CppNonExplicitConversionOperator
     operator QString() const { return toString(); }
 
-    [[nodiscard]] QAnyStringView getId() const;
-    [[nodiscard]] QAnyStringView getName() const;
-    [[nodiscard]] QAnyStringView getAuthor() const;
-    [[nodiscard]] const semver::version &getVersion() const;
+    [[nodiscard]] QStringView getId() const;
+    [[nodiscard]] QStringView getName() const;
+    [[nodiscard]] QStringView getAuthor() const;
+    [[nodiscard]] const semver::version<> &getVersion() const;
     [[nodiscard]] const QFileInfo &getFileInfo() const;
     [[nodiscard]] bool isMarkedForUpdate() const;
+    [[nodiscard]] bool isFavorite() const;
     void setMarkedForUpdate(bool marked);
+    void setFavorite(bool favorite);
 
-    void initOnlineInfo(QJsonObject json);
+    void initOnlineInfo(QJsonObject json, const semver::version<> &gameVersion, bool cfgIncludePrerelease);
 
     // Online
     [[nodiscard]] const QUrl &getUrl() const;
     [[nodiscard]] const LatestVersion &getLatestVersion() const;
     [[nodiscard]] const QStringList &getTags() const;
-    [[nodiscard]] QAnyStringView getType() const;
+    [[nodiscard]] QStringView getType() const;
     [[nodiscard]] bool hasUpdate() const;
+    [[nodiscard]] const QUrl &getLogoUrl() const;
 
   private:
+    static constexpr QLatin1StringView ONLINE_LOGOFILE_JSON_KEY{"logofile"};
+
     struct OnlineInfo {
         QString mName, mAuthor, mType;
         QStringList mTags;
         QUrl mUrl;
         LatestVersion mLatestVersion;
+        QUrl mLogoUrl;
     };
 
     void initName(const QJsonObject &json);
-    void initLatestRelease(const QJsonObject &json);
+    void initLatestRelease(const QJsonObject &json, const semver::version<> &gameVersion, bool cfgIncludePrerelease);
     void initAuthor(const QJsonObject &json);
     void initTags(const QJsonObject &json);
     void initModUrl(const QJsonObject &json);
     void initType(const QJsonObject &json);
+    void initLogoUrl(const QJsonObject &json);
+
+    [[nodiscard]] QPair<QJsonObject, semver::version<>>
+    getLatestVersion(QJsonArray releases, const semver::version<> &gameVersion, bool cfgIncludePrerelease) const;
 
     QString mName;
-    semver::version mVersion;
+    semver::version<> mVersion;
     QString mAuthor;
     QString mModId;
     QFileInfo mFileInfo;
     OnlineInfo mOnlineInfo;
     bool mMarkedForUpdate{false};
+    bool mFavorite{false};
 };
 } // namespace vsmm
