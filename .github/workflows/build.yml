@@ -1,7 +1,7 @@
 name: Build Linux & Test
 on:
   pull_request:
-    branches: [main, next]
+
   # Caches are scoped by ref: a PR reads its base branch's cache but never another PR's.
   # Without a run on push, main and next hold no cache and every PR starts cold.
   push:
