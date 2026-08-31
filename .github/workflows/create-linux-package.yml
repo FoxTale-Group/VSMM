@@ -22,14 +22,17 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y ninja-build qt6-{base,declarative}-dev libzip-dev
+
       - name: Fetch repository
         uses: actions/checkout@v7
         with:
           ref: ${{ github.ref_name }}
+
       - name: Update project version in CMakeLists.txt
         run: |
           version='${{ inputs.version }}'
           sed -i -E "s/(set\(VSMM_RELEASE_VERSION )\"[^\"]*\"/\1\"${version}\"/" CMakeLists.txt
+
       - name: Configure
         id: configure
         run: |
@@ -37,10 +40,44 @@ jobs:
           cmake -B ${{ env.BUILD_DIR }} -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" -DCMAKE_GENERATOR=Ninja -DBUILD_TESTING=OFF
         env:
           BUILD_DIR: '${{ github.workspace }}/build'
+
       - name: Build & Package
         run: |
           cmake --build ${{ steps.configure.outputs.buildDir }}
           cd ${{ steps.configure.outputs.buildDir }} && ninja package && cd ${{ github.workspace }}
+
+      # Build AppImage. 
+      # The script downloads linuxdeploy itself, so nothing has to be installed beforehand. 
+      # linuxdeploy writes to the build directory root; move it next to the CPack output 
+      # so every package shares one directory and the uploaded artifact stays flat.
+      - name: Build AppImage
+        run: |
+          ./scripts/build_appimage.py "${{ steps.configure.outputs.buildDir }}"
+          mv "${{ steps.configure.outputs.buildDir }}"/*.AppImage \
+             "${{ steps.configure.outputs.buildDir }}/pkg/"
+
+      # Catch a bundle that is missing a Qt plugin or QML module. Those failures do not show
+      # up at build time: the AppImage is produced successfully and then aborts on launch.
+      - name: Smoke-test AppImage
+        env:
+          # The runner has no FUSE, and no display.
+          APPIMAGE_EXTRACT_AND_RUN: 1
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          appimage=$(ls "${{ steps.configure.outputs.buildDir }}"/pkg/*.AppImage)
+          echo "launching $appimage"
+          # A healthy run never exits on its own, so `timeout` killing it after 15s (code
+          # 124) is the success case. Any other code means it died during startup.
+          set +e
+          timeout 15 "$appimage"
+          code=$?
+          set -e
+          if [ "$code" -ne 124 ]; then
+            echo "::error::AppImage exited with code $code during startup instead of running"
+            exit 1
+          fi
+          echo "AppImage started and stayed running"
+
       - name: Upload packages
         uses: actions/upload-artifact@v7
         with:
@@ -50,5 +87,6 @@ jobs:
             ${{ steps.configure.outputs.buildDir }}/pkg/*.tar.gz
             ${{ steps.configure.outputs.buildDir }}/pkg/*.deb
             ${{ steps.configure.outputs.buildDir }}/pkg/*.rpm
+            ${{ steps.configure.outputs.buildDir }}/pkg/*.AppImage
           if-no-files-found: error
           retention-days: 1

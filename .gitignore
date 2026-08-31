@@ -77,6 +77,11 @@ Testing/
 # build dir, so the contents are absolute paths specific to each developer's machine.
 .qmlls.ini
 
-build_and_run.sh
-run.sh
-package.sh
+# python scripts cache
+scripts/__pycache__
+
+# dev scripts
+scripts/dev.py
+scripts/dev.sh
+scripts/package.sh
+scripts/build-debug.sh
