@@ -1,4 +1,4 @@
-name: Build Linux & Test
+name: Linux
 on:
   pull_request:
 
@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   build-linux:
+    name: Build
     runs-on: ubuntu-26.04
     steps:
       - name: Install dependencies
@@ -44,8 +45,50 @@ jobs:
       - name: Build
         run: |
           cmake --build ${{github.workspace}}/build
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: 'linux-build'
+          path: ${{github.workspace}}/build
+          if-no-files-found: 'error'
+          retention-days: 1
+
+  test-linux:
+    needs: build-linux
+    runs-on: ubuntu-26.04
+    name: Test
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y libzip-dev qt6-{base,declarative}-dev
+      - name: Unpack build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: 'linux-build'
+          path: ${{github.workspace}}/build
+      - name: Setup correct permissions
+        run: |
+          chmod -R 777 ${{github.workspace}}/build
       - name: Test
         run: ctest --test-dir ${{github.workspace}}/build --output-on-failure --no-tests=error -V
+
+  appimage-linux:
+    name: Test AppImage
+    needs: build-linux
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y libzip-dev qt6-{base,declarative}-dev
+      - name: Fetch repository
+        uses: actions/checkout@v7
+      - name: Unpack build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: 'linux-build'
+          path: ${{github.workspace}}/build
 
       # ISO week in the key: the tools track the mutable "continuous" tag, so this refreshes
       # them weekly instead of pinning to whatever was cached first.
