@@ -76,7 +76,7 @@ jobs:
 
       - name: Open pull request
         if: steps.compare.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ steps.create-token.outputs.token }}
           base: next
