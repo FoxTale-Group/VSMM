@@ -1,0 +1,3 @@
+A fast and lightweight mod manager for game Vintage Story (https://www.vintagestory.at/) developed with Qt6.
+VSMM scans your local mods folder, cross-references each installed mod against the official Vintage Story mod API,
+and shows you at a glance which mods have updates available - all inside a custom, frameless, dark-themed UI.

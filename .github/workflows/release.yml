@@ -145,7 +145,7 @@ jobs:
         with:
           token: ${{ steps.create-token.outputs.token }}
           name: ${{ needs.prepare-release-version.outputs.releaseVersion }}
-          artifacts: 'pkg/*.xz,pkg/*.gz,pkg/*.rpm,pkg/*.deb,pkg/*.exe,pkg/*.zip'
+          artifacts: 'pkg/*.xz,pkg/*.gz,pkg/*.rpm,pkg/*.deb,pkg/*.exe,pkg/*.zip,pkg/*.AppImage'
           body: ${{ steps.generate-changelog.outputs.content }}
           tag: ${{ needs.prepare-release-version.outputs.releaseVersion }}
           prerelease: ${{ needs.prepare-release-version.outputs.isPrerelease }}

@@ -47,9 +47,8 @@ jobs:
       - name: Test
         run: ctest --test-dir ${{github.workspace}}/build --output-on-failure --no-tests=error -V
 
-      # The linuxdeploy tools track their "continuous" tag, which is mutable, so the cache
-      # key carries the ISO week: PRs almost always hit the cache, and the tools still get
-      # re-fetched regularly enough to catch an upstream regression here.
+      # ISO week in the key: the tools track the mutable "continuous" tag, so this refreshes
+      # them weekly instead of pinning to whatever was cached first.
       - name: Tool cache key
         id: toolkey
         run: echo "week=$(date -u +%Y-%W)" >> "$GITHUB_OUTPUT"
@@ -65,12 +64,11 @@ jobs:
       - name: Build AppImage
         run: ./scripts/build_appimage.py "${{github.workspace}}/build"
 
-      # A healthy launch never returns, so `timeout` killing it (code 124) is the success
-      # case. Any other code means it aborted during startup, which is how a missing Qt
-      # plugin or QML module shows up: the build succeeds and the app dies on launch.
+      # Exit 124 (timeout) is success: a missing Qt plugin or QML module still builds fine
+      # and only aborts on launch.
       - name: Smoke-test AppImage
         env:
-          # The runner has no FUSE, and no display.
+          # Runner has no FUSE and no display.
           APPIMAGE_EXTRACT_AND_RUN: 1
           QT_QPA_PLATFORM: offscreen
         run: |
