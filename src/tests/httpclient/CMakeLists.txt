@@ -20,3 +20,7 @@ if (WIN32)
 set_tests_properties(${PROJECT_NAME} PROPERTIES
         ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:HttpClient>")
 endif ()
+
+if (NOT MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-missing-field-initializers)
+endif ()
