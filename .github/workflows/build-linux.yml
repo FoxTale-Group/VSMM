@@ -32,8 +32,6 @@ jobs:
           key: ${{ runner.os }}-ccache-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-ccache-
-      - name: Install gcovr
-        run: pipx install gcovr
       - name: Cache FetchContent
         uses: actions/cache@v6
         with:
@@ -64,6 +62,8 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y libzip-dev qt6-{base,declarative}-dev
+      - name: Install gcovr
+        run: pipx install gcovr
       - name: Fetch repository
         uses: actions/checkout@v7
         with:
