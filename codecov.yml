@@ -53,4 +53,4 @@ component_management:
 ignore:
   - "src/tests/**"
   - "src/main.cpp"
-  - "src/App.cpp"
+  - "src/App.*"

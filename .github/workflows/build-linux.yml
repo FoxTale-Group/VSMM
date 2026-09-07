@@ -85,6 +85,8 @@ jobs:
           gcovr --root . ${{github.workspace}}/build \
             --filter 'src/' \
             --exclude 'src/tests/' \
+            --exclude 'src/App.*' \
+            --exclude 'src/main.cpp' \
             --exclude '.*_autogen/.*' \
             --exclude '.*/moc_.*' \
             --exclude '.*/qrc_.*' \
@@ -97,7 +99,7 @@ jobs:
             -j "$(nproc)"
       - name: Job summary
         run: |
-          { echo "## Coverage"; cat coverage.md; } >> "$GITHUB_STEP_SUMMARY"
+          cat coverage.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload to Codecov
         uses: codecov/codecov-action@v7
         with:
