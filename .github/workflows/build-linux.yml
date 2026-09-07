@@ -107,6 +107,7 @@ jobs:
           plugins: noop
           fail_ci_if_error: true
           verbose: true
+          slug: ${{ github.repository }}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
