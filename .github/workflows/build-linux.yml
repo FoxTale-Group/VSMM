@@ -90,6 +90,7 @@ jobs:
             --exclude '.*_autogen/.*' \
             --exclude '.*/moc_.*' \
             --exclude '.*/qrc_.*' \
+            --exclude-branches-by-pattern '\s*(qC(Debug|Info|Warning|Critical|Fatal)|Q_STATIC_LOGGING_CATEGORY)\b.*' \
             --exclude '.*qmltyperegistrations.*' \
             --exclude-throw-branches \
             --exclude-unreachable-branches \
