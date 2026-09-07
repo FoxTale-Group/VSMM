@@ -30,6 +30,13 @@ FetchContent_Declare(
         GIT_TAG v1.0.0)
 FetchContent_MakeAvailable(semver)
 
+if (UNIX)
+    add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+    add_compile_options(-Wno-unused-parameter)
+elseif (WIN32)
+    add_compile_options(/W4 /WX)
+endif()
+
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     add_compile_definitions(DEBUG)
 endif()
