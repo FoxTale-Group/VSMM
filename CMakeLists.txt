@@ -57,6 +57,18 @@ elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL
 
     include(CTest)
     set(CMAKE_CTEST_ARGUMENTS -V)
+
+    option(ENABLE_COVERAGE "Enable gcov coverage" OFF)
+    if (ENABLE_COVERAGE)
+        if (NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+            message(FATAL_ERROR "ENABLE_COVERAGE needs GCC")
+        endif ()
+        add_compile_options(--coverage -O0 -g)
+        add_link_options(--coverage)
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            add_compile_options(-fprofile-abs-path)
+        endif ()
+    endif ()
 endif()
 
 set(CMAKE_INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/vsmm")

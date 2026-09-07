@@ -32,6 +32,8 @@ jobs:
           key: ${{ runner.os }}-ccache-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-ccache-
+      - name: Install gcovr
+        run: pipx install gcovr
       - name: Cache FetchContent
         uses: actions/cache@v6
         with:
@@ -41,7 +43,7 @@ jobs:
             ${{ runner.os }}-deps-
       - name: Configure
         run: |
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE="${{ env.DEFAULT_BUILD_TYPE }}" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_GENERATOR=Ninja
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE="${{ env.DEFAULT_BUILD_TYPE }}" -DENABLE_COVERAGE=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_GENERATOR=Ninja
       - name: Build
         run: |
           cmake --build ${{github.workspace}}/build
@@ -62,6 +64,10 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y libzip-dev qt6-{base,declarative}-dev
+      - name: Fetch repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
       - name: Unpack build artifacts
         uses: actions/download-artifact@v8
         with:
@@ -72,6 +78,36 @@ jobs:
           chmod -R 777 ${{github.workspace}}/build
       - name: Test
         run: ctest --test-dir ${{github.workspace}}/build --output-on-failure --no-tests=error -V
+      - name: Coverage report
+        run: |
+          # Exclude tests, autogen, and Qt-generated files.
+          gcovr --root . ${{github.workspace}}/build \
+            --filter 'src/' \
+            --exclude 'src/tests/' \
+            --exclude '.*_autogen/.*' \
+            --exclude '.*/moc_.*' \
+            --exclude '.*/qrc_.*' \
+            --exclude '.*qmltyperegistrations.*' \
+            --exclude-throw-branches \
+            --exclude-unreachable-branches \
+            --print-summary \
+            --cobertura coverage.xml --cobertura-pretty \
+            --markdown coverage.md \
+            -j "$(nproc)"
+      - name: Job summary
+        run: |
+          { echo "## Coverage"; cat coverage.md; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          name: 'VSMM-Coverage'
+          files: ./coverage.xml
+          disable_search: true
+          plugins: noop
+          fail_ci_if_error: true
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   appimage-linux:
     name: Test AppImage

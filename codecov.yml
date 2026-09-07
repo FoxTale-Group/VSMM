@@ -1,0 +1,56 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        informational: true
+    patch:
+      default:
+        target: 80%
+        informational: true
+
+comment:
+  layout: "header, reach, diff, components, files"
+  require_changes: false
+
+component_management:
+  individual_components:
+    - component_id: config
+      name: Config
+      paths: [src/config/**]
+    - component_id: gamemngr
+      name: GameMngr
+      paths: [src/gamemngr/**]
+    - component_id: httpclient
+      name: HttpClient
+      paths: [src/httpclient/**]
+    - component_id: imgprovider
+      name: ImgProvider
+      paths: [src/imgprovider/**]
+    - component_id: interfaces
+      name: Interfaces
+      paths: [src/interfaces/**]
+    - component_id: modentry
+      name: ModEntry
+      paths: [src/modentry/**]
+    - component_id: modlistmodel
+      name: ModListModel
+      paths: [src/modlistmodel/**]
+    - component_id: modloader
+      name: ModLoader
+      paths: [src/modloader/**]
+    - component_id: modsortfiltermodel
+      name: ModSortFilterModel
+      paths: [src/modsortfiltermodel/**]
+    - component_id: modstore
+      name: ModStore
+      paths: [src/modstore/**]
+    - component_id: zip
+      name: ZipArchive
+      paths: [src/zip/**]
+
+ignore:
+  - "src/tests/**"
+  - "src/main.cpp"
+  - "src/App.cpp"
