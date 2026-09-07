@@ -52,6 +52,7 @@ jobs:
           path: ${{github.workspace}}/build
           if-no-files-found: 'error'
           retention-days: 1
+          include-hidden-files: true
 
   test-linux:
     needs: build-linux
