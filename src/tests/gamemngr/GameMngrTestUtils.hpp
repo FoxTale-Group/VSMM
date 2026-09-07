@@ -27,6 +27,9 @@
 
 // fake game exes are POSIX shell scripts, CreateProcess cannot run them
 #ifdef Q_OS_WIN
+#ifdef _MSC_VER
+#pragma warning(disable : 4702)
+#endif
 #define SKIP_WITHOUT_POSIX_SHELL() QSKIP("Uses a POSIX shell script as a stand-in for the game executable")
 #else
 #define SKIP_WITHOUT_POSIX_SHELL() ((void)0)

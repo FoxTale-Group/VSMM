@@ -35,6 +35,9 @@
 
 // a read-only dir does not stop a write on Windows, and root ignores the mode bits everywhere
 #ifdef Q_OS_WIN
+#ifdef _MSC_VER
+#pragma warning(disable : 4702)
+#endif
 #define SKIP_WITHOUT_DIR_PERMISSIONS() QSKIP("Directory permissions do not block writes on Windows")
 #else
 #define SKIP_WITHOUT_DIR_PERMISSIONS()                                                                                 \
