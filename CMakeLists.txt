@@ -65,9 +65,7 @@ elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL
         endif ()
         add_compile_options(--coverage -O0 -g)
         add_link_options(--coverage)
-        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-            add_compile_options(-fprofile-abs-path)
-        endif ()
+        add_compile_options(-fprofile-abs-path)
     endif ()
 endif()
 
