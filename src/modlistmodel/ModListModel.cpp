@@ -75,8 +75,6 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
     default:
         return {};
     }
-
-    return {};
 }
 
 QHash<int, QByteArray> ModListModel::roleNames() const {
