@@ -46,13 +46,70 @@ jobs:
           cmake --build ${{ steps.configure.outputs.buildDir }}
           cd ${{ steps.configure.outputs.buildDir }} && ninja package && cd ${{ github.workspace }}
 
-      # Build AppImage. 
-      # Moved into pkg/ so the uploaded artifact stays flat.
-      - name: Build AppImage
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-packages-linux
+          path: |
+            ${{ steps.configure.outputs.buildDir }}/pkg/*.tar.xz
+            ${{ steps.configure.outputs.buildDir }}/pkg/*.tar.gz
+            ${{ steps.configure.outputs.buildDir }}/pkg/*.deb
+            ${{ steps.configure.outputs.buildDir }}/pkg/*.rpm
+          if-no-files-found: error
+          retention-days: 1
+
+  build-appimage:
+    runs-on: ubuntu-24.04 # Shipped with glibc 2.39, comfortably below current SteamOS
+    steps:
+      - name: Fetch repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Update project version in CMakeLists.txt
         run: |
-          ./scripts/build_appimage.py "${{ steps.configure.outputs.buildDir }}"
-          mv "${{ steps.configure.outputs.buildDir }}"/*.AppImage \
-             "${{ steps.configure.outputs.buildDir }}/pkg/"
+          version='${{ inputs.version }}'
+          sed -i -E "s/(set\(VSMM_RELEASE_VERSION )\"[^\"]*\"/\1\"${version}\"/" CMakeLists.txt
+
+      # zipcmp/zipmerge/ziptool: libzip-dev's CMake config references them but doesn't
+      # depend on them, so find_package fails without them (Debian #973280)
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y ninja-build libzip-dev zipcmp zipmerge ziptool
+
+      # Runner ships CMake 3.31, below the 4.2 CMakeLists.txt requires
+      - name: Install CMake
+        run: pipx install cmake
+
+      # Install Qt from official binaries to cover glibc 2.34 minimal support for AppImage
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4.3.1
+        with:
+          version: '6.10.0'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          cache: true
+          cache-key-prefix: 'qt-v6.10.0-linux'
+
+      - name: Configure
+        id: configure
+        run: |
+          echo "buildDir=${{ env.BUILD_DIR }}" >> ${GITHUB_OUTPUT}
+          cmake -B ${{ env.BUILD_DIR }} -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" -DCMAKE_GENERATOR=Ninja -DBUILD_TESTING=OFF
+        env:
+          BUILD_DIR: '${{ github.workspace }}/build'
+
+      - name: Build
+        run: cmake --build ${{ steps.configure.outputs.buildDir }}
+
+      - name: Build AppImage
+        # find_qmake() only checks apt-style paths or a QMAKE override; QT_ROOT_DIR comes
+        # from the Install Qt step above and won't be found otherwise.
+        env:
+          QMAKE: '${{ env.QT_ROOT_DIR }}/bin/qmake6'
+        run: ./scripts/build_appimage.py "${{ steps.configure.outputs.buildDir }}"
 
       # Exit 124 (timeout) is success: a missing Qt plugin or QML module still builds fine
       # and only aborts on launch.
@@ -62,7 +119,7 @@ jobs:
           APPIMAGE_EXTRACT_AND_RUN: 1
           QT_QPA_PLATFORM: offscreen
         run: |
-          appimage=$(ls "${{ steps.configure.outputs.buildDir }}"/pkg/*.AppImage)
+          appimage=$(ls "${{ steps.configure.outputs.buildDir }}"/*.AppImage)
           echo "launching $appimage"
           set +e
           timeout 15 "$appimage"
@@ -77,12 +134,8 @@ jobs:
       - name: Upload packages
         uses: actions/upload-artifact@v7
         with:
-          name: release-packages-linux
+          name: release-packages-linux-appimage
           path: |
-            ${{ steps.configure.outputs.buildDir }}/pkg/*.tar.xz
-            ${{ steps.configure.outputs.buildDir }}/pkg/*.tar.gz
-            ${{ steps.configure.outputs.buildDir }}/pkg/*.deb
-            ${{ steps.configure.outputs.buildDir }}/pkg/*.rpm
-            ${{ steps.configure.outputs.buildDir }}/pkg/*.AppImage
+            ${{ steps.configure.outputs.buildDir }}/*.AppImage
           if-no-files-found: error
           retention-days: 1
