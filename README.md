@@ -57,22 +57,30 @@ glance which mods have updates available, all inside a custom, frameless, dark-t
 > [!CAUTION]
 > After starting go to app settings and setup path to `VintagestoryData` folder. See [After Installation](#after-installation)
 
-## Minimal Requirements
+## Minimal Runtime Requirements
 
-### Supported Operating Systems:
 > [!NOTE]
-> Currently only 64bit x86 CPU Architecture is supported
-- Windows 10 22H2 x86_64 or newer
-- Windows 11 24H2 x86_64 or newer
-- Ubuntu 26.04 LTS or newer
-- Fedora 42 or newer
-- Arch Linux
+> Only 64bit x86 CPU Architecture is supported
 
-> Other Linux distributions that aren't mentioned here but are based on supported versions of distros mentioned above are also supported as long as they have support for Qt 6.10 or newer
+### Windows:
+- Windows 10 22H2 or Windows 11 24H2 or newer
+- Microsoft Visual C++ Redistributable 2015–2022 (x64)
 
-### Runtime Dependencies
+### Linux:
+- Ubuntu 26.04 LTS / Fedora 42 / Arch Linux
 - [Qt 6.10](https://wiki.qt.io/Qt_6.10_Release) or newer
-- [libzip](https://libzip.org/) 
+- [libzip](https://libzip.org/)
+
+> [!IMPORTANT]
+> Other Linux distributions that aren't mentioned here but meet minimal runtime requirements are partially supported and may require additional configuration steps to be done by user. 
+> 
+> If native packages do not work, use AppImage.
+
+#### AppImage:
+Any Linux distribution with: 
+- **glibc 2.39 or newer**
+- OpenSSL 3
+- A 64-bit kernel with a working X11 or Wayland session
 
 ---
 
@@ -179,15 +187,15 @@ chmod +x vintagestory-mod-manager-{version}-Linux/usr/bin/VSMM
 </details>
 
 <details>
-<summary><h4>AppImage (Any distro)</h4></summary>
+<summary><h4>AppImage (Any distro matching minimal requirements listed above)</h4></summary>
 
 ```bash
 # Download AppImage from releases page or using curl in terminal. 
-curl -O https://github.com/FoxTale-Group/VSMM/releases/download/{version}/vintagestory-mod-manager-{version}-x86_64.AppImage
+curl -O https://github.com/FoxTale-Group/VSMM/releases/download/{version}/Vintage_Story_Mod_Manager-{version}-x86_64.AppImage
 
 # Allow permission to executing and launch
-chmod +x vintagestory-mod-manager-{version}-x86_64.AppImage
-./vintagestory-mod-manager-{version}-x86_64.AppImage
+chmod +x Vintage_Story_Mod_Manager-{version}-x86_64.AppImage
+./Vintage_Story_Mod_Manager-{version}-x86_64.AppImage
 ```
 
 </details>
