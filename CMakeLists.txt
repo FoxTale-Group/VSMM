@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.2)
-set(VSMM_RELEASE_VERSION "0.2.0" CACHE STRING "Project version" FORCE)
+set(VSMM_RELEASE_VERSION "0.2.1" CACHE STRING "Project version" FORCE)
 project(VSMM
         DESCRIPTION "Mod Manager For Vintage Story"
         HOMEPAGE_URL "https://github.com/FoxTale-Group/VSMM"
