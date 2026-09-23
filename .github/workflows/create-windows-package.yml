@@ -16,7 +16,7 @@ jobs:
       BUILD_DIR: build-win
     steps:
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4.3.1
+        uses: jurplel/install-qt-action@v4.4.1
         with:
           version: '6.10.0'
           host: 'windows'

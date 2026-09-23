@@ -3,9 +3,9 @@ on:
   pull_request:
 
   # Caches are scoped by ref: a PR reads its base branch's cache but never another PR's.
-  # Without a run on push, main and next hold no cache and every PR starts cold.
+  # Without a run on push, main hold no cache and every PR starts cold.
   push:
-    branches: [main, next]
+    branches: [main]
 
 env:
   DEFAULT_BUILD_TYPE: Debug
@@ -134,7 +134,7 @@ jobs:
 
       # Install Qt from official binaries to cover glibc 2.39 minimal support for AppImage
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4.3.1
+        uses: jurplel/install-qt-action@v4.4.1
         with:
           version: '6.10.0'
           host: 'linux'

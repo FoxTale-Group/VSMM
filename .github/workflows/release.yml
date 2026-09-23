@@ -41,7 +41,6 @@ jobs:
           noVersionBumpBehavior: 'current'
           skipInvalidTags: true
           maxTagsToFetch: '30'
-          scopeList: 'ui,controls,theme,modlist,loader,store,network,search,settings,backend,gamemngr,zip,imgprovider'
           patchList: 'fix, bugfix, perf, refactor, test, tests, deps'
       - name: Determine release channel
         id: channel
