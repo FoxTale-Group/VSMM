@@ -33,7 +33,7 @@ int ModListModel::rowCount(const QModelIndex &parent) const {
 
 QVariant ModListModel::data(const QModelIndex &index, int role) const {
     using namespace Qt::StringLiterals;
-    if (!mStore || !index.isValid() || index.row() < 0 || index.row() >= mOrder.size()) {
+    if (!index.isValid() || index.row() >= mOrder.size()) {
         return {};
     }
 
@@ -78,12 +78,20 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
 }
 
 QHash<int, QByteArray> ModListModel::roleNames() const {
-    return {{NameRole, "modName"},          {VersionRole, "modVersion"},
-            {AuthorRole, "modAuthor"},      {LatestVersionRole, "modLatestVersion"},
-            {TagsRole, "modTags"},          {UrlRole, "modUrl"},
-            {TypeRole, "modSide"},          {HasUpdateRole, "modHasUpdate"},
-            {IconRole, "modThumbnail"},     {IdRole, "modId"},
-            {FavoriteRole, "isFavoriteMod"}};
+    using namespace Qt::StringLiterals;
+    QHash<int, QByteArray> names;
+    names.insert(NameRole, "modName"_ba);
+    names.insert(VersionRole, "modVersion"_ba);
+    names.insert(AuthorRole, "modAuthor"_ba);
+    names.insert(LatestVersionRole, "modLatestVersion"_ba);
+    names.insert(TagsRole, "modTags"_ba);
+    names.insert(UrlRole, "modUrl"_ba);
+    names.insert(TypeRole, "modSide"_ba);
+    names.insert(HasUpdateRole, "modHasUpdate"_ba);
+    names.insert(IconRole, "modThumbnail"_ba);
+    names.insert(IdRole, "modId"_ba);
+    names.insert(FavoriteRole, "isFavoriteMod"_ba);
+    return names;
 }
 
 void ModListModel::setStore(IModStore *store) {
@@ -91,10 +99,12 @@ void ModListModel::setStore(IModStore *store) {
         qCWarning(cModListModel, "ModStore already set");
         return;
     }
+    // GCOVR_EXCL_START
     if (!store) {
         qCFatal(cModListModel, "ModStore is null");
         return;
     }
+    // GCOVR_EXCL_STOP
 
     mStore = store;
     connect(store, &IModStore::modAdded, this, &ModListModel::onModAdded);
@@ -124,9 +134,8 @@ void ModListModel::onModUpdated(QStringView modId) {
         qCDebug(cModListModel, "Update for mod %s outside the model", qUtf8Printable(modId.toString()));
         return;
     }
-    if (const QModelIndex idx = index(*it); idx.isValid()) {
-        emit dataChanged(idx, idx);
-    }
+    const QModelIndex idx = index(*it);
+    emit dataChanged(idx, idx);
 }
 
 void ModListModel::onModsReloading() {

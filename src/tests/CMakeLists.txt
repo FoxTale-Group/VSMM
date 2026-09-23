@@ -4,7 +4,7 @@ find_package(Qt6 REQUIRED COMPONENTS Test)
 
 add_library(TestMocks INTERFACE)
 target_include_directories(TestMocks INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/mocks)
-target_link_libraries(TestMocks INTERFACE Interfaces)
+target_link_libraries(TestMocks INTERFACE Interfaces ModEntry)
 
 add_library(TestUtils INTERFACE)
 target_include_directories(TestUtils INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/utils)
@@ -18,3 +18,4 @@ add_subdirectory(httpclient)
 add_subdirectory(imgprovider)
 add_subdirectory(zip)
 add_subdirectory(modsortfiltermodel)
+add_subdirectory(modlistmodel)
