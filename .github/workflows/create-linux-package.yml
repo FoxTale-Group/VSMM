@@ -84,7 +84,7 @@ jobs:
 
       # Install Qt from official binaries to cover glibc 2.34 minimal support for AppImage
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4.3.1
+        uses: jurplel/install-qt-action@v4.4.1
         with:
           version: '6.10.0'
           host: 'linux'
