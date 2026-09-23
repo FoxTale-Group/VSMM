@@ -41,6 +41,14 @@ QMAKE_CANDIDATES = (
     Path("/usr/bin/qmake"),
 )
 
+# Qt dlopens OpenSSL rather than linking it, so no scanner sees it. libzip does link
+# libcrypto, so linuxdeploy bundles that half on its own; the host's libssl then resolves
+# against the bundled libcrypto, the mismatched pair fails to load, and Qt silently falls
+# back to its "cert-only" backend with no TLS at all. Excluding both leaves the host to
+# supply a matching pair, and keeps its security updates rather than freezing a TLS stack
+# in the bundle. Prefix globs, so Kerberos' libk5crypto is untouched.
+EXCLUDED_LIBRARIES = ("libssl.so*", "libcrypto.so*")
+
 DOWNLOAD_TIMEOUT_SECONDS = 120
 
 
@@ -267,21 +275,35 @@ def main() -> int:
         cwd=REPO_ROOT,
     )
 
-    # Three invocations rather than `linuxdeploy --plugin qt --output appimage`, because
-    # --exclude-library is only accepted by the Qt plugin when it is invoked directly.
-    run(["linuxdeploy", "--appdir", "AppDir"], cwd=build_dir)
+    # Every deploying invocation needs the exclusions: the packaging run below resolves
+    # dependencies again and would otherwise re-add what an earlier run left out.
+    excludes = [arg for lib in EXCLUDED_LIBRARIES for arg in ("--exclude-library", lib)]
+
+    # Three invocations rather than `linuxdeploy --plugin qt --output appimage`, so the Qt
+    # plugin can be given its own exclusions.
+    run(["linuxdeploy", "--appdir", "AppDir", *excludes], cwd=build_dir)
 
     # kimg_*: KDE's kimageformats installs extra decoders (RAW, EXR, JPEG-XR) into Qt's
     # plugin directory on some distributions. VSMM only loads PNG and SVG, and one of those
     # decoders with an unresolved dependency aborts the entire deployment.
     run(
-        ["linuxdeploy-plugin-qt", "--appdir", "AppDir", "--exclude-library", "kimg_*"],
+        [
+            "linuxdeploy-plugin-qt",
+            "--appdir",
+            "AppDir",
+            "--exclude-library",
+            "kimg_*",
+            *excludes,
+        ],
         cwd=build_dir,
     )
 
     prune_orphaned_libs(appdir)
 
-    run(["linuxdeploy", "--appdir", "AppDir", "--output", "appimage"], cwd=build_dir)
+    run(
+        ["linuxdeploy", "--appdir", "AppDir", "--output", "appimage", *excludes],
+        cwd=build_dir,
+    )
 
     images = sorted(build_dir.glob("*.AppImage"))
     if not images:

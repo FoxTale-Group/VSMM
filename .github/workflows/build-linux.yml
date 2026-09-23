@@ -115,21 +115,49 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   appimage-linux:
-    name: Test AppImage
-    needs: build-linux
-    runs-on: ubuntu-26.04
+    name: Build & Test AppImage
+    runs-on: ubuntu-24.04
     steps:
+      - name: Fetch repository
+        uses: actions/checkout@v7
+
+      # zipcmp/zipmerge/ziptool: libzip-dev's CMake config references them but doesn't
+      # depend on them, so find_package fails without them (Debian #973280)
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y libzip-dev qt6-{base,declarative}-dev
-      - name: Fetch repository
-        uses: actions/checkout@v7
-      - name: Unpack build artifacts
-        uses: actions/download-artifact@v8
+          sudo apt install -y ninja-build ccache libzip-dev zipcmp zipmerge ziptool
+
+      # Runner ships CMake 3.31, below the 4.2 CMakeLists.txt requires
+      - name: Install CMake
+        run: pipx install cmake
+
+      # Install Qt from official binaries to cover glibc 2.39 minimal support for AppImage
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4.3.1
         with:
-          name: 'linux-build'
-          path: ${{github.workspace}}/build
+          version: '6.10.0'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          cache: true
+          cache-key-prefix: 'qt-v6.10.0-linux'
+
+      # Separate cache from build-linux
+      - name: Cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ccache
+          key: ${{ runner.os }}-appimage-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-appimage-ccache-
+
+      - name: Configure
+        run: |
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE="${{ env.DEFAULT_BUILD_TYPE }}" -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_GENERATOR=Ninja -DBUILD_TESTING=OFF
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build
 
       # ISO week in the key: the tools track the mutable "continuous" tag, so this refreshes
       # them weekly instead of pinning to whatever was cached first.
@@ -146,6 +174,8 @@ jobs:
             ${{ runner.os }}-linuxdeploy-continuous-
 
       - name: Build AppImage
+        env:
+          QMAKE: '${{ env.QT_ROOT_DIR }}/bin/qmake6'
         run: ./scripts/build_appimage.py "${{github.workspace}}/build"
 
       # Exit 124 (timeout) is success: a missing Qt plugin or QML module still builds fine
