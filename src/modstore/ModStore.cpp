@@ -27,7 +27,7 @@
 Q_STATIC_LOGGING_CATEGORY(cModStore, "modstore");
 
 namespace vsmm {
-ModStore::ModStore(QObject *parent) : QObject{parent} {}
+ModStore::ModStore(QObject *parent) : IModStore{parent} {}
 void ModStore::setConfig(IConfig *config) {
     if (mConfig) {
         qCWarning(cModStore, "Config already set");

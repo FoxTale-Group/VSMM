@@ -30,6 +30,7 @@
 #include <ModListModel.hpp>
 #include <ModLoader.hpp>
 #include <ModSortFilterModel.hpp>
+#include <ModStore.hpp>
 
 Q_STATIC_LOGGING_CATEGORY(cApp, "app");
 

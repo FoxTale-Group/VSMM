@@ -18,13 +18,14 @@
 
 #pragma once
 
+#include <IModStore.hpp>
 #include <ModEntry.hpp>
 #include <ModListModelExport.hpp>
-#include <ModStore.hpp>
 
 #include <QAbstractListModel>
 #include <QHash>
 #include <QList>
+#include <qqmlintegration.h>
 
 namespace vsmm {
 class MODLISTMODEL_EXPORT ModListModel : public QAbstractListModel {
@@ -52,7 +53,7 @@ class MODLISTMODEL_EXPORT ModListModel : public QAbstractListModel {
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
-    void setStore(ModStore *store);
+    void setStore(IModStore *store);
 
   private slots:
     void onModAdded(QStringView modId);
@@ -61,7 +62,7 @@ class MODLISTMODEL_EXPORT ModListModel : public QAbstractListModel {
     void onModRemoved(QStringView modId);
 
   private:
-    ModStore *mStore{nullptr};
+    IModStore *mStore{nullptr};
     QStringList mOrder;           // mods ids
     QHash<QString, int> mIdToRow; // mod id -> row index
 };
