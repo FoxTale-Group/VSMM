@@ -2,7 +2,8 @@ project(ModStoreUnitTest)
 
 set(SOURCES ModStoreUnitTest.cpp ModStoreTestUtils.hpp)
 qt_add_executable(${PROJECT_NAME} ${SOURCES})
-add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME}
+        -o -,txt -o ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.junit.xml,junitxml)
 add_dependencies(${PROJECT_NAME} ModStore TestMocks)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Test ModStore TestMocks)

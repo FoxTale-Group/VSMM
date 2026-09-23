@@ -1,12 +1,14 @@
 project(GameMngrTests)
 
 qt_add_executable(GameMngrUnitTest GameMngrUnitTest.cpp GameMngrTestUtils.hpp)
-add_test(NAME GameMngrUnitTest COMMAND GameMngrUnitTest)
+add_test(NAME GameMngrUnitTest COMMAND GameMngrUnitTest
+        -o -,txt -o ${CMAKE_CURRENT_BINARY_DIR}/GameMngrUnitTest.junit.xml,junitxml)
 add_dependencies(GameMngrUnitTest GameMngr TestMocks)
 target_link_libraries(GameMngrUnitTest PUBLIC Qt6::Test GameMngr TestMocks)
 
 qt_add_executable(GameMngrIntegrationTest GameMngrIntegrationTest.cpp GameMngrTestUtils.hpp)
-add_test(NAME GameMngrIntegrationTest COMMAND GameMngrIntegrationTest)
+add_test(NAME GameMngrIntegrationTest COMMAND GameMngrIntegrationTest
+        -o -,txt -o ${CMAKE_CURRENT_BINARY_DIR}/GameMngrIntegrationTest.junit.xml,junitxml)
 add_dependencies(GameMngrIntegrationTest GameMngr Config)
 target_link_libraries(GameMngrIntegrationTest PUBLIC Qt6::Test GameMngr Config)
 
