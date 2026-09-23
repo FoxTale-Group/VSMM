@@ -1,16 +1,16 @@
 project(GameMngrTests)
 
-qt_add_executable(GameMngrUnitTest GameMngrUnitTest.cpp GameMngrTestUtils.hpp)
+qt_add_executable(GameMngrUnitTest GameMngrUnitTest.cpp)
 add_test(NAME GameMngrUnitTest COMMAND GameMngrUnitTest
         -o -,txt -o ${CMAKE_CURRENT_BINARY_DIR}/GameMngrUnitTest.junit.xml,junitxml)
-add_dependencies(GameMngrUnitTest GameMngr TestMocks)
-target_link_libraries(GameMngrUnitTest PUBLIC Qt6::Test GameMngr TestMocks)
+add_dependencies(GameMngrUnitTest GameMngr TestMocks TestUtils)
+target_link_libraries(GameMngrUnitTest PUBLIC Qt6::Test GameMngr TestMocks TestUtils)
 
-qt_add_executable(GameMngrIntegrationTest GameMngrIntegrationTest.cpp GameMngrTestUtils.hpp)
+qt_add_executable(GameMngrIntegrationTest GameMngrIntegrationTest.cpp)
 add_test(NAME GameMngrIntegrationTest COMMAND GameMngrIntegrationTest
         -o -,txt -o ${CMAKE_CURRENT_BINARY_DIR}/GameMngrIntegrationTest.junit.xml,junitxml)
-add_dependencies(GameMngrIntegrationTest GameMngr Config)
-target_link_libraries(GameMngrIntegrationTest PUBLIC Qt6::Test GameMngr Config)
+add_dependencies(GameMngrIntegrationTest GameMngr Config TestUtils)
+target_link_libraries(GameMngrIntegrationTest PUBLIC Qt6::Test GameMngr Config TestUtils)
 
 set_target_properties(GameMngrUnitTest GameMngrIntegrationTest PROPERTIES
         CXX_VISIBILITY_PRESET hidden

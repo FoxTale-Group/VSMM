@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "GameMngrTestUtils.hpp"
+#include <GameMngrTestUtils.hpp>
 
 #include <Config.hpp>
 #include <GameMngr.hpp>
