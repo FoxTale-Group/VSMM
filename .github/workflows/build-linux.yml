@@ -79,6 +79,21 @@ jobs:
           chmod -R 777 ${{github.workspace}}/build
       - name: Test
         run: ctest --test-dir ${{github.workspace}}/build --output-on-failure --no-tests=error -V
+      - name: Collect test results
+        id: junit
+        if: ${{ !cancelled() }}
+        run: echo "files=$(find build -name '*.junit.xml' | paste -sd, -)" >> "$GITHUB_OUTPUT"
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v7
+        with:
+          report_type: test_results
+          files: ${{ steps.junit.outputs.files }}
+          disable_search: true
+          fail_ci_if_error: true
+          slug: ${{ github.repository }}
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       - name: Coverage report
         run: |
           # Exclude tests, autogen, and Qt-generated files.
