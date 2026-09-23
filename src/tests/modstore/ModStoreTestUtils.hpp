@@ -18,16 +18,12 @@
 
 #pragma once
 
-#include <ModEntry.hpp>
+#include <ModEntryTestUtils.hpp>
 
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QJsonArray>
-#include <QJsonObject>
 #include <QTest>
-
-#include <semver.hpp>
 
 #ifndef Q_OS_WIN
 #include <unistd.h>
@@ -50,18 +46,6 @@
 
 namespace vsmm::test {
 using namespace Qt::StringLiterals;
-
-[[nodiscard]] inline semver::version<> ver(const QString &version) {
-    semver::version<> parsed;
-    const auto result = semver::parse(version.toStdString(), parsed);
-    // not Q_ASSERT, that would abort the run and behave differently in release builds
-    QTest::qVerify(static_cast<bool>(result), "semver::parse(version)", qPrintable(version), __FILE__, __LINE__);
-    return parsed;
-}
-
-[[nodiscard]] inline QString str(const semver::version<> &version) {
-    return QString::fromStdString(version.to_string());
-}
 
 // returns false instead of QVERIFY, which would return from the helper and swallow the failure
 [[nodiscard]] inline bool writeFile(const QString &path, const QByteArray &contents) {
@@ -97,31 +81,4 @@ using namespace Qt::StringLiterals;
     return writeFile(path, "not a real zip") ? QFileInfo{path} : QFileInfo{};
 }
 
-[[nodiscard]] inline ModEntry::LocalInfo localInfo(const QString &id, const QString &version, const QFileInfo &file) {
-    return {.mName = u"%1 (local)"_s.arg(id),
-            .mId = id,
-            .mAuthor = u"local author"_s,
-            .mVersion = ver(version),
-            .mFileInfo = file};
-}
-
-// one entry of the API releases array, supported game versions go into tags
-[[nodiscard]] inline QJsonObject release(const QString &modVersion, const QStringList &gameVersions) {
-    QJsonArray tags;
-    for (const auto &gameVersion : gameVersions) {
-        tags.append(gameVersion);
-    }
-    return {{"modversion"_L1, modVersion},
-            {"tags"_L1, tags},
-            {"filename"_L1, u"CarryOn_v%1.zip"_s.arg(modVersion)},
-            {"mainfile"_L1, u"https://mods.vintagestory.at/download?fileid=%1"_s.arg(modVersion)}};
-}
-
-// the mod object of an API response, trimmed down to what ModEntry reads
-[[nodiscard]] inline QJsonObject modJson(const QJsonArray &releases) {
-    return {{"name"_L1, "Carry On"_L1}, {"author"_L1, "NerdScurvy"_L1},
-            {"type"_L1, "mod"_L1},      {"urlalias"_L1, "carryon"_L1},
-            {"assetid"_L1, 4405},       {"tags"_L1, QJsonArray{"Storage"_L1, "QoL"_L1}},
-            {"releases"_L1, releases}};
-}
 } // namespace vsmm::test
