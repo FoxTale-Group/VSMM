@@ -20,7 +20,7 @@ jobs:
       - name: Fetch repository
         uses: actions/checkout@v7
         with:
-          ref: next
+          ref: main
           token: ${{ steps.create-token.outputs.token }}
 
       - name: Read the pinned version
@@ -79,7 +79,7 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ steps.create-token.outputs.token }}
-          base: next
+          base: main
           # A fixed branch name means a later run amends this PR instead of opening a
           # second one every day until it is merged.
           branch: deps/libzip
