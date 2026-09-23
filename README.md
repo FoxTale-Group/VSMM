@@ -2,17 +2,15 @@
 
 <div align="center">
 
-<!-- This will be uncommented when repo will go public
 ![Stable](https://img.shields.io/github/v/release/FoxTale-Group/VSMM?style=for-the-badge&logo=github&label=Stable&color=green)
 ![Pre-Release](https://img.shields.io/github/v/release/FoxTale-Group/VSMM?include_prereleases&style=for-the-badge&logo=github&label=Pre-Release&color=orange)
-![Build Linux](https://img.shields.io/github/actions/workflow/status/FoxTale-Group/VSMM/build-and-package.yml?branch=main&logo=githubactions&logoColor=white&style=for-the-badge&label=Build%20Linux%20%26%20Test)
-![Build Windows](https://img.shields.io/github/actions/workflow/status/FoxTale-Group/VSMM/build-and-package.yml?branch=main&logo=githubactions&logoColor=white&style=for-the-badge&label=Build%20Windows)
 ![Issues](https://img.shields.io/github/issues/FoxTale-Group/VSMM?style=for-the-badge&label=Issues&color=yellow)
 ![License](https://img.shields.io/github/license/FoxTale-Group/VSMM?style=for-the-badge&label=License&color=blue)
--->
-![Project State](https://img.shields.io/badge/Status-Public_Alpha-orange)
-![Linux Build](https://github.com/FoxTale-Group/VSMM/actions/workflows/build-linux.yml/badge.svg?branch=main)
-![Windows Build](https://github.com/FoxTale-Group/VSMM/actions/workflows/build-windows.yml/badge.svg?branch=main)
+
+![Build Linux](https://img.shields.io/github/actions/workflow/status/FoxTale-Group/VSMM/build-linux.yml?branch=main&style=for-the-badge&label=Build%20%26%20Test%20Linux)
+![Build Windows](https://img.shields.io/github/actions/workflow/status/FoxTale-Group/VSMM/build-windows.yml?branch=main&style=for-the-badge&label=Build%20%26%20Test%20Windows)
+![CodeCov](https://img.shields.io/codecov/c/github/FoxTale-Group/VSMM?style=for-the-badge&logo=codecov&logoColor=%23F01F7A
+)
 
 </div>
 
