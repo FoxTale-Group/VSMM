@@ -20,6 +20,8 @@
 
 #include <ModEntry.hpp>
 
+#include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -40,6 +42,17 @@ using namespace Qt::StringLiterals;
 
 [[nodiscard]] inline QString str(const semver::version<> &version) {
     return QString::fromStdString(version.to_string());
+}
+
+// the store only copies, stats and deletes mod zips, it never opens one, so a stub file is enough
+[[nodiscard]] inline QFileInfo writeStubZip(const QDir &dir, const QString &fileName) {
+    const QByteArray contents{"not a real zip"};
+    const QString path = dir.absoluteFilePath(fileName);
+    QFile file{path};
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate) || file.write(contents) != contents.size()) {
+        return {};
+    }
+    return QFileInfo{path};
 }
 
 [[nodiscard]] inline ModEntry::LocalInfo localInfo(const QString &id, const QString &version, const QFileInfo &file) {

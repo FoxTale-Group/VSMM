@@ -22,7 +22,6 @@
 
 #include <QDir>
 #include <QFile>
-#include <QFileInfo>
 #include <QTest>
 
 #ifndef Q_OS_WIN
@@ -74,11 +73,4 @@ using namespace Qt::StringLiterals;
     QFile::remove(path);
     return false;
 }
-
-// the store only copies, stats and deletes mod zips, it never opens one, so a stub file is enough
-[[nodiscard]] inline QFileInfo writeStubZip(const QDir &dir, const QString &fileName) {
-    const QString path = dir.absoluteFilePath(fileName);
-    return writeFile(path, "not a real zip") ? QFileInfo{path} : QFileInfo{};
-}
-
 } // namespace vsmm::test
