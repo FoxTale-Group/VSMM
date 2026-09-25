@@ -16,14 +16,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "IConfig.hpp"
-#include "IGameMngr.hpp"
-#include "IHttpClient.hpp"
-#include "IModStore.hpp"
+#pragma once
+
+#include <InterfacesExport.hpp>
+#include <QObject>
+#include <QString>
+#include <QStringView>
 
 namespace vsmm {
-IConfig::~IConfig() = default;
-IGameMngr::~IGameMngr() = default;
-IHttpClient::~IHttpClient() = default;
-IModStore::~IModStore() = default;
+class ModEntry;
+
+class INTERFACES_EXPORT IModStore : public QObject {
+    Q_OBJECT
+
+  public:
+    explicit IModStore(QObject *parent = nullptr) : QObject{parent} {}
+    ~IModStore() override;
+
+    [[nodiscard]] virtual const ModEntry *find(const QString &id) const = 0;
+
+  signals:
+    void modAdded(QStringView modId);   // used by modlistmodel
+    void modUpdated(QStringView modId); // used by modlistmodel
+    void modsReloading();               // used by modlistmodel, modloader & imgprovider
+    void modRemoved(QStringView modId); // used by modlistmodel & imgprovider
+};
 } // namespace vsmm

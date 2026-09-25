@@ -4,6 +4,7 @@ include(GenerateExportHeader)
 set(SOURCES IConfig.hpp
         IHttpClient.hpp
         IGameMngr.hpp
+        IModStore.hpp
         ConfigTypes.hpp
         Interfaces.cpp)
 qt_add_library(${PROJECT_NAME} SHARED ${SOURCES})

@@ -86,7 +86,7 @@ QHash<int, QByteArray> ModListModel::roleNames() const {
             {FavoriteRole, "isFavoriteMod"}};
 }
 
-void ModListModel::setStore(ModStore *store) {
+void ModListModel::setStore(IModStore *store) {
     if (mStore) {
         qCWarning(cModListModel, "ModStore already set");
         return;
@@ -97,10 +97,10 @@ void ModListModel::setStore(ModStore *store) {
     }
 
     mStore = store;
-    connect(store, &ModStore::modAdded, this, &ModListModel::onModAdded);
-    connect(store, &ModStore::modUpdated, this, &ModListModel::onModUpdated);
-    connect(store, &ModStore::modsReloading, this, &ModListModel::onModsReloading);
-    connect(store, &ModStore::modRemoved, this, &ModListModel::onModRemoved);
+    connect(store, &IModStore::modAdded, this, &ModListModel::onModAdded);
+    connect(store, &IModStore::modUpdated, this, &ModListModel::onModUpdated);
+    connect(store, &IModStore::modsReloading, this, &ModListModel::onModsReloading);
+    connect(store, &IModStore::modRemoved, this, &ModListModel::onModRemoved);
 }
 
 void ModListModel::onModAdded(QStringView modId) {

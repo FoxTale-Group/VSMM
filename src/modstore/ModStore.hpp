@@ -20,6 +20,7 @@
 
 #include <IConfig.hpp>
 #include <IGameMngr.hpp>
+#include <IModStore.hpp>
 #include <ModEntry.hpp>
 #include <ModStoreExport.hpp>
 
@@ -28,7 +29,7 @@
 #include <qqmlintegration.h>
 
 namespace vsmm {
-class MODSTORE_EXPORT ModStore : public QObject {
+class MODSTORE_EXPORT ModStore : public IModStore {
     Q_OBJECT
     QML_ELEMENT
     QML_SINGLETON
@@ -56,7 +57,7 @@ class MODSTORE_EXPORT ModStore : public QObject {
     Q_INVOKABLE void remove(const QString &id);
 
     [[nodiscard]] bool contains(const QString &id) const;
-    [[nodiscard]] const ModEntry *find(const QString &id) const;
+    [[nodiscard]] const ModEntry *find(const QString &id) const override;
     [[nodiscard]] int modsCount() const;
     [[nodiscard]] int modUpdatesCount() const;
     [[nodiscard]] bool isWorkPending() const;
@@ -65,11 +66,7 @@ class MODSTORE_EXPORT ModStore : public QObject {
     void modSelected();                           // NOTIFY modsSelected — QML bindings only
     void modsChanged();                           // NOTIFY installedModsCount/updatesCount — QML bindings only
     void workChanged();                           // NOTIFY workPending — QML bindings only
-    void modAdded(QStringView modId);             // used by modlistmodel
-    void modUpdated(QStringView modId);           // used by modlistmodel
-    void modsReloading();                         // used by modlistmodel, modloader & imgprovider
     void modUpdateRequested(const ModEntry &mod); // used by modloader
-    void modRemoved(QStringView modId);           // used by modlistmodel & imgprovider
 
   public slots:
     void onModsReloaded();
