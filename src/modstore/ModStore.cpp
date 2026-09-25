@@ -110,9 +110,11 @@ void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
 void ModStore::reload() {
     qCInfo(cModStore, "Reloading mods");
     mWorkPending = true;
+    // let modlistmodel drop its rows while the entries are still readable
+    emit modsReloading();
     mMods.clear();
     emit workChanged();
-    emitSignal(&ModStore::modsReloading, this);
+    emit modsChanged();
 }
 
 void ModStore::update(const QString &id) {
