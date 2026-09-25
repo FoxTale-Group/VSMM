@@ -75,12 +75,6 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     void onModsDirChanged();
 
   private:
-    template <typename Obj, typename Signal, typename... Args>
-    void emitSignal(Signal &&signal, Obj *obj, Args &&...args) {
-        emit(obj->*signal)(std::forward<Args>(args)...);
-        emit modsChanged();
-    }
-
     [[nodiscard]] bool modsSelected() const;
     void addOnInit(ModEntry::LocalInfo localModInfo);
     void addFromGUI(ModEntry::LocalInfo localModInfo);
