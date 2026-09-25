@@ -17,54 +17,23 @@
  */
 
 #include <ModEntry.hpp>
+#include <ModEntryTestUtils.hpp>
 
 #include <QJsonArray>
 #include <QLoggingCategory>
 #include <QTest>
 
 using namespace Qt::StringLiterals;
+using namespace vsmm::test;
 
 namespace {
 
-[[nodiscard]] semver::version<> ver(const QString &version) {
-    semver::version<> parsed;
-    const auto result = semver::parse(version.toStdString(), parsed);
-    // not Q_ASSERT, that would abort the run and behave differently in release builds
-    QTest::qVerify(static_cast<bool>(result), "semver::parse(version)", qPrintable(version), __FILE__, __LINE__);
-    return parsed;
-}
-
-[[nodiscard]] QString str(const semver::version<> &version) { return QString::fromStdString(version.to_string()); }
-
-[[nodiscard]] vsmm::ModEntry::LocalInfo localInfo(const QString &version = u"1.0.0"_s) {
+[[nodiscard]] vsmm::ModEntry::LocalInfo carryOnInfo(const QString &version = u"1.0.0"_s) {
     return {.mName = u"Carry On (local)"_s,
             .mId = u"carryon"_s,
             .mAuthor = u"local author"_s,
             .mVersion = ver(version),
             .mFileInfo = QFileInfo{u"/mods/CarryOn-1.0.0.zip"_s}};
-}
-
-// one entry of the API releases array, supported game versions go into tags
-[[nodiscard]] QJsonObject release(const QString &modVersion, const QStringList &gameVersions) {
-    QJsonArray tags;
-    for (const auto &gameVersion : gameVersions) {
-        tags.append(gameVersion);
-    }
-    return {{"modversion"_L1, modVersion},
-            {"tags"_L1, tags},
-            {"filename"_L1, u"CarryOn_v%1.zip"_s.arg(modVersion)},
-            {"mainfile"_L1, u"https://mods.vintagestory.at/download?fileid=%1"_s.arg(modVersion)}};
-}
-
-// older than the installed version, so the outcome stays "no update" without the empty-releases warning
-[[nodiscard]] QJsonArray defaultReleases() { return {release(u"0.9.0"_s, {u"1.22.0"_s})}; }
-
-// the mod object of an API response, trimmed down to what ModEntry reads
-[[nodiscard]] QJsonObject modJson(const QJsonArray &releases = defaultReleases()) {
-    return {{"name"_L1, "Carry On"_L1}, {"author"_L1, "NerdScurvy"_L1},
-            {"type"_L1, "mod"_L1},      {"urlalias"_L1, "carryon"_L1},
-            {"assetid"_L1, 4405},       {"tags"_L1, QJsonArray{"Storage"_L1, "QoL"_L1}},
-            {"releases"_L1, releases}};
 }
 
 QJsonObject withKey(QJsonObject json, QLatin1StringView key, const QJsonValue &value) {
@@ -93,14 +62,14 @@ class ModEntryUnitTest : public QObject {
     // local phase
 
     void localInfoStringifiesAsIdAtVersion() {
-        const auto info = localInfo(u"1.2.3-rc.1"_s);
+        const auto info = carryOnInfo(u"1.2.3-rc.1"_s);
 
         QCOMPARE(info.toString(), u"carryon@1.2.3-rc.1"_s);
         QCOMPARE(static_cast<QString>(info), u"carryon@1.2.3-rc.1"_s);
     }
 
     void constructionExposesLocalInfo() {
-        const vsmm::ModEntry entry{localInfo()};
+        const vsmm::ModEntry entry{carryOnInfo()};
 
         QCOMPARE(entry.getId(), u"carryon"_s);
         QCOMPARE(entry.getName(), u"Carry On (local)"_s);
@@ -112,7 +81,7 @@ class ModEntryUnitTest : public QObject {
     }
 
     void onlineGettersAreEmptyBeforeInitOnlineInfo() {
-        const vsmm::ModEntry entry{localInfo()};
+        const vsmm::ModEntry entry{carryOnInfo()};
 
         QVERIFY(entry.getUrl().isEmpty());
         QVERIFY(entry.getTags().isEmpty());
@@ -127,7 +96,7 @@ class ModEntryUnitTest : public QObject {
     }
 
     void flagsDefaultToFalseAndToggle() {
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
         QVERIFY(!entry.isMarkedForUpdate());
         QVERIFY(!entry.isFavorite());
 
@@ -145,7 +114,7 @@ class ModEntryUnitTest : public QObject {
     // online phase, scalar fields
 
     void onlineInfoOverridesNameAuthorAndTypeAndTags() {
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         entry.initOnlineInfo(modJson(), ver(GAME_VERSION), false);
 
@@ -159,7 +128,7 @@ class ModEntryUnitTest : public QObject {
     }
 
     void onlineNameIsTrimmed() {
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         entry.initOnlineInfo(withKey(modJson(), "name"_L1, "\t Carry On \n"_L1), ver(GAME_VERSION), false);
 
@@ -180,7 +149,7 @@ class ModEntryUnitTest : public QObject {
     void invalidNameFallsBackToLocalName() {
         QFETCH(QJsonValue, name);
         QFETCH(bool, warns);
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         if (warns) {
             QTest::ignoreMessage(QtWarningMsg, "Carry On (local): Invalid JSON format: name is not a string");
@@ -191,7 +160,7 @@ class ModEntryUnitTest : public QObject {
     }
 
     void invalidAuthorKeepsLocalAuthor() {
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         QTest::ignoreMessage(QtWarningMsg, "Carry On: Invalid JSON format: author is not a string");
         entry.initOnlineInfo(withKey(modJson(), "author"_L1, 42), ver(GAME_VERSION), false);
@@ -200,7 +169,7 @@ class ModEntryUnitTest : public QObject {
     }
 
     void invalidTypeLeavesTypeEmpty() {
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         QTest::ignoreMessage(QtWarningMsg, "Carry On: Invalid JSON format: type is not a string");
         entry.initOnlineInfo(withoutKey(modJson(), "type"_L1), ver(GAME_VERSION), false);
@@ -209,7 +178,7 @@ class ModEntryUnitTest : public QObject {
     }
 
     void nonArrayTagsLeaveTagsEmpty() {
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         QTest::ignoreMessage(QtWarningMsg, "Carry On: Invalid JSON format: tags is not a list");
         entry.initOnlineInfo(withKey(modJson(), "tags"_L1, "Storage"_L1), ver(GAME_VERSION), false);
@@ -218,7 +187,7 @@ class ModEntryUnitTest : public QObject {
     }
 
     void nullTagsAreSkipped() {
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
         const QJsonArray tags{"Storage"_L1, QJsonValue::Null, "QoL"_L1};
 
         entry.initOnlineInfo(withKey(modJson(), "tags"_L1, tags), ver(GAME_VERSION), false);
@@ -229,7 +198,7 @@ class ModEntryUnitTest : public QObject {
     // online phase, mod url
 
     void urlAliasWinsOverAssetId() {
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         entry.initOnlineInfo(modJson(), ver(GAME_VERSION), false);
 
@@ -245,7 +214,7 @@ class ModEntryUnitTest : public QObject {
 
     void assetIdIsUsedWhenAliasIsMissing() {
         QFETCH(QJsonValue, urlalias);
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         entry.initOnlineInfo(withKey(modJson(), "urlalias"_L1, urlalias), ver(GAME_VERSION), false);
 
@@ -253,7 +222,7 @@ class ModEntryUnitTest : public QObject {
     }
 
     void urlStaysEmptyWithoutAliasAndAssetId() {
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         QTest::ignoreMessage(QtWarningMsg, "Carry On: Invalid JSON format: assetid is not a number");
         entry.initOnlineInfo(withoutKey(withKey(modJson(), "urlalias"_L1, QJsonValue::Null), "assetid"_L1),
@@ -266,7 +235,7 @@ class ModEntryUnitTest : public QObject {
 
     // game is 1.22.5 and the release only advertises 1.22.0, patch numbers count as compatible
     void newerCompatibleReleaseIsAnUpdate() {
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         entry.initOnlineInfo(modJson({release(u"1.1.0"_s, {u"1.22.0"_s})}), ver(GAME_VERSION), false);
 
@@ -314,7 +283,7 @@ class ModEntryUnitTest : public QObject {
         QFETCH(QString, installedVersion);
         QFETCH(QJsonArray, releases);
         QFETCH(QString, expectedVersion);
-        vsmm::ModEntry entry{localInfo(installedVersion)};
+        vsmm::ModEntry entry{carryOnInfo(installedVersion)};
 
         entry.initOnlineInfo(modJson(releases), ver(GAME_VERSION), false);
 
@@ -330,7 +299,7 @@ class ModEntryUnitTest : public QObject {
 
     void installedVersionIsNotAnUpdate() {
         QFETCH(QString, releaseVersion);
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         entry.initOnlineInfo(modJson({release(releaseVersion, {u"1.22.0"_s})}), ver(GAME_VERSION), false);
 
@@ -354,7 +323,7 @@ class ModEntryUnitTest : public QObject {
     void incompatibleGameVersionIsNotAnUpdate() {
         QFETCH(QStringList, gameVersions);
         QFETCH(QByteArray, expectedError);
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         if (!expectedError.isEmpty()) {
             QTest::ignoreMessage(QtCriticalMsg, expectedError.constData());
@@ -365,7 +334,7 @@ class ModEntryUnitTest : public QObject {
     }
 
     void anyMatchingGameVersionTagIsEnough() {
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
         const QStringList gameVersions{u"1.20.4"_s, u"1.21.0"_s, u"1.22.1"_s};
 
         entry.initOnlineInfo(modJson({release(u"1.1.0"_s, gameVersions)}), ver(GAME_VERSION), false);
@@ -388,7 +357,7 @@ class ModEntryUnitTest : public QObject {
         QFETCH(QString, installedVersion);
         QFETCH(bool, includePrerelease);
         QFETCH(QString, expectedVersion);
-        vsmm::ModEntry entry{localInfo(installedVersion)};
+        vsmm::ModEntry entry{carryOnInfo(installedVersion)};
         const QJsonArray releases{release(u"2.0.0-pre.8"_s, {u"1.22.0"_s}), release(u"1.1.0"_s, {u"1.22.0"_s})};
 
         entry.initOnlineInfo(modJson(releases), ver(GAME_VERSION), includePrerelease);
@@ -416,7 +385,7 @@ class ModEntryUnitTest : public QObject {
     void malformedReleaseIsSkippedButScanContinues() {
         QFETCH(QJsonObject, badRelease);
         QFETCH(QByteArray, expectedError);
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
         const QJsonArray releases{badRelease, release(u"1.1.0"_s, {u"1.22.0"_s})};
 
         QTest::ignoreMessage(QtCriticalMsg, expectedError.constData());
@@ -440,7 +409,7 @@ class ModEntryUnitTest : public QObject {
     void missingReleasesLeaveNoUpdate() {
         QFETCH(QJsonValue, releases);
         QFETCH(QByteArray, expectedError);
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
 
         QTest::ignoreMessage(QtWarningMsg, expectedError.constData());
         entry.initOnlineInfo(withKey(modJson(), "releases"_L1, releases), ver(GAME_VERSION), false);
@@ -451,7 +420,7 @@ class ModEntryUnitTest : public QObject {
     }
 
     void secondInitOnlineInfoRefreshesTheEntry() {
-        vsmm::ModEntry entry{localInfo()};
+        vsmm::ModEntry entry{carryOnInfo()};
         entry.initOnlineInfo(modJson({release(u"1.1.0"_s, {u"1.22.0"_s})}), ver(GAME_VERSION), false);
         QVERIFY(entry.hasUpdate());
 
