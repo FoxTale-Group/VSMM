@@ -33,10 +33,12 @@ void ModStore::setConfig(IConfig *config) {
         qCWarning(cModStore, "Config already set");
         return;
     }
+    // GCOVR_EXCL_START
     if (!config) {
         qCFatal(cModStore, "Config is null");
         return;
     }
+    // GCOVR_EXCL_STOP
 
     mConfig = config;
 
@@ -52,10 +54,12 @@ void ModStore::setGameMngr(IGameMngr *gameMngr) {
         qCWarning(cModStore, "GameMngr already set");
         return;
     }
+    // GCOVR_EXCL_START
     if (!gameMngr) {
         qCFatal(cModStore, "GameMngr is null");
         return;
     }
+    // GCOVR_EXCL_STOP
 
     mGameMngr = gameMngr;
     connect(mGameMngr, &IGameMngr::modsDirsChanged, this, &ModStore::onModsDirChanged);
@@ -68,6 +72,7 @@ void ModStore::add(ModEntry::LocalInfo localModInfo, ModLoadType loadType) {
         return;
     }
 
+    // GCOVR_EXCL_START
     if (!mConfig) {
         qCFatal(cModStore, "Config is not set");
     }
@@ -75,6 +80,7 @@ void ModStore::add(ModEntry::LocalInfo localModInfo, ModLoadType loadType) {
     if (!mGameMngr) {
         qCFatal(cModStore, "GameMngr is not set");
     }
+    // GCOVR_EXCL_STOP
 
     switch (loadType) {
     case ModLoadType::Init:
@@ -104,7 +110,8 @@ void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
     it->initOnlineInfo(std::move(onlineInfo),
                        mGameMngr->getGameVersion() ? *mGameMngr->getGameVersion() : semver::version{},
                        includePrerelease);
-    emitSignal(&ModStore::modUpdated, this, it->getId());
+    emit modUpdated(it->getId());
+    emit modsChanged();
 }
 
 void ModStore::reload() {
@@ -256,14 +263,16 @@ void ModStore::addOnInit(ModEntry::LocalInfo localModInfo) {
         it->setFavorite(mFavoriteMods.contains(it->getId().toString()));
 
         qCDebug(cModStore, "Mod %s replaced", qUtf8Printable(it->toString()));
-        emitSignal(&ModStore::modUpdated, this, it->getId());
+        emit modUpdated(it->getId());
+        emit modsChanged();
     } else {
         QString id = localModInfo.mId;
         it = mMods.emplace(std::move(id), std::move(localModInfo));
         it->setFavorite(mFavoriteMods.contains(it->getId().toString()));
 
         qCDebug(cModStore, "Mod %s added", qUtf8Printable(it->toString()));
-        emitSignal(&ModStore::modAdded, this, it->getId());
+        emit modAdded(it->getId());
+        emit modsChanged();
     }
 }
 
@@ -294,7 +303,8 @@ void ModStore::addFromGUI(ModEntry::LocalInfo localModInfo) {
     it->setFavorite(mFavoriteMods.contains(it->getId().toString()));
 
     qCDebug(cModStore, "Mod %s added", qUtf8Printable(it->toString()));
-    emitSignal(&ModStore::modAdded, this, it->getId());
+    emit modAdded(it->getId());
+    emit modsChanged();
 }
 
 void ModStore::updateMod(ModEntry::LocalInfo localModInfo) {
@@ -356,7 +366,8 @@ void ModStore::updateMod(ModEntry::LocalInfo localModInfo) {
     it->setFavorite(mFavoriteMods.contains(it->getId().toString()));
 
     qCDebug(cModStore, "Mod %s replaced", qUtf8Printable(it->toString()));
-    emitSignal(&ModStore::modUpdated, this, it->getId());
+    emit modUpdated(it->getId());
+    emit modsChanged();
 }
 
 void ModStore::toUniqueFileName(QString &name) {

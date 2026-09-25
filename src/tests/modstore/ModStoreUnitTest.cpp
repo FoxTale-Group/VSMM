@@ -119,6 +119,14 @@ class ModStoreUnitTest : public QObject {
         QCOMPARE(reloading.count(), 1);
     }
 
+    void secondConfigIsRefused() {
+        setComponents();
+        vsmm::ConfigMock other;
+
+        QTest::ignoreMessage(QtWarningMsg, "Config already set");
+        mStore->setConfig(&other);
+    }
+
     // a mod picked in the GUI comes from outside the mods dir, the store installs it
     void guiAddCopiesTheZipIntoTheModsDirAndPointsTheEntryAtIt() {
         setComponents();
@@ -420,10 +428,21 @@ class ModStoreUnitTest : public QObject {
         connect(mStore.get(), &vsmm::ModStore::modUpdateRequested, this,
                 [&requested](const vsmm::ModEntry &mod) { requested.append(mod.getId().toString()); });
 
+        QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 2 installed, 1 with updates");
+        mStore->onModsReloaded();
+        QTRY_VERIFY(!mStore->isWorkPending());
+
+        QSignalSpy workChangedSignal{mStore.get(), &vsmm::ModStore::workChanged};
+
         QTest::ignoreMessage(QtInfoMsg, "Update requested for all 1 outdated mods");
         mStore->updateAll();
 
+        QVERIFY(mStore->isWorkPending());
         QCOMPARE(requested, QStringList{modId()});
+
+        QTest::ignoreMessage(QtInfoMsg, "Update requested for all 1 outdated mods");
+        mStore->updateAll();
+        QCOMPARE(workChangedSignal.count(), 1);
     }
 
     void updateSelectedRequestsOnlyTheMarkedOutdatedMods() {
@@ -434,6 +453,11 @@ class ModStoreUnitTest : public QObject {
         mStore->updateOnline(u"bees"_s, withNewerRelease());
         QVERIFY(!mStore->property("modsSelected").toBool());
         QSignalSpy selected{mStore.get(), &vsmm::ModStore::modSelected};
+        QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 2 installed, 2 with updates");
+        mStore->onModsReloaded();
+        QTRY_VERIFY(!mStore->isWorkPending());
+
+        QSignalSpy workChangedSignal{mStore.get(), &vsmm::ModStore::workChanged};
 
         mStore->markForUpdate(modId(), true);
 
@@ -447,7 +471,20 @@ class ModStoreUnitTest : public QObject {
         QTest::ignoreMessage(QtInfoMsg, "Update requested for 1 selected mods");
         mStore->updateSelected();
 
+        QVERIFY(mStore->isWorkPending());
         QCOMPARE(requested, QStringList{modId()});
+        QTest::ignoreMessage(QtInfoMsg, "Update requested for 1 selected mods");
+        mStore->updateSelected();
+        QCOMPARE(workChangedSignal.count(), 1);
+    }
+
+    void modsNotFavouriteIfDoesntExist() {
+        setComponents();
+
+        addMod(modsDir(), modId(), u"1.0.0"_s);
+        mStore->setFavorite("testMod", true);
+
+        QVERIFY(!mConfig->getFavorites().contains("testMod"));
     }
 
     // installing a mod that is already known is an update, not a second copy
