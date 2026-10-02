@@ -112,7 +112,7 @@ void ModLoader::setGameMngr(IGameMngr *gameMngr) {
     mGameMngr = gameMngr;
 }
 
-void ModLoader::setStore(ModStore *store) {
+void ModLoader::setStore(IModStore *store) {
     if (mStore) {
         qCWarning(cModLoader, "ModStore already set");
         return;
@@ -123,18 +123,18 @@ void ModLoader::setStore(ModStore *store) {
     }
 
     mStore = store;
-    connect(mStore, &ModStore::modsReloading, this, &ModLoader::onModsReloading);
-    connect(mStore, &ModStore::modUpdateRequested, this, &ModLoader::onModUpdateRequested);
-    connect(this, &ModLoader::allModsReloaded, mStore, &ModStore::onModsReloaded);
+    connect(mStore, &IModStore::modsReloading, this, &ModLoader::onModsReloading);
+    connect(mStore, &IModStore::modUpdateRequested, this, &ModLoader::onModUpdateRequested);
+    connect(this, &ModLoader::allModsReloaded, mStore, &IModStore::onModsReloaded);
 }
 
 void ModLoader::load(QFileInfo &&fileInfo) {
     incrementModsLoadingInProgress();
-    load_(std::move(fileInfo), ModStore::ModLoadType::Init);
+    load_(std::move(fileInfo), IModStore::ModLoadType::Init);
 }
 void ModLoader::load(const QUrl &filePath) {
     incrementModsLoadingInProgress();
-    load_(QFileInfo{filePath.toLocalFile()}, ModStore::ModLoadType::GUI);
+    load_(QFileInfo{filePath.toLocalFile()}, IModStore::ModLoadType::GUI);
 }
 
 void ModLoader::onModUpdateRequested(const ModEntry &mod) {
@@ -178,7 +178,7 @@ void ModLoader::onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion la
         modUpdateFile.close();
         QFileInfo fileInfo{modUpdateFile.fileName()};
         QMetaObject::invokeMethod(
-            this, [this, fileInfo] mutable { load_(std::move(fileInfo), ModStore::ModLoadType::Update); },
+            this, [this, fileInfo] mutable { load_(std::move(fileInfo), IModStore::ModLoadType::Update); },
             Qt::QueuedConnection);
     });
 }
@@ -193,7 +193,7 @@ void ModLoader::decrementModsLoadingInProgress() {
 
 void ModLoader::onModsReloading() { initModsList(); }
 
-void ModLoader::load_(QFileInfo &&fileInfo, ModStore::ModLoadType modLoadType) {
+void ModLoader::load_(QFileInfo &&fileInfo, IModStore::ModLoadType modLoadType) {
     mThreadPoolExtractZips.start([this, fileInfo, modLoadType] mutable {
         auto localInfo = getLocalInfoFromZip(std::move(fileInfo));
 

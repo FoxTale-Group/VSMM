@@ -39,15 +39,13 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     Q_PROPERTY(bool modsSelected READ modsSelected NOTIFY modSelected)
 
   public:
-    enum class ModLoadType : std::uint8_t { Init = 0, GUI, Update };
-
     explicit ModStore(QObject *parent = nullptr);
 
     void setConfig(IConfig *config);
     void setGameMngr(IGameMngr *gameMngr);
 
-    void add(ModEntry::LocalInfo localModInfo, ModLoadType loadType);
-    void updateOnline(QStringView id, QJsonObject onlineInfo);
+    void add(ModEntry::LocalInfo localModInfo, ModLoadType loadType) override;
+    void updateOnline(QStringView id, QJsonObject onlineInfo) override;
     Q_INVOKABLE void reload();
     Q_INVOKABLE void update(const QString &id);
     Q_INVOKABLE void updateAll();
@@ -63,13 +61,12 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     [[nodiscard]] bool isWorkPending() const;
 
   signals:
-    void modSelected();                           // NOTIFY modsSelected — QML bindings only
-    void modsChanged();                           // NOTIFY installedModsCount/updatesCount — QML bindings only
-    void workChanged();                           // NOTIFY workPending — QML bindings only
-    void modUpdateRequested(const ModEntry &mod); // used by modloader
+    void modSelected(); // NOTIFY modsSelected - QML bindings only
+    void modsChanged(); // NOTIFY installedModsCount/updatesCount - QML bindings only
+    void workChanged(); // NOTIFY workPending - QML bindings only
 
   public slots:
-    void onModsReloaded();
+    void onModsReloaded() override;
 
   private slots:
     void onModsDirChanged();

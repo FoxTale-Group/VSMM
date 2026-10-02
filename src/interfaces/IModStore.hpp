@@ -19,26 +19,36 @@
 #pragma once
 
 #include <InterfacesExport.hpp>
+#include <ModEntry.hpp>
+#include <QJsonObject>
 #include <QObject>
 #include <QString>
 #include <QStringView>
 
-namespace vsmm {
-class ModEntry;
+#include <cstdint>
 
+namespace vsmm {
 class INTERFACES_EXPORT IModStore : public QObject {
     Q_OBJECT
 
   public:
+    enum class ModLoadType : std::uint8_t { Init = 0, GUI, Update };
+
     explicit IModStore(QObject *parent = nullptr) : QObject{parent} {}
     ~IModStore() override;
 
+    virtual void add(ModEntry::LocalInfo localModInfo, ModLoadType loadType) = 0;
+    virtual void updateOnline(QStringView id, QJsonObject onlineInfo) = 0;
     [[nodiscard]] virtual const ModEntry *find(const QString &id) const = 0;
 
   signals:
-    void modAdded(QStringView modId);   // used by modlistmodel
-    void modUpdated(QStringView modId); // used by modlistmodel
-    void modsReloading();               // used by modlistmodel, modloader & imgprovider
-    void modRemoved(QStringView modId); // used by modlistmodel & imgprovider
+    void modAdded(QStringView modId);             // used by modlistmodel
+    void modUpdated(QStringView modId);           // used by modlistmodel
+    void modsReloading();                         // used by modlistmodel, modloader & imgprovider
+    void modRemoved(QStringView modId);           // used by modlistmodel & imgprovider
+    void modUpdateRequested(const ModEntry &mod); // used by modloader
+
+  public slots:
+    virtual void onModsReloaded() = 0;
 };
 } // namespace vsmm
