@@ -19,10 +19,10 @@
 #pragma once
 
 #include <ModEntry.hpp>
-#include <ModStore.hpp>
 
 #include <IGameMngr.hpp>
 #include <IHttpClient.hpp>
+#include <IModStore.hpp>
 #include <ModLoaderExport.hpp>
 
 #include <QDir>
@@ -49,7 +49,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     bool initModsList();
     void setHttpClient(IHttpClient *httpClient);
     void setGameMngr(IGameMngr *gameMngr);
-    void setStore(ModStore *store);
+    void setStore(IModStore *store);
     void load(QFileInfo &&fileInfo);
     Q_INVOKABLE void load(const QUrl &filePath);
 
@@ -61,7 +61,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     void onModUpdateRequested(const ModEntry &mod);
 
   private:
-    void load_(QFileInfo &&fileInfo, ModStore::ModLoadType modLoadType);
+    void load_(QFileInfo &&fileInfo, IModStore::ModLoadType modLoadType);
 
     void onModInfoRetrieved(QString modId, QByteArray data);
     void onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion);
@@ -73,7 +73,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     [[nodiscard]] static QJsonObject createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId);
 
     IGameMngr *mGameMngr{nullptr};
-    ModStore *mStore{nullptr};
+    IModStore *mStore{nullptr};
     IHttpClient *mHttpClient{nullptr};
     QAtomicInteger<quint32> mModsLoadingInProgress{0};
     QThreadPool mThreadPoolExtractZips{this};

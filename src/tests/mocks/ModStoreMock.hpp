@@ -22,6 +22,7 @@
 #include <ModEntry.hpp>
 
 #include <QHash>
+#include <QList>
 
 #include <utility>
 
@@ -29,6 +30,24 @@ namespace vsmm {
 // emits in the same order as ModStore, the entry is always findable while its signal runs
 class ModStoreMock final : public IModStore {
   public:
+    struct AddCall {
+        ModEntry::LocalInfo mInfo;
+        ModLoadType mLoadType;
+    };
+    struct OnlineCall {
+        QString mId;
+        QJsonObject mOnlineInfo;
+    };
+
+    // only keeps what it received, the loader tests check it
+    void add(ModEntry::LocalInfo localModInfo, ModLoadType loadType) override {
+        mAddCalls.append({std::move(localModInfo), loadType});
+    }
+    void updateOnline(QStringView id, QJsonObject onlineInfo) override {
+        mOnlineCalls.append({id.toString(), std::move(onlineInfo)});
+    }
+    void onModsReloaded() override { ++mReloadedCount; }
+
     [[nodiscard]] const ModEntry *find(const QString &id) const override {
         const auto it = mMods.constFind(id);
         return it == mMods.constEnd() ? nullptr : &it.value();
@@ -69,7 +88,16 @@ class ModStoreMock final : public IModStore {
     // for initOnlineInfo and setFavorite, follow with update() like ModStore does
     [[nodiscard]] ModEntry &entry(const QString &id) { return mMods.find(id).value(); }
 
+    void requestUpdate(const ModEntry &mod) { emit modUpdateRequested(mod); }
+
+    [[nodiscard]] const QList<AddCall> &addCalls() const { return mAddCalls; }
+    [[nodiscard]] const QList<OnlineCall> &onlineCalls() const { return mOnlineCalls; }
+    [[nodiscard]] int reloadedCount() const { return mReloadedCount; }
+
   private:
     QHash<QString, ModEntry> mMods;
+    QList<AddCall> mAddCalls;
+    QList<OnlineCall> mOnlineCalls;
+    int mReloadedCount{0};
 };
 } // namespace vsmm
