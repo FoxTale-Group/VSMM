@@ -152,8 +152,8 @@ void ModLoader::onModUpdateRequested(const ModEntry &mod) {
         [this, latestVersion](QByteArray data) mutable {
             onModUpdateRetrieved(std::move(data), std::move(latestVersion));
         },
-        [this, id = mod.getId()](QString error) {
-            qCWarning(cModLoader, "Failed to retrieve update for %s: %s", qUtf8Printable(id.toString()),
+        [this, id = mod.getId().toString()](QString error) {
+            qCWarning(cModLoader, "Failed to retrieve update for %s: %s", qUtf8Printable(id),
                       qUtf8Printable(std::move(error)));
             decrementModsLoadingInProgress();
         });
