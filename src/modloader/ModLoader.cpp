@@ -139,6 +139,8 @@ void ModLoader::load(const QUrl &filePath) {
 
 void ModLoader::onModUpdateRequested(const ModEntry &mod) {
     if (!mod.hasUpdate()) {
+        // inform ModStore, so it would set mWorkPending = false
+        emit allModsReloaded();
         return;
     }
 
@@ -150,8 +152,8 @@ void ModLoader::onModUpdateRequested(const ModEntry &mod) {
         [this, latestVersion](QByteArray data) mutable {
             onModUpdateRetrieved(std::move(data), std::move(latestVersion));
         },
-        [this, id = mod.getId()](QString error) {
-            qCWarning(cModLoader, "Failed to retrieve update for %s: %s", qUtf8Printable(id.toString()),
+        [this, id = mod.getId().toString()](QString error) {
+            qCWarning(cModLoader, "Failed to retrieve update for %s: %s", qUtf8Printable(id),
                       qUtf8Printable(std::move(error)));
             decrementModsLoadingInProgress();
         });
@@ -193,7 +195,7 @@ void ModLoader::load_(QFileInfo &&fileInfo, ModStore::ModLoadType modLoadType) {
     mThreadPoolExtractZips.start([this, fileInfo, modLoadType] mutable {
         auto localInfo = getLocalInfoFromZip(std::move(fileInfo));
 
-        if (localInfo.isValid() && localInfo.canConvert<ModEntry::LocalInfo>()) {
+        if (localInfo.canConvert<ModEntry::LocalInfo>()) {
             QMetaObject::invokeMethod(
                 this,
                 [this, modInfo_ = std::move(localInfo).value<ModEntry::LocalInfo>(), modLoadType] mutable {
