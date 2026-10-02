@@ -4,10 +4,10 @@ set(SOURCES ZipArchiveIntegrationTest.cpp)
 qt_add_executable(${PROJECT_NAME} ${SOURCES})
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME}
         -o -,txt -o ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.junit.xml,junitxml)
-add_dependencies(${PROJECT_NAME} ZipArchive)
+add_dependencies(${PROJECT_NAME} ZipArchive TestUtils)
 
 # libzip comes in through ZipArchive, the test builds its own fixtures with it
-target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Test ZipArchive)
+target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Test ZipArchive TestUtils)
 set_target_properties(${PROJECT_NAME} PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON)
