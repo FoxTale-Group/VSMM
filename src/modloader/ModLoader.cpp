@@ -48,9 +48,11 @@ ModLoader::ModLoader() {
 bool ModLoader::initModsList() {
     static const QStringList modsExts{{"*.zip"}};
 
+    // GCOVR_EXCL_START
     if (!mGameMngr) {
         qCFatal(cModLoader, "GameMngr is not set");
     }
+    // GCOVR_EXCL_STOP
 
     QList<QDir> modsDirs = mGameMngr->getModsDirs();
     if (modsDirs.isEmpty()) {
@@ -91,10 +93,12 @@ void ModLoader::setHttpClient(IHttpClient *httpClient) {
         qCWarning(cModLoader, "HttpClient already set");
         return;
     }
+    // GCOVR_EXCL_START
     if (!httpClient) {
         qCFatal(cModLoader, "HttpClient is null");
         return;
     }
+    // GCOVR_EXCL_STOP
 
     mHttpClient = httpClient;
 }
@@ -104,10 +108,12 @@ void ModLoader::setGameMngr(IGameMngr *gameMngr) {
         qCWarning(cModLoader, "GameMngr already set");
         return;
     }
+    // GCOVR_EXCL_START
     if (!gameMngr) {
         qCFatal(cModLoader, "GameMngr is null");
         return;
     }
+    // GCOVR_EXCL_STOP
 
     mGameMngr = gameMngr;
 }
@@ -117,10 +123,12 @@ void ModLoader::setStore(IModStore *store) {
         qCWarning(cModLoader, "ModStore already set");
         return;
     }
+    // GCOVR_EXCL_START
     if (!store) {
         qCFatal(cModLoader, "ModStore is null");
         return;
     }
+    // GCOVR_EXCL_STOP
 
     mStore = store;
     connect(mStore, &IModStore::modsReloading, this, &ModLoader::onModsReloading);
