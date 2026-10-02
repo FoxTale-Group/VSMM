@@ -139,8 +139,10 @@ void ModLoader::load(const QUrl &filePath) {
 
 void ModLoader::onModUpdateRequested(const ModEntry &mod) {
     if (!mod.hasUpdate()) {
-        // inform ModStore, so it would set mWorkPending = false
-        emit allModsReloaded();
+        // inform ModStore, so it would set mWorkPending = false and if not other updates are pending
+        if (!mModsLoadingInProgress.loadRelaxed()) {
+            emit allModsReloaded();
+        }
         return;
     }
 
