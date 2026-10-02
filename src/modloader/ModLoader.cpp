@@ -195,7 +195,7 @@ void ModLoader::load_(QFileInfo &&fileInfo, ModStore::ModLoadType modLoadType) {
     mThreadPoolExtractZips.start([this, fileInfo, modLoadType] mutable {
         auto localInfo = getLocalInfoFromZip(std::move(fileInfo));
 
-        if (localInfo.isValid() && localInfo.canConvert<ModEntry::LocalInfo>()) {
+        if (localInfo.canConvert<ModEntry::LocalInfo>()) {
             QMetaObject::invokeMethod(
                 this,
                 [this, modInfo_ = std::move(localInfo).value<ModEntry::LocalInfo>(), modLoadType] mutable {
