@@ -17,6 +17,7 @@
  */
 
 #include <ZipArchive.hpp>
+#include <ZipTestUtils.hpp>
 
 #include <QFile>
 #include <QTemporaryDir>
@@ -25,66 +26,9 @@
 #include <zip.h>
 
 using namespace Qt::StringLiterals;
+using namespace vsmm::test;
 
 namespace {
-
-struct Entry {
-    QByteArray mName;
-    QByteArray mContent;
-};
-
-// fixtures are built with libzip itself, so no binary archive has to be checked in
-[[nodiscard]] bool writeArchive(const QString &file, const QList<Entry> &entries, const QByteArrayList &dirs = {}) {
-    int errorCode{-1};
-    zip_t *archive = zip_open(file.toUtf8().constData(), ZIP_CREATE | ZIP_TRUNCATE, &errorCode);
-    if (!archive) {
-        return false;
-    }
-
-    for (const auto &[name, content] : entries) {
-        // the source borrows the buffer, entries outlives zip_close as the caller's argument
-        zip_source_t *source = zip_source_buffer(archive, content.constData(), content.size(), 0);
-        if (!source || zip_file_add(archive, name.constData(), source, ZIP_FL_ENC_UTF_8 | ZIP_FL_OVERWRITE) < 0) {
-            zip_source_free(source);
-            zip_discard(archive);
-            return false;
-        }
-    }
-
-    for (const auto &dir : dirs) {
-        if (zip_dir_add(archive, dir.constData(), ZIP_FL_ENC_UTF_8) < 0) {
-            zip_discard(archive);
-            return false;
-        }
-    }
-
-    return zip_close(archive) == 0;
-}
-
-// an encrypted entry stats fine but cannot be opened without the password, which no other fixture reaches.
-// libzip can be built without crypto, so the caller has to treat a false here as "not testable on this build"
-[[nodiscard]] bool writeEncryptedArchive(const QString &file, const Entry &entry) {
-    int errorCode{-1};
-    zip_t *archive = zip_open(file.toUtf8().constData(), ZIP_CREATE | ZIP_TRUNCATE, &errorCode);
-    if (!archive) {
-        return false;
-    }
-
-    zip_source_t *source = zip_source_buffer(archive, entry.mContent.constData(), entry.mContent.size(), 0);
-    const zip_int64_t index =
-        source ? zip_file_add(archive, entry.mName.constData(), source, ZIP_FL_ENC_UTF_8 | ZIP_FL_OVERWRITE) : -1;
-    if (index < 0) {
-        zip_source_free(source);
-        zip_discard(archive);
-        return false;
-    }
-    if (zip_file_set_encryption(archive, index, ZIP_EM_AES_256, "password") < 0) {
-        zip_discard(archive);
-        return false;
-    }
-    return zip_close(archive) == 0;
-}
-
 // local file header layout, only what is needed to find the compressed data of the first entry
 constexpr qint64 LOCAL_HEADER_SIZE = 30;
 constexpr int COMPRESSED_SIZE_OFFSET = 18;
