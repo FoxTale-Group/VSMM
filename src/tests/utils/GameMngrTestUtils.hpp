@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <FileTestUtils.hpp>
+
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -54,15 +56,6 @@ constexpr QLatin1StringView CLIENT_SETTINGS_FILE{"clientsettings.json"};
         paths.append(dir.path());
     }
     return paths;
-}
-
-// returns false instead of QVERIFY, which would return from the helper and swallow the failure
-[[nodiscard]] inline bool writeFile(const QString &path, const QByteArray &contents) {
-    QFile file{path};
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-        return false;
-    }
-    return file.write(contents) == contents.size();
 }
 
 [[nodiscard]] inline bool writeClientSettings(const QDir &gameDir, const QByteArray &contents) {
