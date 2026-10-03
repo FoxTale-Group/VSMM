@@ -36,7 +36,7 @@ Q_STATIC_LOGGING_CATEGORY(cModLoader, "modloader");
 
 namespace {
 using namespace Qt::StringLiterals;
-QUrl GetModUrlApi(QAnyStringView modId) { return u"https://mods.vintagestory.at/api/mod/%1"_s.arg(modId); }
+QUrl GetModUrlApi(const QUrl &apiUrl, QAnyStringView modId) { return u"%1%2"_s.arg(apiUrl.toString(), modId); }
 } // namespace
 
 namespace vsmm {
@@ -136,6 +136,8 @@ void ModLoader::setStore(IModStore *store) {
     connect(this, &ModLoader::allModsReloaded, mStore, &IModStore::onModsReloaded);
 }
 
+void ModLoader::setApiUrl(QUrl apiUrl) { mApiUrl = std::move(apiUrl); }
+
 void ModLoader::load(QFileInfo &&fileInfo) {
     incrementModsLoadingInProgress();
     load_(std::move(fileInfo), IModStore::ModLoadType::Init);
@@ -213,7 +215,7 @@ void ModLoader::load_(QFileInfo &&fileInfo, IModStore::ModLoadType modLoadType) 
                     QString modId = modInfo_.mId;
                     mStore->add(std::move(modInfo_), modLoadType);
                     mHttpClient->sendGet(
-                        GetModUrlApi(modId), this, ONLINE_CONTENT_TYPE,
+                        GetModUrlApi(mApiUrl, modId), this, ONLINE_CONTENT_TYPE,
                         [this, modId](QByteArray data) mutable {
                             onModInfoRetrieved(std::move(modId), std::move(data));
                         },
