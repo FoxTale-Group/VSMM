@@ -17,6 +17,7 @@
  */
 
 #include <HttpClientMock.hpp>
+#include <ImageTestUtils.hpp>
 #include <ModImageProvider.hpp>
 
 #include <QBuffer>
@@ -33,41 +34,7 @@
 #include <memory>
 
 using namespace Qt::StringLiterals;
-
-namespace {
-
-// a solid image encoded as png, built in memory so nothing binary is checked in
-[[nodiscard]] QByteArray pngBytes(const QSize size = QSize{8, 8}, const QColor color = Qt::red) {
-    QImage image{size, QImage::Format_ARGB32};
-    image.fill(color);
-    QByteArray bytes;
-    QBuffer buffer{&bytes};
-    // not Q_ASSERT, that would abort the run and behave differently in release builds
-    QTest::qVerify(buffer.open(QIODevice::WriteOnly), "buffer.open(WriteOnly)", "", __FILE__, __LINE__);
-    QTest::qVerify(image.save(&buffer, "PNG"), "image.save(PNG)", "", __FILE__, __LINE__);
-    return bytes;
-}
-
-// the id ModListModel::IconRole builds, minus the image://modicon/ prefix the engine strips
-[[nodiscard]] QString iconId(const QString &modId, const QString &logoUrl) {
-    return u"%1?url=%2"_s.arg(modId, QString::fromLatin1(QUrl::toPercentEncoding(logoUrl)));
-}
-
-// what a response carries once it settled, textureFactory() hands its factory to the caller
-struct Settled {
-    QImage mImage;
-    QString mError;
-};
-
-[[nodiscard]] Settled settled(const QQuickImageResponse *response) {
-    const std::unique_ptr<QQuickTextureFactory> factory{response->textureFactory()};
-    return {.mImage = factory ? factory->image() : QImage{}, .mError = response->errorString()};
-}
-
-// the provider hands ownership of the response to the engine, here the test owns it
-using ResponsePtr = std::unique_ptr<QQuickImageResponse>;
-
-} // namespace
+using namespace vsmm::test;
 
 class ModImageProviderUnitTest : public QObject {
     Q_OBJECT
