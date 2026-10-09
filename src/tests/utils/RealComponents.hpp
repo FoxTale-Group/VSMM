@@ -32,6 +32,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include <functional>
 #include <memory>
 
 namespace vsmm::test {
@@ -97,6 +98,9 @@ class RealComponents {
         return launch();
     }
 
+    // runs on every launch right before the config is validated, where App connects the rest of the backend
+    void beforeValidate(std::function<void()> hook) { mBeforeValidate = std::move(hook); }
+
     [[nodiscard]] Config &config() const { return *mConfig; }
     [[nodiscard]] GameMngr &gameMngr() const { return *mGameMngr; }
     [[nodiscard]] ModStore &store() const { return *mStore; }
@@ -133,6 +137,9 @@ class RealComponents {
         mStore = std::make_unique<ModStore>();
         mStore->setConfig(mConfig.get());
         mStore->setGameMngr(mGameMngr.get());
+        if (mBeforeValidate) {
+            mBeforeValidate();
+        }
 
         // the first scan is announced only once the version read settled
         const QSignalSpy scan{mGameMngr.get(), &IGameMngr::modsDirsChanged};
@@ -151,5 +158,6 @@ class RealComponents {
     std::unique_ptr<Config> mConfig;
     std::unique_ptr<GameMngr> mGameMngr;
     std::unique_ptr<ModStore> mStore;
+    std::function<void()> mBeforeValidate;
 };
 } // namespace vsmm::test
