@@ -315,6 +315,16 @@ class ModLoaderUnitTest : public QObject {
         QCOMPARE(mFinished->count(), 0);
     }
 
+    void infoIsRequestedFromTheConfiguredApiUrl() {
+        mLoader->setApiUrl(QUrl{u"http://127.0.0.1:1/api/mod/"_s});
+        QVERIFY(!writeMod().isEmpty());
+
+        mLoader->load(QFileInfo{modsPath(u"carryon.zip"_s)});
+
+        QTRY_COMPARE(mHttp->callCount(), 1);
+        QCOMPARE(mHttp->call(0).mUrl, QUrl{u"http://127.0.0.1:1/api/mod/carryon"_s});
+    }
+
     void loadFromGuiUsesTheGuiType() {
         const QString zip = writeMod();
         QVERIFY(!zip.isEmpty());
