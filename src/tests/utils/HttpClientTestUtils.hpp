@@ -42,6 +42,8 @@ struct Response {
     QByteArray mBody{"{}"};
     QList<std::pair<QByteArray, QByteArray>> mExtraHeaders;
     bool mTruncateBody{false};
+    // fresh for an hour, so the disk cache may answer the next request without asking the server
+    bool mCacheable{false};
 };
 
 // what the server was asked for, header names are lowercased because HTTP does not case them
@@ -153,11 +155,11 @@ class FakeHttpServer : public QTcpServer {
         const Response response = mQueued.isEmpty() ? mFallback : mQueued.takeFirst();
 
         const qsizetype promised = response.mBody.size() + (response.mTruncateBody ? TRUNCATED_BY : 0);
+        // no-store unless asked, else the disk cache may answer and the next request never reaches here
         QByteArray head = "HTTP/1.1 " + QByteArray::number(response.mStatus) + ' ' + reasonPhrase(response.mStatus) +
                           "\r\nContent-Length: " + QByteArray::number(promised) +
-                          // nothing here is cacheable: QNetworkDiskCache is free to store a reply heuristically
-                          // and the next request would then never reach this server
-                          "\r\nCache-Control: no-store\r\nConnection: close\r\n";
+                          "\r\nCache-Control: " + (response.mCacheable ? "max-age=3600" : "no-store") +
+                          "\r\nConnection: close\r\n";
         if (!response.mContentType.isEmpty()) {
             head += "Content-Type: " + response.mContentType + "\r\n";
         }

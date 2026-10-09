@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "HttpClientTestUtils.hpp"
+#include <HttpClientTestUtils.hpp>
 
 #include <QElapsedTimer>
 #include <QLoggingCategory>

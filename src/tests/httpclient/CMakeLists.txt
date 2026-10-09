@@ -1,13 +1,13 @@
 project(HttpClientUnitTest)
 
-set(SOURCES HttpClientUnitTest.cpp HttpClientTestUtils.hpp)
+set(SOURCES HttpClientUnitTest.cpp)
 qt_add_executable(${PROJECT_NAME} ${SOURCES})
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME}
         -o -,txt -o ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.junit.xml,junitxml)
-add_dependencies(${PROJECT_NAME} HttpClient)
+add_dependencies(${PROJECT_NAME} HttpClient TestUtils)
 
 # Qt6::Network for the loopback server standing in for the mod api
-target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Test Qt6::Network HttpClient)
+target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Test Qt6::Network HttpClient TestUtils)
 
 # APP_NAME and APP_VERSION for the user agent assertion, configure_file puts constants.hpp in src's binary dir
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/../..)
