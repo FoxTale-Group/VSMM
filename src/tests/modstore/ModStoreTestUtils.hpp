@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <FileTestUtils.hpp>
 #include <ModEntryTestUtils.hpp>
 
 #include <QDir>
@@ -45,20 +46,6 @@
 
 namespace vsmm::test {
 using namespace Qt::StringLiterals;
-
-// returns false instead of QVERIFY, which would return from the helper and swallow the failure
-[[nodiscard]] inline bool writeFile(const QString &path, const QByteArray &contents) {
-    QFile file{path};
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        return false;
-    }
-    return file.write(contents) == contents.size();
-}
-
-[[nodiscard]] inline QByteArray readFile(const QString &path) {
-    QFile file{path};
-    return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray{};
-}
 
 // the host may have no trash for this filesystem, probe it with a scratch file rather than reading it
 // back out of the outcome under test
