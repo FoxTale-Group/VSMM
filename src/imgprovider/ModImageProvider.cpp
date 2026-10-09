@@ -31,7 +31,7 @@ class AsyncImageResponse : public QQuickImageResponse {
         : mModId{std::move(modId)}, mRequestedSize{requestedSize} {}
 
     void resolve(QImage image, QString error = {}) {
-        if (mFinished || mCancelled) {
+        if (mFinished) {
             qCDebug(cImageProvider, "Response for %s already resolved", qUtf8Printable(mModId));
             return;
         }
@@ -55,7 +55,6 @@ class AsyncImageResponse : public QQuickImageResponse {
             return;
         }
         qCDebug(cImageProvider, "Requested to cancel image processing for %s", qUtf8Printable(mModId));
-        mCancelled = true;
         mFinished = true;
         mErrorString = QStringLiteral("Cancelled");
         emit finished();
@@ -73,7 +72,6 @@ class AsyncImageResponse : public QQuickImageResponse {
     QImage mImage;
     QString mErrorString;
     bool mFinished{false};
-    bool mCancelled{false};
 };
 } // namespace
 
