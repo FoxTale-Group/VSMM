@@ -12,7 +12,7 @@ VsmmWindow {
 
     windowTitle: qsTr("Settings"); windowIcon: Theme.icons.settingsIcon;
 
-    dialog: true; movable: false; resizable: false;
+    dialog: true; movable: true; resizable: false;
     modality: Qt.ApplicationModal
 
     // True while any tab holds a value that differs from Config.
