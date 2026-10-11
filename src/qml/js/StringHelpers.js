@@ -29,5 +29,7 @@ function capitalizeModSide(s) {
             return qsTr("Server Side")
         case "both":
             return qsTr("Both")
+        default:
+            return s;
     }
 }

@@ -139,7 +139,7 @@ Rectangle {
 
                     property string modSideText: modSide
 
-                    visible: modSideText !== ""
+                    visible: !StringHelpers.isNullOrWhitespace(modSideText)
                     color: {
                         switch (modSideText) {
                             case "client":
@@ -168,6 +168,8 @@ Rectangle {
                                     return Theme.colors.modSideServerFg;
                                 case "both":
                                     return Theme.colors.modSideBothFg;
+                                default:
+                                    return Theme.colors.label;
                             }
                         }
                     }
