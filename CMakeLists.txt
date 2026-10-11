@@ -35,6 +35,8 @@ if (MSVC)
 else ()
     add_compile_options(-Wall -Wextra -Wpedantic -Werror)
     add_compile_options(-Wno-unused-parameter)
+    # distro qt with no_direct_extern_access rejects copy relocations
+    add_compile_options(-mno-direct-extern-access)
 endif()
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release" OR "${CMAKE_BUILD_TYPE}" STREQUAL "MinSizeRel")
