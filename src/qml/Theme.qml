@@ -208,6 +208,14 @@ QtObject {
         readonly property color modLatestBadgeBg:   "#05552f"
         readonly property color modLatestBadgeText: "#00ff00"
 
+        // Mod side badges colors
+        readonly property color modSideClientBg: '#06350e'
+        readonly property color modSideClientFg: '#a2e6c7'
+        readonly property color modSideServerBg: '#433b0a'
+        readonly property color modSideServerFg: '#d0c893'
+        readonly property color modSideBothBg:   '#18304b'
+        readonly property color modSideBothFg:   '#759ac3'
+
         // Mod entry action buttons colors
         readonly property color modFavButton:       accent
         readonly property color modDelButtonIcon:   "#dd1919"
