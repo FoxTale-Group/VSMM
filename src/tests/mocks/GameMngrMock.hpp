@@ -20,6 +20,9 @@
 
 #include <IGameMngr.hpp>
 
+#include <QSet>
+#include <QStringList>
+
 #include <utility>
 
 namespace vsmm {
@@ -31,6 +34,12 @@ class GameMngrMock final : public IGameMngr {
     [[nodiscard]] const std::optional<semver::version<>> &getGameVersion() const override { return mGameVersion; }
     // records instead of spawning a process
     void launchGame() const override { ++mLaunchCount; }
+    void addDisabledMod(const QString &modId, const QString &version [[maybe_unused]]) override {
+        mDisabledMods.insert(modId);
+    }
+    void removeDisabledMod(const QString &modId) override { mDisabledMods.remove(modId); }
+    [[nodiscard]] const QSet<QString> &getDisabledMods() const override { return mDisabledMods; }
+    [[nodiscard]] QStringList getDisabledModsQML() const override { return mDisabledMods.values(); }
 
     void setModsDirs(QList<QDir> modsDirs) {
         mModsDirs = std::move(modsDirs);
@@ -48,5 +57,6 @@ class GameMngrMock final : public IGameMngr {
     QList<QDir> mModsDirs;
     std::optional<semver::version<>> mGameVersion;
     mutable int mLaunchCount{0};
+    QSet<QString> mDisabledMods;
 };
 } // namespace vsmm

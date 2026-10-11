@@ -21,6 +21,8 @@
 #include <IConfig.hpp>
 #include <IGameMngr.hpp>
 #include <QDir>
+#include <QFileSystemWatcher>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QObject>
 #include <QProcess>
@@ -46,6 +48,10 @@ class GAMEMNGR_EXPORT GameMngr : public IGameMngr {
     [[nodiscard]] const QList<QDir> &getModsDirs() const override;
     [[nodiscard]] const std::optional<semver::version<>> &getGameVersion() const override;
     void launchGame() const override;
+    void addDisabledMod(const QString &modId, const QString &version) override;
+    void removeDisabledMod(const QString &modId) override;
+    [[nodiscard]] const QSet<QString> &getDisabledMods() const override;
+    [[nodiscard]] QStringList getDisabledModsQML() const override;
 
   private:
     void initGameVersion();
@@ -54,8 +60,12 @@ class GAMEMNGR_EXPORT GameMngr : public IGameMngr {
     void killVersionProcess();
     void finishVersionRead(std::optional<semver::version<>> version = {});
     void notifyModsDirsChanged();
-    void readClientCfg();
-    void readModsPaths(const QJsonObject &clientSettings);
+    void parseClientCfg(bool forceNotify);
+    bool writeDisabledMods(const QJsonArray &disabledMods);
+    [[nodiscard]] QJsonObject readClientCfg(const QString &clientSettingsPath) const;
+    [[nodiscard]] static QJsonObject readStringListSettings(const QJsonObject &settings);
+    static QList<QDir> readModsPaths(const QJsonObject &stringListSettings);
+    static QSet<QString> readDisabledMods(const QJsonObject &stringListSettings);
     [[nodiscard]] QPair<bool, QString> checkClientSettingsVer(const QJsonObject &clientSettings) const;
 
     IConfig *mConfig{nullptr};
@@ -64,12 +74,16 @@ class GAMEMNGR_EXPORT GameMngr : public IGameMngr {
     bool mModsDirsParsed{false};
     bool mModsDirsChangedPending{false};
 
+    QJsonObject mClientSettings;
+    QFileSystemWatcher mClientSettingsWatcher{this};
+
+    QSet<QString> mDisabledMods;
+
     // version checking
     QTimer mVersionTimeout{this};
     QProcess mVersionProcess{this};
 
   private slots:
-    void parseClientCfg();
     void refreshGameVersion();
     void onVersionProcessFinished(int errCode, QProcess::ExitStatus exitStatus);
     void onVersionProcessFailed(QProcess::ProcessError error);
