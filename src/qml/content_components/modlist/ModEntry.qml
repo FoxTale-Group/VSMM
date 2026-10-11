@@ -26,31 +26,29 @@ Rectangle {
         anchors.leftMargin: 12; anchors.rightMargin: 12
         spacing: 10
 
-        CheckBox {
-            id: selectForUpdate
-            checked: false
-            font.pixelSize: Theme.fonts.body
-            Layout.topMargin: 16
-            Layout.bottomMargin: 16
-            Layout.leftMargin: 0
-            Layout.rightMargin: 0
-            padding: 0
+        Switch { 
+            id: enableMod
+            trackWidth: 34
+            trackHeight: 20
+            thumbSize: 14
+            thumbInset: 3
+            ringWidth: 4
 
-            onCheckedChanged: {
-                if (selectForUpdate.checked) {
-                    console.log(modName + " is selected for update")
-                } else {
-                    console.log(modName + " is not selected for update anymore")
-                }
-                ModStore.markForUpdate(modId, checked)
-            }
+            // TODO: Wire with backend API
+            checked: true // Placeholder until backend is wired
         }
 
-        ModEntry_Icon {}
+        ModEntry_Icon {
+            modEnabled: enableMod.checked
+            onToggled: ModStore.markForUpdate(modId, checked)
+        }
 
         ColumnLayout {
             spacing: 4
             clip: true
+            opacity: enableMod.checked ? 1.0 : 0.5
+
+            Behavior on opacity { NumberAnimation { duration: enableMod.animationDuration } }
 
             // First Row: Mod info
             RowLayout {
