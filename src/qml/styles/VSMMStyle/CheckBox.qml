@@ -12,6 +12,7 @@ T.CheckBox {
     // keeps a same-sized tick centred in it. A box smaller than this shrinks the tick to fit.
     property int markSize: 22
     property bool showOutline: true
+    property color checkedColor: Theme.colors.checkBoxChecked
 
     // CSS `ease`, cubic-bezier(0.25, 0.1, 0.25, 1.0).
     readonly property var easeCurve: [0.25, 0.1, 0.25, 1.0, 1.0, 1.0]
@@ -46,7 +47,7 @@ T.CheckBox {
         y: control.topPadding + (control.availableHeight - height) / 2
 
         radius: control.boxRadius
-        color: control.checked ? Theme.colors.checkBoxChecked : "transparent"
+        color: control.checked ? control.checkedColor : "transparent"
         opacity: control.enabled ? 1.0 : 0.5
 
         Behavior on color {

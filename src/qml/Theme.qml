@@ -165,6 +165,7 @@ QtObject {
         readonly property color checkBoxBorderHover: "#ffffff"
         readonly property color checkBoxChecked:     accent
         readonly property color checkBoxMark:        "#ffffff"
+        readonly property color modIconCheckedFill:  "#333333"
 
         // Switch colors
         readonly property color switchTrackOff: "#525252"

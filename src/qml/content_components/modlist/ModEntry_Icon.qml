@@ -6,9 +6,9 @@ import QtQuick.Controls.impl
 import QtQuick.Effects
 import vsmm
 
-// The mod icon doubles as the CheckBox: the icon face covers the indicator and fades out
-// when checked, revealing the style's tick morph underneath. Hover is shown on the icon's
-// own border, since the outline underneath is switched off.
+// The mod icon doubles as the CheckBox: the icon face sits under the indicator, which is
+// fully transparent while unchecked. Checked, the icon blurs behind a translucent fill and
+// the style's tick. Hover is shown on the icon's own border, since the outline is switched off.
 CheckBox {
     id: modIcon
     Layout.topMargin: 12
@@ -19,23 +19,19 @@ CheckBox {
     boxSize: 40
     boxRadius: Theme.radius.card
     showOutline: false
+    checkedColor: Qt.rgba(Theme.colors.modIconCheckedFill.r, Theme.colors.modIconCheckedFill.g,
+                      Theme.colors.modIconCheckedFill.b, checkedFillOpacity)
 
     property string coverUrl: modThumbnail
     property bool modEnabled: true
+    property real checkedFillOpacity: 0.4
+    // 0 disables the blur; 1 is the strongest
+    property real checkedBlur: 1
 
     Item {
         id: iconFace
         anchors.fill: parent
-        z: 1
-        opacity: modIcon.checked ? 0.0 : 1.0
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: modIcon.morphDuration
-                easing.type: Easing.Bezier
-                easing.bezierCurve: modIcon.easeCurve
-            }
-        }
+        z: -1
 
         Rectangle {
             id: iconBackground
@@ -91,8 +87,20 @@ CheckBox {
                 maskEnabled: true
                 maskSource: maskTemplate
                 saturation: modIcon.modEnabled ? 0.0 : -1.0
+                blurEnabled: modIcon.checkedBlur > 0
+                blur: modIcon.checked ? modIcon.checkedBlur : 0.0
+                blurMax: 16
+                // Keeps the output the icon's size so the rounded mask still lines up
+                autoPaddingEnabled: false
 
                 Behavior on saturation { NumberAnimation { duration: modIcon.morphDuration } }
+                Behavior on blur {
+                    NumberAnimation {
+                        duration: modIcon.morphDuration
+                        easing.type: Easing.Bezier
+                        easing.bezierCurve: modIcon.easeCurve
+                    }
+                }
             }
         }
 
