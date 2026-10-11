@@ -81,7 +81,7 @@ Testing/
 scripts/__pycache__
 
 # dev scripts
-scripts/dev.py
-scripts/dev.sh
+scripts/build.py
+scripts/build.sh
 scripts/package.sh
 scripts/build-debug.sh

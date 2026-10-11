@@ -69,7 +69,7 @@ class MODENTRY_EXPORT ModEntry {
     [[nodiscard]] const QUrl &getUrl() const;
     [[nodiscard]] const LatestVersion &getLatestVersion() const;
     [[nodiscard]] const QStringList &getTags() const;
-    [[nodiscard]] QStringView getType() const;
+    [[nodiscard]] QStringView getSide() const;
     [[nodiscard]] bool hasUpdate() const;
     [[nodiscard]] const QUrl &getLogoUrl() const;
 
@@ -77,7 +77,7 @@ class MODENTRY_EXPORT ModEntry {
     static constexpr QLatin1StringView ONLINE_LOGOFILE_JSON_KEY{"logofile"};
 
     struct OnlineInfo {
-        QString mName, mAuthor, mType;
+        QString mName, mAuthor, mSide;
         QStringList mTags;
         QUrl mUrl;
         LatestVersion mLatestVersion;
@@ -89,7 +89,7 @@ class MODENTRY_EXPORT ModEntry {
     void initAuthor(const QJsonObject &json);
     void initTags(const QJsonObject &json);
     void initModUrl(const QJsonObject &json);
-    void initType(const QJsonObject &json);
+    void initSide(const QJsonObject &json);
     void initLogoUrl(const QJsonObject &json);
 
     [[nodiscard]] QPair<QJsonObject, semver::version<>>

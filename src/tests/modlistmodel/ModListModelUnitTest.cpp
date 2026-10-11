@@ -146,7 +146,7 @@ class ModListModelUnitTest : public QObject {
         QTest::newRow("LatestVersionRole") << int{Roles::LatestVersionRole} << "modLatestVersion"_ba;
         QTest::newRow("TagsRole") << int{Roles::TagsRole} << "modTags"_ba;
         QTest::newRow("UrlRole") << int{Roles::UrlRole} << "modUrl"_ba;
-        QTest::newRow("TypeRole") << int{Roles::TypeRole} << "modSide"_ba;
+        QTest::newRow("SideRole") << int{Roles::SideRole} << "modSide"_ba;
         QTest::newRow("HasUpdateRole") << int{Roles::HasUpdateRole} << "modHasUpdate"_ba;
         QTest::newRow("IconRole") << int{Roles::IconRole} << "modThumbnail"_ba;
         QTest::newRow("IdRole") << int{Roles::IdRole} << "modId"_ba;
@@ -321,7 +321,7 @@ class ModListModelUnitTest : public QObject {
         QCOMPARE(role(0, Roles::AuthorRole).toString(), u"local author"_s);
         QCOMPARE(role(0, Roles::VersionRole).toString(), u"1.2.3"_s);
         QCOMPARE(role(0, Roles::IdRole).toString(), u"carryon"_s);
-        QVERIFY(role(0, Roles::TypeRole).toString().isEmpty());
+        QVERIFY(role(0, Roles::SideRole).toString().isEmpty());
         QVERIFY(role(0, Roles::TagsRole).toStringList().isEmpty());
         QVERIFY(role(0, Roles::UrlRole).toUrl().isEmpty());
         QCOMPARE(role(0, Roles::HasUpdateRole).toBool(), false);
@@ -350,7 +350,7 @@ class ModListModelUnitTest : public QObject {
         QCOMPARE(role(0, Roles::NameRole).toString(), u"Carry On"_s);
         QCOMPARE(role(0, Roles::AuthorRole).toString(), u"NerdScurvy"_s);
         QCOMPARE(role(0, Roles::VersionRole).toString(), u"1.0.0"_s);
-        QCOMPARE(role(0, Roles::TypeRole).toString(), u"mod"_s);
+        QCOMPARE(role(0, Roles::SideRole).toString(), u"both"_s);
         QCOMPARE(role(0, Roles::TagsRole).toStringList(), QStringList({u"Storage"_s, u"QoL"_s}));
         QCOMPARE(role(0, Roles::UrlRole).toUrl(), QUrl{u"https://mods.vintagestory.at/carryon"_s});
         QCOMPARE(role(0, Roles::LatestVersionRole).toString(), u"1.1.0"_s);

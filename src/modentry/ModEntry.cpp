@@ -69,7 +69,7 @@ void ModEntry::initOnlineInfo(QJsonObject json, const semver::version<> &gameVer
     initAuthor(json);
     initTags(json);
     initLatestRelease(json, gameVersion, cfgIncludePrerelease);
-    initType(json);
+    initSide(json);
     initLogoUrl(json);
 
     qCDebug(cModEntry, "Retrieved mod info for %s", qUtf8Printable(mOnlineInfo.mName));
@@ -78,7 +78,7 @@ void ModEntry::initOnlineInfo(QJsonObject json, const semver::version<> &gameVer
 const QUrl &ModEntry::getUrl() const { return mOnlineInfo.mUrl; }
 const ModEntry::LatestVersion &ModEntry::getLatestVersion() const { return mOnlineInfo.mLatestVersion; }
 const QStringList &ModEntry::getTags() const { return mOnlineInfo.mTags; }
-QStringView ModEntry::getType() const { return mOnlineInfo.mType; }
+QStringView ModEntry::getSide() const { return mOnlineInfo.mSide; }
 bool ModEntry::hasUpdate() const { return mOnlineInfo.mLatestVersion.mHasUpdate; }
 const QUrl &ModEntry::getLogoUrl() const { return mOnlineInfo.mLogoUrl; }
 
@@ -151,13 +151,13 @@ void ModEntry::initModUrl(const QJsonObject &json) {
     mOnlineInfo.mUrl = GetModUrlByAssetId(json["assetid"_L1].toInteger());
 }
 
-void ModEntry::initType(const QJsonObject &json) {
-    if (!json["type"_L1].isString()) {
-        qCWarning(cModEntry, "%s: Invalid JSON format: type is not a string", qUtf8Printable(mOnlineInfo.mName));
+void ModEntry::initSide(const QJsonObject &json) {
+    if (!json["side"_L1].isString()) {
+        qCWarning(cModEntry, "%s: Invalid JSON format: side is not a string", qUtf8Printable(mOnlineInfo.mName));
         return;
     }
 
-    mOnlineInfo.mType = json["type"_L1].toString();
+    mOnlineInfo.mSide = json["side"_L1].toString();
 }
 
 void ModEntry::initLogoUrl(const QJsonObject &json) {
