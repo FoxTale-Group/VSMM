@@ -151,6 +151,7 @@ class ModListModelUnitTest : public QObject {
         QTest::newRow("IconRole") << int{Roles::IconRole} << "modThumbnail"_ba;
         QTest::newRow("IdRole") << int{Roles::IdRole} << "modId"_ba;
         QTest::newRow("FavoriteRole") << int{Roles::FavoriteRole} << "isFavoriteMod"_ba;
+        QTest::newRow("MarkedForUpdateRole") << int{Roles::MarkedForUpdateRole} << "isMarkedForUpdate"_ba;
     }
 
     // the delegates bind to these names, a rename breaks qml silently
@@ -162,7 +163,7 @@ class ModListModelUnitTest : public QObject {
     }
 
     void everyRoleHasAName() {
-        QCOMPARE(static_cast<int>(mModel->roleNames().size()), Roles::FavoriteRole - Roles::NameRole + 1);
+        QCOMPARE(static_cast<int>(mModel->roleNames().size()), Roles::MarkedForUpdateRole - Roles::NameRole + 1);
     }
 
     // sorting belongs to the proxy, the model keeps scan order
@@ -325,6 +326,7 @@ class ModListModelUnitTest : public QObject {
         QVERIFY(role(0, Roles::UrlRole).toUrl().isEmpty());
         QCOMPARE(role(0, Roles::HasUpdateRole).toBool(), false);
         QCOMPARE(role(0, Roles::FavoriteRole).toBool(), false);
+        QCOMPARE(role(0, Roles::MarkedForUpdateRole).toBool(), false);
         // no online info yet, semver default, qml only shows it next to an update
         QCOMPARE(role(0, Roles::LatestVersionRole).toString(), str(semver::version<>{}));
 
@@ -378,11 +380,23 @@ class ModListModelUnitTest : public QObject {
         QCOMPARE(role(0, Roles::FavoriteRole).toBool(), true);
     }
 
+    // the delegate binds to this role, so the checkbox survives being scrolled out and recycled
+    void markedForUpdateIsShown() {
+        mStore->add(mod(u"carryon"_s));
+        const QSignalSpy changed{mModel.get(), &QAbstractItemModel::dataChanged};
+
+        mStore->entry(u"carryon"_s).setMarkedForUpdate(true);
+        mStore->update(u"carryon"_s);
+
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(role(0, Roles::MarkedForUpdateRole).toBool(), true);
+    }
+
     void unknownRoleIsInvalid() {
         mStore->add(mod(u"carryon"_s));
 
         QVERIFY(!role(0, Qt::DisplayRole).isValid());
-        QVERIFY(!role(0, Roles::FavoriteRole + 1).isValid());
+        QVERIFY(!role(0, Roles::MarkedForUpdateRole + 1).isValid());
     }
 
     void invalidIndexIsInvalid() {

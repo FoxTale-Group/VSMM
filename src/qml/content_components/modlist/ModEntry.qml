@@ -40,6 +40,7 @@ Rectangle {
 
         ModEntry_Icon {
             modEnabled: enableMod.checked
+            checked: isMarkedForUpdate
             onToggled: ModStore.markForUpdate(modId, checked)
         }
 

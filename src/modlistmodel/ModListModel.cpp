@@ -72,6 +72,8 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
         return mod->getId().toString();
     case FavoriteRole:
         return mod->isFavorite();
+    case MarkedForUpdateRole:
+        return mod->isMarkedForUpdate();
     default:
         return {};
     }
@@ -91,6 +93,7 @@ QHash<int, QByteArray> ModListModel::roleNames() const {
     names.insert(IconRole, "modThumbnail"_ba);
     names.insert(IdRole, "modId"_ba);
     names.insert(FavoriteRole, "isFavoriteMod"_ba);
+    names.insert(MarkedForUpdateRole, "isMarkedForUpdate"_ba);
     return names;
 }
 
