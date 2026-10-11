@@ -7,6 +7,11 @@ T.CheckBox {
     id: control
 
     property int boxSize: 22
+    property real boxRadius: Theme.radius.indicator
+    // The tick and the outline stroke are sized from this, not from `boxSize`, so a larger box
+    // keeps a same-sized tick centred in it. A box smaller than this shrinks the tick to fit.
+    property int markSize: 22
+    property bool showOutline: true
 
     // CSS `ease`, cubic-bezier(0.25, 0.1, 0.25, 1.0).
     readonly property var easeCurve: [0.25, 0.1, 0.25, 1.0, 1.0, 1.0]
@@ -16,9 +21,11 @@ T.CheckBox {
     property int morphDuration: 250
     property int strokeDuration: 100
 
+    // contentItem already reserves the indicator's space through its padding when there is
+    // text; without text it is empty and the indicator alone sets the width.
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
-                            implicitContentWidth + leftPadding + rightPadding
-                            + implicitIndicatorWidth + spacing)
+                            Math.max(implicitContentWidth, implicitIndicatorWidth)
+                            + leftPadding + rightPadding)
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                              Math.max(implicitContentHeight, implicitIndicatorHeight)
                              + topPadding + bottomPadding)
@@ -38,7 +45,7 @@ T.CheckBox {
                         : control.leftPadding + (control.availableWidth - width) / 2
         y: control.topPadding + (control.availableHeight - height) / 2
 
-        radius: Theme.radius.indicator
+        radius: control.boxRadius
         color: control.checked ? Theme.colors.checkBoxChecked : "transparent"
         opacity: control.enabled ? 1.0 : 0.5
 
@@ -52,17 +59,19 @@ T.CheckBox {
 
         // Both states are the same element. Unchecked it is a rounded-square outline
         // filling the box; checked it is a narrow bar rotated 45° showing only its right
-        // and bottom edges, which reads as a tick. Every dimension is a fraction of
-        // `boxSize` so the shape scales with the control.
+        // and bottom edges, which reads as a tick. The outline's extent is a fraction of
+        // `boxSize`; the tick and every stroke are fractions of `markExtent`, centred.
         Item {
             id: morph
 
-            readonly property real legWidth: control.boxSize * 0.115
+            readonly property real markExtent: Math.min(control.markSize, control.boxSize)
+            readonly property real markOffset: (control.boxSize - markExtent) / 2
+            readonly property real legWidth: markExtent * 0.115
 
-            x:      control.checked ? control.boxSize * 0.346 : 0
-            y:      control.checked ? control.boxSize * 0.192 : 0
-            width:  control.checked ? control.boxSize * 0.308 : control.boxSize * 0.962
-            height: control.checked ? control.boxSize * 0.500 : control.boxSize * 0.962
+            x:      control.checked ? markOffset + markExtent * 0.346 : 0
+            y:      control.checked ? markOffset + markExtent * 0.192 : 0
+            width:  control.checked ? markExtent * 0.308 : control.boxSize * 0.962
+            height: control.checked ? markExtent * 0.500 : control.boxSize * 0.962
             rotation: control.checked ? 45 : 0
 
             Behavior on x        { NumberAnimation { duration: control.morphDuration; easing.type: Easing.Bezier; easing.bezierCurve: control.easeCurve } }
@@ -75,12 +84,12 @@ T.CheckBox {
             // whole on the stroke timing rather than thinning two of its edges away.
             Rectangle {
                 anchors.fill: parent
-                radius: control.checked ? 0 : Theme.radius.indicator
+                radius: control.checked ? 0 : control.boxRadius
                 color: "transparent"
-                border.width: control.boxSize * 0.077
+                border.width: morph.markExtent * 0.077
                 border.color: control.hovered ? Theme.colors.checkBoxBorderHover
                                               : Theme.colors.checkBoxBorder
-                opacity: control.checked ? 0.0 : 1.0
+                opacity: control.checked || !control.showOutline ? 0.0 : 1.0
 
                 Behavior on opacity { NumberAnimation { duration: control.strokeDuration } }
                 Behavior on radius  { NumberAnimation { duration: control.morphDuration; easing.type: Easing.Bezier; easing.bezierCurve: control.easeCurve } }
@@ -108,8 +117,8 @@ T.CheckBox {
     }
 
     contentItem: Text {
-        leftPadding: control.indicator && !control.mirrored ? control.indicator.width + control.spacing : 0
-        rightPadding: control.indicator && control.mirrored ? control.indicator.width + control.spacing : 0
+        leftPadding: control.text && control.indicator && !control.mirrored ? control.indicator.width + control.spacing : 0
+        rightPadding: control.text && control.indicator && control.mirrored ? control.indicator.width + control.spacing : 0
 
         text: control.text
         font: control.font

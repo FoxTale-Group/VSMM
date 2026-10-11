@@ -21,9 +21,11 @@ T.Switch {
     readonly property var easeCurve: [0.25, 0.1, 0.25, 1.0, 1.0, 1.0]
     property int animationDuration: 200
 
+    // contentItem already reserves the indicator's space through its padding when there is
+    // text; without text it is empty and the indicator alone sets the width.
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
-                            implicitContentWidth + leftPadding + rightPadding
-                            + implicitIndicatorWidth + spacing)
+                            Math.max(implicitContentWidth, implicitIndicatorWidth)
+                            + leftPadding + rightPadding)
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                              Math.max(implicitContentHeight, implicitIndicatorHeight)
                              + topPadding + bottomPadding)
@@ -90,8 +92,8 @@ T.Switch {
     }
 
     contentItem: Text {
-        leftPadding: control.indicator && !control.mirrored ? control.indicator.width + control.spacing : 0
-        rightPadding: control.indicator && control.mirrored ? control.indicator.width + control.spacing : 0
+        leftPadding: control.text && control.indicator && !control.mirrored ? control.indicator.width + control.spacing : 0
+        rightPadding: control.text && control.indicator && control.mirrored ? control.indicator.width + control.spacing : 0
 
         text: control.text
         font: control.font
