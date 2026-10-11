@@ -20,3 +20,14 @@ function isNullOrEmpty(s) {
 function isNullOrWhitespace(s) {
     return !s || s.trim() === "";
 }
+
+function capitalizeModSide(s) {
+    switch (s) {
+        case "client":
+            return qsTr("Client Side")
+        case "server":
+            return qsTr("Server Side")
+        case "both":
+            return qsTr("Both")
+    }
+}

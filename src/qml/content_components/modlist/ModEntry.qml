@@ -125,6 +125,45 @@ Rectangle {
                 spacing: 8
                 clip: true
 
+                Rectangle {
+                    id: modSideBadge
+
+                    property string modSideText: modSide
+
+                    visible: modSideText !== ""
+                    color: {
+                        switch (modSideText) {
+                            case "client":
+                                return Theme.colors.modSideClientBg;
+                            case "server":
+                                return Theme.colors.modSideServerBg;
+                            case "both":
+                                return Theme.colors.modSideBothBg;
+                        }
+                    }
+
+                    radius: Theme.radius.badge
+                    implicitWidth: modSideLabel.width + 16
+                    implicitHeight: 18
+
+                    Label {
+                        id: modSideLabel
+                        anchors.centerIn: parent
+                        text: StringHelpers.capitalizeModSide(modSideBadge.modSideText)
+                        font.pixelSize: Theme.fonts.body
+                        color: {
+                            switch (modSideBadge.modSideText) {
+                                case "client":
+                                    return Theme.colors.modSideClientFg;
+                                case "server":
+                                    return Theme.colors.modSideServerFg;
+                                case "both":
+                                    return Theme.colors.modSideBothFg;
+                            }
+                        }
+                    }
+                }
+
                 Repeater {
                     model: modTags
                     delegate: Label {
