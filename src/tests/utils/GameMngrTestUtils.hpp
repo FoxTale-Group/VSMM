@@ -27,6 +27,10 @@
 #include <QJsonObject>
 #include <QStringList>
 
+#ifndef Q_OS_WIN
+#include <unistd.h>
+#endif
+
 // fake game exes are POSIX shell scripts, CreateProcess cannot run them
 #ifdef Q_OS_WIN
 #ifdef _MSC_VER
@@ -37,16 +41,28 @@
 #define SKIP_WITHOUT_POSIX_SHELL() ((void)0)
 #endif
 
+// a file without read permission stays readable on Windows, and root ignores the mode bits everywhere
+#ifdef Q_OS_WIN
+#define SKIP_WITHOUT_FILE_PERMISSIONS() QSKIP("File permissions do not block reads on Windows")
+#else
+#define SKIP_WITHOUT_FILE_PERMISSIONS()                                                                                \
+    do {                                                                                                               \
+        if (geteuid() == 0) {                                                                                          \
+            QSKIP("Running as root, file permissions do not block reads");                                             \
+        }                                                                                                              \
+    } while (false)
+#endif
+
 namespace vsmm::test {
 using namespace Qt::StringLiterals;
 
 constexpr QLatin1StringView SUPPORTED_SETTINGS_VERSION{"1.16"};
 constexpr QLatin1StringView CLIENT_SETTINGS_FILE{"clientsettings.json"};
 
-[[nodiscard]] inline QJsonObject clientSettings(const QJsonArray &modPaths,
+[[nodiscard]] inline QJsonObject clientSettings(const QJsonArray &modPaths, const QJsonArray &disabledMods = {},
                                                 QLatin1StringView settingsVersion = SUPPORTED_SETTINGS_VERSION) {
     return {{"stringSettings"_L1, QJsonObject{{"settingsVersion"_L1, settingsVersion}}},
-            {"stringListSettings"_L1, QJsonObject{{"modPaths"_L1, modPaths}}}};
+            {"stringListSettings"_L1, QJsonObject{{"modPaths"_L1, modPaths}, {"disabledMods"_L1, disabledMods}}}};
 }
 
 [[nodiscard]] inline QStringList toPaths(const QList<QDir> &dirs) {
@@ -64,6 +80,15 @@ constexpr QLatin1StringView CLIENT_SETTINGS_FILE{"clientsettings.json"};
 
 [[nodiscard]] inline bool writeClientSettings(const QDir &gameDir, const QJsonObject &json) {
     return writeClientSettings(gameDir, QJsonDocument{json}.toJson());
+}
+
+// what the game would read back
+[[nodiscard]] inline QJsonObject readClientSettings(const QDir &gameDir) {
+    return QJsonDocument::fromJson(readFile(gameDir.absoluteFilePath(CLIENT_SETTINGS_FILE))).object();
+}
+
+[[nodiscard]] inline QJsonArray disabledModsOnDisk(const QDir &gameDir) {
+    return readClientSettings(gameDir)["stringListSettings"_L1]["disabledMods"_L1].toArray();
 }
 
 [[nodiscard]] inline bool makeExecutable(const QString &path) {

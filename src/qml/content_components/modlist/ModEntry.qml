@@ -34,8 +34,17 @@ Rectangle {
             thumbInset: 3
             ringWidth: 4
 
-            // TODO: Wire with backend API
-            checked: true // Placeholder until backend is wired
+            checked: !GameMngr.disabledMods.includes(modId)
+            onToggled: {
+                if (checked) {
+                    GameMngr.removeDisabledMod(modId)
+                } else {
+                    GameMngr.addDisabledMod(modId, modVersion)
+                }
+
+                // in case disabling/enabling fails, keep real state
+                checked = Qt.binding(() => !GameMngr.disabledMods.includes(modId))
+            }
         }
 
         ModEntry_Icon {

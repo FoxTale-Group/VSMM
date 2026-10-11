@@ -20,9 +20,10 @@
 
 #include <InterfacesExport.hpp>
 #include <QDir>
-#include <QList>
 #include <QObject>
+#include <QSet>
 #include <QString>
+#include <QStringList>
 
 #include <semver.hpp>
 
@@ -33,6 +34,7 @@ class INTERFACES_EXPORT IGameMngr : public QObject {
     Q_OBJECT
     // empty if the version is unknown
     Q_PROPERTY(QString gameVersion READ getGameVersionString NOTIFY gameVersionChanged)
+    Q_PROPERTY(QStringList disabledMods READ getDisabledModsQML NOTIFY disabledModsChanged)
 
   public:
     ~IGameMngr() override;
@@ -45,9 +47,14 @@ class INTERFACES_EXPORT IGameMngr : public QObject {
         return version ? QString::fromStdString(version->to_string()) : QString{};
     }
     Q_INVOKABLE virtual void launchGame() const = 0;
+    Q_INVOKABLE virtual void addDisabledMod(const QString &modId, const QString &version) = 0;
+    Q_INVOKABLE virtual void removeDisabledMod(const QString &modId) = 0;
+    [[nodiscard]] virtual const QSet<QString> &getDisabledMods() const = 0;
+    [[nodiscard]] virtual QStringList getDisabledModsQML() const = 0;
 
   signals:
-    void modsDirsChanged();    // used by modstore
-    void gameVersionChanged(); // used by qml
+    void modsDirsChanged();     // used by modstore
+    void disabledModsChanged(); // used by qml
+    void gameVersionChanged();  // used by qml
 };
 } // namespace vsmm

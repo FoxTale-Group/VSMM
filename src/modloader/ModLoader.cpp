@@ -213,6 +213,12 @@ void ModLoader::load_(QFileInfo &&fileInfo, IModStore::ModLoadType modLoadType) 
                 [this, modInfo_ = std::move(localInfo).value<ModEntry::LocalInfo>(), modLoadType] mutable {
                     // Copy id for info retrieval
                     QString modId = modInfo_.mId;
+
+                    // Auto disable new version if old one is disabled
+                    if (mGameMngr->getDisabledMods().contains(modId)) {
+                        mGameMngr->addDisabledMod(modId, QString::fromStdString(modInfo_.mVersion.to_string()));
+                    }
+
                     mStore->add(std::move(modInfo_), modLoadType);
                     mHttpClient->sendGet(
                         GetModUrlApi(mApiUrl, modId), this, ONLINE_CONTENT_TYPE,

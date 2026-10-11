@@ -20,6 +20,9 @@
 
 #include <IGameMngr.hpp>
 
+#include <QSet>
+#include <QStringList>
+
 #include <utility>
 
 namespace vsmm {
@@ -31,6 +34,14 @@ class GameMngrMock final : public IGameMngr {
     [[nodiscard]] const std::optional<semver::version<>> &getGameVersion() const override { return mGameVersion; }
     // records instead of spawning a process
     void launchGame() const override { ++mLaunchCount; }
+    // records instead of writing the game config
+    void addDisabledMod(const QString &modId, const QString &version) override {
+        mAddedDisabledMods.append(modId + u'@' + version);
+        mDisabledMods.insert(modId);
+    }
+    void removeDisabledMod(const QString &modId) override { mDisabledMods.remove(modId); }
+    [[nodiscard]] const QSet<QString> &getDisabledMods() const override { return mDisabledMods; }
+    [[nodiscard]] QStringList getDisabledModsQML() const override { return mDisabledMods.values(); }
 
     void setModsDirs(QList<QDir> modsDirs) {
         mModsDirs = std::move(modsDirs);
@@ -44,9 +55,15 @@ class GameMngrMock final : public IGameMngr {
 
     [[nodiscard]] int launchCount() const { return mLaunchCount; }
 
+    void setDisabledMods(QSet<QString> modIds) { mDisabledMods = std::move(modIds); }
+    // id@version, in call order
+    [[nodiscard]] const QStringList &addedDisabledMods() const { return mAddedDisabledMods; }
+
   private:
     QList<QDir> mModsDirs;
     std::optional<semver::version<>> mGameVersion;
     mutable int mLaunchCount{0};
+    QSet<QString> mDisabledMods;
+    QStringList mAddedDisabledMods;
 };
 } // namespace vsmm

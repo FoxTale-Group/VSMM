@@ -336,6 +336,27 @@ class ModLoaderUnitTest : public QObject {
         QCOMPARE(mStore->addCalls().at(0).mInfo.mFileInfo.absoluteFilePath(), zip);
     }
 
+    // the game disables by id@version, a newly loaded version would otherwise come back enabled
+    void aDisabledModStaysDisabledInTheLoadedVersion() {
+        mGameMngr->setDisabledMods({QString::fromLatin1(MOD_ID)});
+        QVERIFY(!writeMod().isEmpty());
+
+        mLoader->load(QFileInfo{modsPath(u"carryon.zip"_s)});
+
+        QTRY_COMPARE(mStore->addCalls().size(), 1);
+        QCOMPARE(mGameMngr->addedDisabledMods(), QStringList{u"carryon@1.2.3"_s});
+    }
+
+    void anEnabledModIsLeftEnabled() {
+        mGameMngr->setDisabledMods({u"betterruins"_s});
+        QVERIFY(!writeMod().isEmpty());
+
+        mLoader->load(QFileInfo{modsPath(u"carryon.zip"_s)});
+
+        QTRY_COMPARE(mStore->addCalls().size(), 1);
+        QVERIFY(mGameMngr->addedDisabledMods().isEmpty());
+    }
+
     static void unreadableZipIsReported_data() {
         QTest::addColumn<BrokenZip>("broken");
         QTest::addColumn<QString>("pattern");
