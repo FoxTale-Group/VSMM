@@ -40,7 +40,11 @@ class AsyncImageResponse : public QQuickImageResponse {
         if (!error.isEmpty()) {
             mErrorString = std::move(error);
         } else if (mRequestedSize.isValid()) {
-            image = image.scaled(mRequestedSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            Qt::AspectRatioMode aspectRatio = Qt::KeepAspectRatio;
+            if (mRequestedSize.height() < 100 && mRequestedSize.width() < 100) {
+                aspectRatio = Qt::IgnoreAspectRatio;
+            }
+            image = image.scaled(mRequestedSize, aspectRatio, Qt::SmoothTransformation);
         }
 
         mImage = std::move(image);

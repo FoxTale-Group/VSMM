@@ -127,7 +127,7 @@ class ModImageProviderUnitTest : public QObject {
         QCOMPARE(downloaded.at(0).at(0).toString(), QString{MOD_ID});
     }
 
-    void aValidRequestedSizeScalesTheDeliveredImage() {
+    void aValidRequestedSizeScalesTheDeliveredImageWithIgnoreAspectRatio() {
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -139,8 +139,39 @@ class ModImageProviderUnitTest : public QObject {
         QVERIFY(http.succeed(0, pngBytes({16, 8})));
 
         QTRY_COMPARE(finished.count(), 1);
-        // KeepAspectRatio, so the 2:1 source fits the 8x8 box as 8x4
-        QCOMPARE(settled(response.get()).mImage.size(), QSize(8, 4));
+        QCOMPARE(settled(response.get()).mImage.size(), QSize(8, 8));
+    }
+
+    void aValidRequestedSizeScalesTheDeliveredImageWithKeepAspectRatio() {
+        vsmm::HttpClientMock http;
+        vsmm::ModImageProvider provider;
+        provider.setHttpClient(&http);
+
+        const ResponsePtr response = request(provider, iconId(QString{MOD_ID}, QString{LOGO}), QSize{100, 100});
+        QVERIFY(waitForRequests(http, 1));
+        QSignalSpy finished{response.get(), &QQuickImageResponse::finished};
+
+        QVERIFY(http.succeed(0, pngBytes({16, 8})));
+
+        QTRY_COMPARE(finished.count(), 1);
+        // 100 px and up keeps the aspect ratio
+        QCOMPARE(settled(response.get()).mImage.size(), QSize(100, 50));
+    }
+
+    void aWideRequestedSizeKeepsTheAspectRatio() {
+        vsmm::HttpClientMock http;
+        vsmm::ModImageProvider provider;
+        provider.setHttpClient(&http);
+
+        const ResponsePtr response = request(provider, iconId(QString{MOD_ID}, QString{LOGO}), QSize{100, 8});
+        QVERIFY(waitForRequests(http, 1));
+        QSignalSpy finished{response.get(), &QQuickImageResponse::finished};
+
+        QVERIFY(http.succeed(0, pngBytes({16, 8})));
+
+        QTRY_COMPARE(finished.count(), 1);
+        // only the height is under 100, the ratio is kept
+        QCOMPARE(settled(response.get()).mImage.size(), QSize(16, 8));
     }
 
     void aCachedIconIsServedWithoutASecondRequest() {
