@@ -265,6 +265,42 @@ class ModLoaderIntegrationTest : public QObject {
         QCOMPARE(requestedPaths(), (QStringList{u"/api/mod/carryon"_s, u"/api/mod/carryon"_s, '/' + downloadPath()}));
     }
 
+    // a rewrite here would mean an entry added on every scan
+    void startupScanLeavesTheEntryOfADisabledModAlone() {
+        RealComponents::Options options;
+        options.mDisabledMods = {u"carryon@1.0.0"_s};
+        QVERIFY(!writeMod(mApp->modsDir(), u"carryon"_s, u"1.0.0"_s).isEmpty());
+        mServer->setFallback(info(modJson()));
+
+        QVERIFY(mApp->start(options));
+
+        QTRY_VERIFY(settled());
+        QVERIFY(mApp->gameMngr().getDisabledMods().contains(u"carryon"_s));
+        QCOMPARE(disabledModsOnDisk(mApp->gameDir()), QJsonArray{u"carryon@1.0.0"_s});
+        QCOMPARE(mServer->requestCount(), 1);
+    }
+
+    void updateOfADisabledModKeepsItDisabled() {
+        RealComponents::Options options;
+        options.mDisabledMods = {u"carryon@1.0.0"_s};
+        QVERIFY(!writeMod(mApp->modsDir(), u"carryon"_s, u"1.0.0"_s).isEmpty());
+        const QByteArray zip = readFile(writeMod(mApp->stagingDir(), u"carryon"_s, u"1.1.0"_s));
+        QVERIFY(!zip.isEmpty());
+        const QJsonObject online = modJson({newerRelease()});
+        mServer->enqueue(info(online));
+        mServer->enqueue(download(zip));
+        mServer->setFallback(info(online));
+        QVERIFY(mApp->start(options));
+        QTRY_VERIFY(settled());
+
+        store().update(u"carryon"_s);
+
+        QTRY_COMPARE(mod(u"carryon"_s)->getVersion(), ver(u"1.1.0"_s));
+        QTRY_VERIFY(settled());
+        QCOMPARE(disabledModsOnDisk(mApp->gameDir()), (QJsonArray{u"carryon@1.0.0"_s, u"carryon@1.1.0"_s}));
+        QVERIFY(mApp->gameMngr().getDisabledMods().contains(u"carryon"_s));
+    }
+
     void updateOfAModWithoutOneClearsWorkPending() {
         QVERIFY(!writeMod(mApp->modsDir(), u"carryon"_s, u"1.0.0"_s).isEmpty());
         mServer->setFallback(info(modJson()));

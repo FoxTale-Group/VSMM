@@ -47,6 +47,8 @@ class RealComponents {
         QString mGameVersionOutput{u"1.22.5"_s};
         // dir names under the temp dir, listed in clientsettings after mods
         QStringList mExtraModsDirs;
+        // entries as the game writes them, id@version
+        QStringList mDisabledMods;
     };
 
     [[nodiscard]] static QString configDir() {
@@ -80,7 +82,8 @@ class RealComponents {
                 return false;
             }
         }
-        if (!check(writeClientSettings(gameDir(), clientSettings(QJsonArray::fromStringList(modPaths))),
+        if (!check(writeClientSettings(gameDir(), clientSettings(QJsonArray::fromStringList(modPaths),
+                                                                 QJsonArray::fromStringList(options.mDisabledMods))),
                    "clientsettings.json written")) {
             return false;
         }
