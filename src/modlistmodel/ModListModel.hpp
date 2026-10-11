@@ -41,7 +41,7 @@ class MODLISTMODEL_EXPORT ModListModel : public QAbstractListModel {
         LatestVersionRole,
         TagsRole,
         UrlRole,
-        TypeRole,
+        SideRole,
         HasUpdateRole,
         IconRole,
         IdRole,

@@ -81,7 +81,7 @@ using namespace Qt::StringLiterals;
 // the mod object of an API response, trimmed down to what ModEntry reads
 [[nodiscard]] inline QJsonObject modJson(const QJsonArray &releases = defaultReleases()) {
     return {{"name"_L1, "Carry On"_L1}, {"author"_L1, "NerdScurvy"_L1},
-            {"type"_L1, "mod"_L1},      {"urlalias"_L1, "carryon"_L1},
+            {"side"_L1, "both"_L1},     {"urlalias"_L1, "carryon"_L1},
             {"assetid"_L1, 4405},       {"tags"_L1, QJsonArray{"Storage"_L1, "QoL"_L1}},
             {"releases"_L1, releases}};
 }

@@ -85,7 +85,7 @@ class ModEntryUnitTest : public QObject {
 
         QVERIFY(entry.getUrl().isEmpty());
         QVERIFY(entry.getTags().isEmpty());
-        QVERIFY(entry.getType().isEmpty());
+        QVERIFY(entry.getSide().isEmpty());
         QVERIFY(!entry.hasUpdate());
 
         const auto &latest = entry.getLatestVersion();
@@ -120,7 +120,7 @@ class ModEntryUnitTest : public QObject {
 
         QCOMPARE(entry.getName(), u"Carry On"_s);
         QCOMPARE(entry.getAuthor(), u"NerdScurvy"_s);
-        QCOMPARE(entry.getType(), u"mod"_s);
+        QCOMPARE(entry.getSide(), u"both"_s);
         QCOMPARE(entry.getTags(), QStringList({u"Storage"_s, u"QoL"_s}));
         // local version is what is installed, so online info must never touch it
         QCOMPARE(str(entry.getVersion()), u"1.0.0"_s);
@@ -168,13 +168,13 @@ class ModEntryUnitTest : public QObject {
         QCOMPARE(entry.getAuthor(), u"local author"_s);
     }
 
-    void invalidTypeLeavesTypeEmpty() {
+    void invalidSideLeavesSideEmpty() {
         vsmm::ModEntry entry{carryOnInfo()};
 
-        QTest::ignoreMessage(QtWarningMsg, "Carry On: Invalid JSON format: type is not a string");
-        entry.initOnlineInfo(withoutKey(modJson(), "type"_L1), ver(GAME_VERSION), false);
+        QTest::ignoreMessage(QtWarningMsg, "Carry On: Invalid JSON format: side is not a string");
+        entry.initOnlineInfo(withoutKey(modJson(), "side"_L1), ver(GAME_VERSION), false);
 
-        QVERIFY(entry.getType().isEmpty());
+        QVERIFY(entry.getSide().isEmpty());
     }
 
     void nonArrayTagsLeaveTagsEmpty() {

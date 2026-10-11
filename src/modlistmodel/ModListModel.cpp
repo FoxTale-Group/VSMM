@@ -55,8 +55,8 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
         return mod->getTags();
     case UrlRole:
         return mod->getUrl();
-    case TypeRole:
-        return mod->getType().toString();
+    case SideRole:
+        return mod->getSide().toString();
     case HasUpdateRole:
         return mod->hasUpdate();
     case IconRole: {
@@ -88,7 +88,7 @@ QHash<int, QByteArray> ModListModel::roleNames() const {
     names.insert(LatestVersionRole, "modLatestVersion"_ba);
     names.insert(TagsRole, "modTags"_ba);
     names.insert(UrlRole, "modUrl"_ba);
-    names.insert(TypeRole, "modSide"_ba);
+    names.insert(SideRole, "modSide"_ba);
     names.insert(HasUpdateRole, "modHasUpdate"_ba);
     names.insert(IconRole, "modThumbnail"_ba);
     names.insert(IdRole, "modId"_ba);
