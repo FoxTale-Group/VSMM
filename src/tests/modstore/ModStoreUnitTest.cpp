@@ -458,10 +458,12 @@ class ModStoreUnitTest : public QObject {
         QTRY_VERIFY(!mStore->isWorkPending());
 
         QSignalSpy workChangedSignal{mStore.get(), &vsmm::ModStore::workChanged};
+        QSignalSpy updated{mStore.get(), &vsmm::ModStore::modUpdated};
 
         mStore->markForUpdate(modId(), true);
 
         QCOMPARE(selected.count(), 1);
+        QCOMPARE(updated.count(), 1);
         QVERIFY(mStore->property("modsSelected").toBool());
 
         QStringList requested;

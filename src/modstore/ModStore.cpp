@@ -174,6 +174,7 @@ void ModStore::markForUpdate(const QString &id, bool marked) {
         it->setMarkedForUpdate(marked);
         qCDebug(cModStore, "Mod %s marked for update: %s", qUtf8Printable(id), marked ? "true" : "false");
         emit modSelected();
+        emit modUpdated(it->getId());
     }
 }
 
