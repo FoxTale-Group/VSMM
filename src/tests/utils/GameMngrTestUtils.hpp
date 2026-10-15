@@ -21,7 +21,9 @@
 #include <FileTestUtils.hpp>
 
 #include <QDir>
+#include <QDateTime>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -80,6 +82,13 @@ constexpr QLatin1StringView CLIENT_SETTINGS_FILE{"clientsettings.json"};
 
 [[nodiscard]] inline bool writeClientSettings(const QDir &gameDir, const QJsonObject &json) {
     return writeClientSettings(gameDir, QJsonDocument{json}.toJson());
+}
+
+// windows watcher only compares mtimes, a rewrite in the same clock tick goes unseen
+[[nodiscard]] inline bool backdate(const QString &path) {
+    QFile file{path};
+    return file.open(QIODevice::ReadWrite) &&
+           file.setFileTime(QFileInfo{path}.lastModified().addSecs(-60), QFileDevice::FileModificationTime);
 }
 
 // what the game would read back

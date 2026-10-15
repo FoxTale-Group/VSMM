@@ -48,7 +48,7 @@ struct LoadedGameMngr {
 
     // false when the file could not be written
     [[nodiscard]] bool load(const QJsonObject &settings) {
-        if (!gameDir.isValid() || !writeClientSettings(dir(), settings)) {
+        if (!gameDir.isValid() || !writeClientSettings(dir(), settings) || !backdate(settingsPath())) {
             return false;
         }
         config.setGameConfigDir(gameDir.path());
@@ -641,6 +641,11 @@ class GameMngrUnitTest : public QObject {
         game.gameMngr.addDisabledMod(u"carryon"_s, u"1.0.0"_s);
         QTRY_VERIFY(gChangedPaths.contains(game.settingsPath()));
 
+        // two saves can land in one clock tick, push the first one back so the second differs
+        gChangedPaths.clear();
+        QVERIFY(backdate(game.settingsPath()));
+        QTRY_VERIFY(gChangedPaths.contains(game.settingsPath()));
+
         // the save replaced the file, so this only shows up if it is watched again
         gChangedPaths.clear();
         QTest::ignoreMessage(QtInfoMsg, "Mod betterruins disabled");
@@ -678,7 +683,9 @@ class GameMngrUnitTest : public QObject {
         QVERIFY(otherGameDir.isValid());
         const QDir other{otherGameDir.path()};
         const QJsonArray otherModPaths{other.absoluteFilePath(u"mods2"_s)};
+        const QString otherPath = QDir::cleanPath(other.filePath(CLIENT_SETTINGS_FILE));
         QVERIFY(writeClientSettings(other, clientSettings(otherModPaths, {u"betterruins@1.0.0"_s})));
+        QVERIFY(backdate(otherPath));
         QSignalSpy disabledSpy{&game.gameMngr, &vsmm::GameMngr::disabledModsChanged};
 
         QTest::ignoreMessage(QtInfoMsg, "Disabled mods (1): betterruins");
@@ -689,7 +696,6 @@ class GameMngrUnitTest : public QObject {
         QCOMPARE(disabledSpy.count(), 1);
 
         const auto watching = recordWatcherEvents();
-        const QString otherPath = QDir::cleanPath(other.filePath(CLIENT_SETTINGS_FILE));
         // old file first, its event cannot come after the new one
         QVERIFY(writeClientSettings(game.dir(), clientSettings(game.modPaths())));
         QVERIFY(writeClientSettings(other, clientSettings(otherModPaths)));
