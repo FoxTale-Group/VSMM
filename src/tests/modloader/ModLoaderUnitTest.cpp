@@ -381,7 +381,7 @@ class ModLoaderUnitTest : public QObject {
             QSKIP("libzip was built without encryption support");
         }
 
-        QTest::ignoreMessage(QtCriticalMsg,
+        QTest::ignoreMessage(QtWarningMsg,
                              QRegularExpression{u"^%1$"_s.arg(pattern.arg(QRegularExpression::escape(zip)))});
         mLoader->load(QFileInfo{zip});
 
@@ -417,10 +417,10 @@ class ModLoaderUnitTest : public QObject {
 
         const QString message = u"Failed to parse modinfo.json from zip file: %1"_s.arg(zip);
         if (withReason) {
-            QTest::ignoreMessage(QtCriticalMsg,
+            QTest::ignoreMessage(QtWarningMsg,
                                  QRegularExpression{u"^%1 Reason: .+$"_s.arg(QRegularExpression::escape(message))});
         } else {
-            QTest::ignoreMessage(QtCriticalMsg, qPrintable(message));
+            QTest::ignoreMessage(QtWarningMsg, qPrintable(message));
         }
         mLoader->load(QFileInfo{zip});
 
@@ -504,28 +504,19 @@ class ModLoaderUnitTest : public QObject {
         QTRY_COMPARE(mFinished->count(), 1);
     }
 
-    void modWithoutUpdateFinishesWithoutDownload() {
-        vsmm::ModEntry mod{localInfo(QString::fromLatin1(MOD_ID), u"1.0.0"_s, QFileInfo{})};
-        mod.initOnlineInfo(modJson(), ver(QString::fromLatin1(GAME_VERSION)), false);
-        QVERIFY(!mod.hasUpdate());
-
-        mStore->requestUpdate(mod);
+    void emptyBatchFinishesWithoutDownload() {
+        mStore->requestUpdate({});
 
         QCOMPARE(mHttp->callCount(), 0);
-        // the store would stay work pending otherwise
         QCOMPARE(mFinished->count(), 1);
-        QCOMPARE(mStore->reloadedCount(), 1);
     }
 
-    void modWithoutUpdateWaitsForPendingUpdates() {
-        const vsmm::ModEntry pending = modWithUpdate(mUpdateFileName);
-        mStore->requestUpdate(pending);
+    void emptyBatchWaitsForPendingUpdates() {
+        mStore->add(modWithUpdate(mUpdateFileName));
+        mStore->requestUpdate({QString::fromLatin1(MOD_ID)});
         QCOMPARE(mHttp->callCount(), 1);
 
-        vsmm::ModEntry mod{localInfo(u"betterruins"_s, u"1.0.0"_s, QFileInfo{})};
-        mod.initOnlineInfo(modJson(), ver(QString::fromLatin1(GAME_VERSION)), false);
-        QVERIFY(!mod.hasUpdate());
-        mStore->requestUpdate(mod);
+        mStore->requestUpdate({});
         QCOMPARE(mFinished->count(), 0);
 
         QTest::ignoreMessage(QtWarningMsg, "Failed to retrieve update for carryon: timeout");
@@ -536,8 +527,9 @@ class ModLoaderUnitTest : public QObject {
     void updateIsDownloadedAsZip() {
         const vsmm::ModEntry mod = modWithUpdate(mUpdateFileName);
         QVERIFY(mod.hasUpdate());
+        mStore->add(mod);
 
-        mStore->requestUpdate(mod);
+        mStore->requestUpdate({QString::fromLatin1(MOD_ID)});
 
         QCOMPARE(mHttp->callCount(), 1);
         QCOMPARE(mHttp->call(0).mUrl, mod.getLatestVersion().mUrl);
@@ -546,8 +538,8 @@ class ModLoaderUnitTest : public QObject {
     }
 
     void updateDownloadFailureIsReported() {
-        const vsmm::ModEntry mod = modWithUpdate(mUpdateFileName);
-        mStore->requestUpdate(mod);
+        mStore->add(modWithUpdate(mUpdateFileName));
+        mStore->requestUpdate({QString::fromLatin1(MOD_ID)});
         QCOMPARE(mHttp->callCount(), 1);
 
         QTest::ignoreMessage(QtWarningMsg, "Failed to retrieve update for carryon: timeout");
@@ -557,23 +549,6 @@ class ModLoaderUnitTest : public QObject {
         QVERIFY(mStore->addCalls().isEmpty());
     }
 
-    void updateFailureOutlivesTheModEntry() {
-        auto mod = std::make_unique<vsmm::ModEntry>(modWithUpdate(mUpdateFileName));
-        mStore->requestUpdate(*mod);
-        QCOMPARE(mHttp->callCount(), 1);
-
-        mod.reset();
-        // take the freed id buffer back at once, a view into it would read x's
-        QStringList reused;
-        for (int i = 0; i < 16; ++i) {
-            reused.append(QString(qsizetype{7}, u'x'));
-        }
-
-        QTest::ignoreMessage(QtWarningMsg, "Failed to retrieve update for carryon: timeout");
-        QVERIFY(mHttp->fail(0, u"timeout"_s));
-        QTRY_COMPARE(mFinished->count(), 1);
-    }
-
     void updateIsSavedAndLoaded() {
         const QString zip = writeMod();
         QVERIFY(!zip.isEmpty());
@@ -581,8 +556,8 @@ class ModLoaderUnitTest : public QObject {
         QVERIFY(zipFile.open(QIODevice::ReadOnly));
         const QByteArray download = zipFile.readAll();
 
-        const vsmm::ModEntry mod = modWithUpdate(mUpdateFileName);
-        mStore->requestUpdate(mod);
+        mStore->add(modWithUpdate(mUpdateFileName));
+        mStore->requestUpdate({QString::fromLatin1(MOD_ID)});
         QCOMPARE(mHttp->callCount(), 1);
         QVERIFY(mHttp->succeed(0, download));
 
@@ -604,8 +579,8 @@ class ModLoaderUnitTest : public QObject {
     void updateFileThatCannotBeCreatedIsReported() {
         // a sub dir that does not exist under the temp dir
         const QString fileName = QFileInfo{mUpdateFileName}.completeBaseName() + u"/CarryOn.zip"_s;
-        const vsmm::ModEntry mod = modWithUpdate(fileName);
-        mStore->requestUpdate(mod);
+        mStore->add(modWithUpdate(fileName));
+        mStore->requestUpdate({QString::fromLatin1(MOD_ID)});
         QCOMPARE(mHttp->callCount(), 1);
 
         QTest::ignoreMessage(QtWarningMsg, qPrintable(u"Failed to create file for mod update %1"_s.arg(fileName)));
