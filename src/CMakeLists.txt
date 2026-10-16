@@ -29,6 +29,7 @@ add_subdirectory(imgprovider)
 add_subdirectory(modlistmodel ModListModel)
 add_subdirectory(modloader ModLoader)
 add_subdirectory(modsortfiltermodel ModSortFilterModel)
+add_subdirectory(modupdatemodel ModUpdateModel)
 add_subdirectory(gamemngr GameMngr)
 
 if (BUILD_TESTING)
@@ -54,6 +55,7 @@ set(PROJECT_DEPENDENCIES_AND_LIBRARIES
         ModListModel
         ModLoader
         ModSortFilterModel
+        ModUpdateModel
         HttpClient
         GameMngr)
 add_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES_AND_LIBRARIES})
@@ -89,6 +91,7 @@ qt_add_qml_module(${PROJECT_NAME}
             ModListModel
             ModLoader
             ModSortFilterModel
+            ModUpdateModel
             GameMngr)
 
 # Bytecode only, no AOT: AOT output links Qt_6_PRIVATE_API, which distros do not advertise,
