@@ -390,17 +390,21 @@ class ModStoreUnitTest : public QObject {
 
     void updateForAnUnknownModIsRefused() {
         setComponents();
+        QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 0 installed, 0 with updates");
+        mStore->onModsReloaded();
+        QTRY_VERIFY(!mStore->isWorkPending());
         int requested{0};
         connect(mStore.get(), &vsmm::ModStore::modUpdateRequested, this,
-                [&requested](const vsmm::ModEntry &) { ++requested; });
-        QTest::ignoreMessage(QtWarningMsg, "Update requested for unknown mod ghost");
+                [&requested](const QStringList &) { ++requested; });
+        QTest::ignoreMessage(QtWarningMsg, "Mod ghost is not available for update");
 
         mStore->update(u"ghost"_s);
 
         QCOMPARE(requested, 0);
+        QVERIFY(!mStore->isWorkPending());
     }
 
-    void updateRequestCarriesTheStoredEntryAndBlocksReloads() {
+    void updateRequestCarriesTheModIdAndBlocksReloads() {
         setComponents();
         addMod(modsDir(), modId(), u"1.0.0"_s);
         mStore->updateOnline(modId(), withNewerRelease());
@@ -409,40 +413,42 @@ class ModStoreUnitTest : public QObject {
         QTRY_VERIFY(!mStore->isWorkPending());
         QStringList requested;
         connect(mStore.get(), &vsmm::ModStore::modUpdateRequested, this,
-                [&requested](const vsmm::ModEntry &mod) { requested.append(mod.getId().toString()); });
+                [&requested](const QStringList &ids) { requested.append(ids); });
 
-        QTest::ignoreMessage(QtInfoMsg, "Update requested for carryon@1.0.0");
+        QTest::ignoreMessage(QtInfoMsg, "Update requested for (1): carryon");
         mStore->update(modId());
 
         QCOMPARE(requested, QStringList{modId()});
         QVERIFY(mStore->isWorkPending());
     }
 
-    void updateAllRequestsOnlyTheOutdatedMods() {
+    void updateAllRequestsOnlyTheOutdatedModsInOneBatch() {
         setComponents();
         addMod(modsDir(), modId(), u"1.0.0"_s);
         mStore->updateOnline(modId(), withNewerRelease());
         addMod(modsDir(), u"bees"_s, u"1.0.0"_s);
         mStore->updateOnline(u"bees"_s, withoutNewerRelease());
-        QStringList requested;
+        addMod(modsDir(), u"betterruins"_s, u"1.0.0"_s);
+        mStore->updateOnline(u"betterruins"_s, withNewerRelease());
+        QList<QStringList> batches;
         connect(mStore.get(), &vsmm::ModStore::modUpdateRequested, this,
-                [&requested](const vsmm::ModEntry &mod) { requested.append(mod.getId().toString()); });
+                [&batches](const QStringList &ids) { batches.append(ids); });
 
-        QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 2 installed, 1 with updates");
+        QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 3 installed, 2 with updates");
         mStore->onModsReloaded();
         QTRY_VERIFY(!mStore->isWorkPending());
 
         QSignalSpy workChangedSignal{mStore.get(), &vsmm::ModStore::workChanged};
 
-        QTest::ignoreMessage(QtInfoMsg, "Update requested for all 1 outdated mods");
+        QTest::ignoreMessage(QtInfoMsg, "Update requested for (2): betterruins, carryon");
         mStore->updateAll();
 
         QVERIFY(mStore->isWorkPending());
-        QCOMPARE(requested, QStringList{modId()});
-
-        QTest::ignoreMessage(QtInfoMsg, "Update requested for all 1 outdated mods");
-        mStore->updateAll();
         QCOMPARE(workChangedSignal.count(), 1);
+        QCOMPARE(batches.size(), 1);
+        QStringList ids = batches.at(0);
+        ids.sort();
+        QCOMPARE(ids, (QStringList{u"betterruins"_s, modId()}));
     }
 
     void updateSelectedRequestsOnlyTheMarkedOutdatedMods() {
@@ -466,18 +472,16 @@ class ModStoreUnitTest : public QObject {
         QCOMPARE(updated.count(), 1);
         QVERIFY(mStore->property("modsSelected").toBool());
 
-        QStringList requested;
+        QList<QStringList> batches;
         connect(mStore.get(), &vsmm::ModStore::modUpdateRequested, this,
-                [&requested](const vsmm::ModEntry &mod) { requested.append(mod.getId().toString()); });
+                [&batches](const QStringList &ids) { batches.append(ids); });
 
-        QTest::ignoreMessage(QtInfoMsg, "Update requested for 1 selected mods");
+        QTest::ignoreMessage(QtInfoMsg, "Update requested for (1): carryon");
         mStore->updateSelected();
 
         QVERIFY(mStore->isWorkPending());
-        QCOMPARE(requested, QStringList{modId()});
-        QTest::ignoreMessage(QtInfoMsg, "Update requested for 1 selected mods");
-        mStore->updateSelected();
         QCOMPARE(workChangedSignal.count(), 1);
+        QCOMPARE(batches, QList<QStringList>{QStringList{modId()}});
     }
 
     void modsNotFavouriteIfDoesntExist() {
