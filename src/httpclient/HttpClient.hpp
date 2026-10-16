@@ -36,12 +36,12 @@ class HTTPCLIENT_EXPORT HttpClient : public QObject, public IHttpClient {
   public:
     explicit HttpClient(QObject *parent = nullptr);
     ~HttpClient() override = default;
-    void sendGet(const QUrl &url, QObject *context, const QString &contentType, SuccessFn successFn,
-                 FailedFn failedFn) override;
+    void sendGet(const QUrl &url, QObject *context, const QString &contentType, SuccessFn successFn, FailedFn failedFn,
+                 ProgressFn progressFn) override;
 
   private:
     void sendGetImpl(const QUrl &url, QObject *context, const QString &contentType, SuccessFn successFn,
-                     FailedFn failedFn = nullptr, uint retryCount = 0);
+                     FailedFn failedFn = nullptr, uint retryCount = 0, ProgressFn progressFn = nullptr);
     [[nodiscard]] static bool shouldRetry(const QNetworkReply *reply, uint retryCount);
     [[nodiscard]] static std::chrono::milliseconds backoffDelay(const QNetworkReply *reply, uint retryCount);
 

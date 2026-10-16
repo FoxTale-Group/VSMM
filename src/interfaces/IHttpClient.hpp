@@ -31,9 +31,10 @@ class INTERFACES_EXPORT IHttpClient {
   public:
     using SuccessFn = std::function<void(QByteArray)>;
     using FailedFn = std::function<void(QString)>;
+    using ProgressFn = std::function<void(qint64 received, qint64 total)>;
 
     virtual ~IHttpClient();
     virtual void sendGet(const QUrl &url, QObject *context, const QString &contentType, SuccessFn successFn,
-                         FailedFn failedFn) = 0;
+                         FailedFn failedFn, ProgressFn progressFn) = 0;
 };
 } // namespace vsmm

@@ -34,13 +34,14 @@ class HttpClientMock final : public IHttpClient {
         QString mContentType;
         SuccessFn mOnSuccess;
         FailedFn mOnFailed;
+        ProgressFn mOnProgress;
     };
 
     ~HttpClientMock() override = default;
 
-    void sendGet(const QUrl &url, QObject *context, const QString &contentType, SuccessFn successFn,
-                 FailedFn failedFn) override {
-        mCalls.append({url, context, contentType, std::move(successFn), std::move(failedFn)});
+    void sendGet(const QUrl &url, QObject *context, const QString &contentType, SuccessFn successFn, FailedFn failedFn,
+                 ProgressFn progressFn) override {
+        mCalls.append({url, context, contentType, std::move(successFn), std::move(failedFn), std::move(progressFn)});
     }
 
     [[nodiscard]] qsizetype callCount() const { return mCalls.size(); }
@@ -71,6 +72,15 @@ class HttpClientMock final : public IHttpClient {
             return false;
         }
         call.mOnFailed(std::move(error));
+        return true;
+    }
+
+    [[nodiscard]] bool progress(qsizetype index, qint64 received, qint64 total) {
+        const Call &call = mCalls.at(index);
+        if (!call.mContext || !call.mOnProgress) {
+            return false;
+        }
+        call.mOnProgress(received, total);
         return true;
     }
 

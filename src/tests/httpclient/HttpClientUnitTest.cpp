@@ -68,7 +68,7 @@ class HttpClientUnitTest : public QObject {
         vsmm::HttpClient client;
         QObject context;
 
-        client.sendGet(server.url("success"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed());
+        client.sendGet(server.url("success"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed(), {});
 
         QTRY_VERIFY(outcome.settled());
         QCOMPARE(outcome.mCalls, 1);
@@ -86,7 +86,7 @@ class HttpClientUnitTest : public QObject {
         vsmm::HttpClient client;
         QObject context;
 
-        client.sendGet(server.url("user-agent"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed());
+        client.sendGet(server.url("user-agent"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed(), {});
 
         QTRY_VERIFY(outcome.settled());
         QCOMPARE(server.requestCount(), 1);
@@ -104,7 +104,7 @@ class HttpClientUnitTest : public QObject {
         vsmm::HttpClient client;
         QObject context;
 
-        client.sendGet(server.url("empty"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed());
+        client.sendGet(server.url("empty"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed(), {});
 
         QTRY_VERIFY(outcome.settled());
         QVERIFY(outcome.mData);
@@ -144,7 +144,7 @@ class HttpClientUnitTest : public QObject {
         vsmm::HttpClient client;
         QObject context;
 
-        client.sendGet(server.url("content-type"_L1), &context, expected, outcome.onSuccess(), outcome.onFailed());
+        client.sendGet(server.url("content-type"_L1), &context, expected, outcome.onSuccess(), outcome.onFailed(), {});
 
         QTRY_VERIFY(outcome.settled());
         QCOMPARE(outcome.mCalls, 1);
@@ -179,7 +179,7 @@ class HttpClientUnitTest : public QObject {
         vsmm::HttpClient client;
         QObject context;
 
-        client.sendGet(server.url("permanent"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed());
+        client.sendGet(server.url("permanent"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed(), {});
 
         QTRY_VERIFY(outcome.settled());
         QCOMPARE(outcome.mCalls, 1);
@@ -214,7 +214,7 @@ class HttpClientUnitTest : public QObject {
         QObject context;
 
         ignoreStatusRetry(status);
-        client.sendGet(server.url("retryable"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed());
+        client.sendGet(server.url("retryable"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed(), {});
 
         QTRY_VERIFY(outcome.settled());
         QCOMPARE(outcome.mCalls, 1);
@@ -234,7 +234,7 @@ class HttpClientUnitTest : public QObject {
         for (int attempt = 0; attempt < MAX_RETRIES; ++attempt) {
             ignoreStatusRetry(503);
         }
-        client.sendGet(server.url("exhausted"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed());
+        client.sendGet(server.url("exhausted"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed(), {});
 
         QTRY_VERIFY(outcome.settled());
         QCOMPARE(outcome.mCalls, 1);
@@ -258,7 +258,7 @@ class HttpClientUnitTest : public QObject {
 
         QElapsedTimer elapsed;
         elapsed.start();
-        client.sendGet(server.url("retry-after"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed());
+        client.sendGet(server.url("retry-after"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed(), {});
 
         QTRY_VERIFY(outcome.settled());
         QVERIFY(outcome.mData);
@@ -292,7 +292,7 @@ class HttpClientUnitTest : public QObject {
         QObject context;
 
         ignoreStatusRetry(503);
-        client.sendGet(server.url("bad-retry-after"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed());
+        client.sendGet(server.url("bad-retry-after"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed(), {});
 
         QElapsedTimer elapsed;
         elapsed.start();
@@ -313,7 +313,7 @@ class HttpClientUnitTest : public QObject {
         QObject context;
 
         ignoreTransportRetry();
-        client.sendGet(server.url("dropped"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed());
+        client.sendGet(server.url("dropped"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed(), {});
 
         QTRY_VERIFY(outcome.settled());
         QCOMPARE(outcome.mCalls, 1);
@@ -331,7 +331,7 @@ class HttpClientUnitTest : public QObject {
         vsmm::HttpClient client;
         QObject context;
 
-        client.sendGet(server.url("redirect"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed());
+        client.sendGet(server.url("redirect"_L1), &context, JSON, outcome.onSuccess(), outcome.onFailed(), {});
 
         QTRY_VERIFY(outcome.settled());
         QVERIFY(outcome.mData);
@@ -349,12 +349,12 @@ class HttpClientUnitTest : public QObject {
         vsmm::HttpClient client;
         QObject context;
 
-        client.sendGet(server.url("no-failed-callback"_L1), &context, JSON, outcome.onSuccess(), nullptr);
+        client.sendGet(server.url("no-failed-callback"_L1), &context, JSON, outcome.onSuccess(), nullptr, {});
 
         // the omitted callback leaves nothing to wait on, so a second request that does settle is the barrier,
         // and it is only sent once the first one has been answered
         QTRY_COMPARE(server.requestCount(), 1);
-        client.sendGet(server.url("barrier"_L1), &context, JSON, barrier.onSuccess(), barrier.onFailed());
+        client.sendGet(server.url("barrier"_L1), &context, JSON, barrier.onSuccess(), barrier.onFailed(), {});
         QTRY_VERIFY(barrier.settled());
 
         QVERIFY(barrier.mError);
@@ -372,12 +372,12 @@ class HttpClientUnitTest : public QObject {
         QObject barrierContext;
 
         auto *context = new QObject;
-        client.sendGet(server.url("orphaned"_L1), context, JSON, outcome.onSuccess(), outcome.onFailed());
+        client.sendGet(server.url("orphaned"_L1), context, JSON, outcome.onSuccess(), outcome.onFailed(), {});
         // the context is the callbacks' lifetime guard, the request itself is already on its way
         delete context;
 
         QTRY_COMPARE(server.requestCount(), 1);
-        client.sendGet(server.url("barrier"_L1), &barrierContext, JSON, barrier.onSuccess(), barrier.onFailed());
+        client.sendGet(server.url("barrier"_L1), &barrierContext, JSON, barrier.onSuccess(), barrier.onFailed(), {});
         QTRY_VERIFY(barrier.settled());
 
         QVERIFY(barrier.mData);

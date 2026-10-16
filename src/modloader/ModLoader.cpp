@@ -168,7 +168,8 @@ void ModLoader::onModUpdateRequested(const ModEntry &mod) {
             qCWarning(cModLoader, "Failed to retrieve update for %s: %s", qUtf8Printable(id),
                       qUtf8Printable(std::move(error)));
             decrementModsLoadingInProgress();
-        });
+        },
+        {});
 }
 
 void ModLoader::onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion) {
@@ -229,7 +230,8 @@ void ModLoader::load_(QFileInfo &&fileInfo, IModStore::ModLoadType modLoadType) 
                             qCWarning(cModLoader, "Error retrieving info for %s: %s", qUtf8Printable(modId),
                                       qUtf8Printable(std::move(error)));
                             decrementModsLoadingInProgress();
-                        });
+                        },
+                        {});
                 },
                 Qt::QueuedConnection);
             return;

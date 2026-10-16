@@ -175,7 +175,8 @@ void ModImageProvider::download(QString modId, QUrl url) {
             qCWarning(cImageProvider, "Failed to download icon for %s: %s", qUtf8Printable(modId),
                       qUtf8Printable(error));
             finish(modId, {}, std::move(error));
-        });
+        },
+        {});
 }
 
 void ModImageProvider::finish(QString modId, QImage image, QString error, bool permanentError) {
