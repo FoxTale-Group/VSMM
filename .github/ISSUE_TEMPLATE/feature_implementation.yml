@@ -2,6 +2,7 @@ name: Feature implementation
 description: Track an approved feature and define the scope of work needed to implement it.
 title: "feat: "
 labels: ["feature"]
+type: Feature
 body:
   - type: markdown
     attributes:
@@ -24,11 +25,18 @@ body:
     id: scope
     attributes:
       label: Scope(s)
-      description: Which subsystem(s) does this touch? These map to the Conventional Commit scopes.
+      description: Which functionality does this touch?
       multiple: true
       options:
-        - ui
-        - backend
+        - Tooling
+        - Build
+        - Packaging
+        - CI Workflow(s)
+        - Tests
+        - UI/UX
+        - Frontend
+        - Backend
+
     validations:
       required: true
 

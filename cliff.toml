@@ -55,20 +55,15 @@ sort_commits = "newest"
 tag_pattern = "v[0-9]+\\.[0-9]+\\.[0-9]+$"
 
 commit_parsers = [
-  { message = '^\w+\((ci|build|chore|docs|style)\)', skip = true },
+  { message = '^\w+\((ci|build|chore|docs|style|tooling)\)', skip = true }, # Commit scopes blacklist
+    # Commit types whitelist:
   { message = "^feat",      group = "<!-- 0 -->🚀 Features" },
   { message = "^fix",       group = "<!-- 1 -->🐛 Bug Fixes" },
   { message = "^perf",      group = "<!-- 2 -->⚡ Performance" },
   { message = "^refactor",  group = "<!-- 3 -->♻️ Refactor" },
   { message = "^test",      group = "<!-- 4 -->🧪 Testing" },
   { message = "^deps",      group = "<!-- 5 -->📦 Dependencies" },
-  # everything below is dropped from the changelog:
-  { message = "^docs",      skip = true },
-  { message = "^style",     skip = true },
-  { message = "^ci",        skip = true },
-  { message = "^build",     skip = true },
-  { message = "^chore",     skip = true },
-  { message = ".*",         skip = true },   # anything unmatched
+  { message = ".*",         skip = true },   # everything else is dropped from the changelog
 ]
 
 [remote.github]
