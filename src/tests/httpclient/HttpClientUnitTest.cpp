@@ -223,6 +223,48 @@ class HttpClientUnitTest : public QObject {
         QCOMPARE(server.requestCount(), 2);
     }
 
+    void downloadProgressContinuesAfterARetry() {
+        FakeHttpServer server;
+        QVERIFY(server.start());
+        server.enqueue({.mStatus = 503, .mBody = "server busy", .mExtraHeaders = {{"Retry-After", "0"}}});
+        server.enqueue({.mContentType = "application/zip", .mBody = "payload"});
+        Outcome outcome;
+        QList<std::pair<qint64, qint64>> progress;
+        vsmm::HttpClient client;
+        QObject context;
+
+        ignoreStatusRetry(503);
+        client.sendGet(server.url("progress-retry"_L1), &context, ZIP, outcome.onSuccess(), outcome.onFailed(),
+                       [&progress](qint64 received, qint64 total) { progress.append({received, total}); });
+
+        QTRY_VERIFY(outcome.settled());
+        QVERIFY(outcome.mData);
+        QCOMPARE(server.requestCount(), 2);
+        QVERIFY(!progress.isEmpty());
+        // the 503 body is not the file, only the retried download counts
+        for (const auto &[received, total] : std::as_const(progress)) {
+            QCOMPARE(total, 7);
+        }
+        QCOMPARE(progress.constLast(), (std::pair<qint64, qint64>{7, 7}));
+    }
+
+    void errorBodyReportsNoProgress() {
+        FakeHttpServer server;
+        QVERIFY(server.start());
+        server.setFallback({.mStatus = 404, .mBody = "not found"});
+        Outcome outcome;
+        QList<std::pair<qint64, qint64>> progress;
+        vsmm::HttpClient client;
+        QObject context;
+
+        client.sendGet(server.url("progress-404"_L1), &context, ZIP, outcome.onSuccess(), outcome.onFailed(),
+                       [&progress](qint64 received, qint64 total) { progress.append({received, total}); });
+
+        QTRY_VERIFY(outcome.settled());
+        QVERIFY(outcome.mError);
+        QVERIFY(progress.isEmpty());
+    }
+
     void retriesStopAtTheMaximum() {
         FakeHttpServer server;
         QVERIFY(server.start());
