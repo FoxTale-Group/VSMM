@@ -26,7 +26,9 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTimer>
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 
@@ -37,6 +39,9 @@ class ModStoreUnitTest : public QObject {
     Q_OBJECT
 
     static constexpr auto GAME_VERSION = "1.22.5";
+
+    // which store call a data row makes
+    enum UpdateCall : std::uint8_t { One, All, Selected };
 
     // a QString, updateOnline and find take one, and QStringView cannot be built from a latin1 literal
     [[nodiscard]] static QString modId() { return u"carryon"_s; }
@@ -67,6 +72,25 @@ class ModStoreUnitTest : public QObject {
     [[nodiscard]] static QJsonObject withNewerRelease() { return modJson({release(u"1.1.0"_s, {u"1.22.0"_s})}); }
     // a release older than what is installed, so the mod reads as current without an empty-releases warning
     [[nodiscard]] static QJsonObject withoutNewerRelease() { return modJson({release(u"0.9.0"_s, {u"1.22.0"_s})}); }
+
+    // per-mod update results in emit order, as the update model sees them
+    void trackUpdateResults(QStringList &events) {
+        connect(mStore.get(), &vsmm::ModStore::modUpdateInstalling, this,
+                [&events](QStringView id) { events.append(u"installing:"_s + id); });
+        connect(mStore.get(), &vsmm::ModStore::modUpdateFinished, this,
+                [&events](QStringView id) { events.append(u"finished:"_s + id); });
+        connect(mStore.get(), &vsmm::ModStore::modUpdateFailed, this,
+                [&events](QStringView id, const QString &reason) { events.append(u"failed:%1:%2"_s.arg(id, reason)); });
+    }
+
+    // the loader is done with the scan, true once the delayed work clear ran
+    [[nodiscard]] bool finishScan() {
+        QTest::ignoreMessage(QtInfoMsg, qPrintable(u"Mods reloaded: %1 installed, %2 with updates"_s
+                                                       .arg(mStore->modsCount())
+                                                       .arg(mStore->modUpdatesCount())));
+        mStore->onModsReloaded();
+        return QTest::qWaitFor([this] { return !mStore->isWorkPending(); });
+    }
 
   private slots:
     void init() {
@@ -360,9 +384,7 @@ class ModStoreUnitTest : public QObject {
     void modsDirChangeReloadsTheStore() {
         setComponents();
         addMod(modsDir(), modId(), u"1.0.0"_s);
-        QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 1 installed, 0 with updates");
-        mStore->onModsReloaded();
-        QTRY_VERIFY(!mStore->isWorkPending());
+        QVERIFY(finishScan());
         QSignalSpy reloading{mStore.get(), &vsmm::ModStore::modsReloading};
         QSignalSpy work{mStore.get(), &vsmm::ModStore::workChanged};
 
@@ -375,50 +397,114 @@ class ModStoreUnitTest : public QObject {
         QVERIFY(mStore->isWorkPending());
     }
 
-    void workPendingClearsShortlyAfterTheScanFinishes() {
-        setComponents();
-        addMod(modsDir(), modId(), u"1.0.0"_s);
-        mStore->updateOnline(modId(), withNewerRelease());
-        QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 1 installed, 1 with updates");
-
-        mStore->onModsReloaded();
-
-        // a delayed timer clears the flag, not the call itself
-        QVERIFY(mStore->isWorkPending());
-        QTRY_VERIFY(!mStore->isWorkPending());
-    }
-
-    void updateForAnUnknownModIsRefused() {
+    // the earlier scan's delay must not clear the flag of a reload that is still scanning
+    void reloadInsideTheDelayKeepsWorkPending() {
         setComponents();
         QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 0 installed, 0 with updates");
         mStore->onModsReloaded();
-        QTRY_VERIFY(!mStore->isWorkPending());
-        int requested{0};
-        connect(mStore.get(), &vsmm::ModStore::modUpdateRequested, this,
-                [&requested](const QStringList &) { ++requested; });
-        QTest::ignoreMessage(QtWarningMsg, "Mod ghost is not available for update");
+        QTest::ignoreMessage(QtInfoMsg, "Reloading mods");
+        mStore->reload();
 
-        mStore->update(u"ghost"_s);
+        bool pastTheDelay{false};
+        QTimer::singleShot(600, this, [&pastTheDelay] { pastTheDelay = true; });
+        QTRY_VERIFY(pastTheDelay);
+        QVERIFY(mStore->isWorkPending());
+    }
 
-        QCOMPARE(requested, 0);
+    void everyScanClearsWorkOnceShortlyAfterItEnds() {
+        setComponents();
+        QSignalSpy work{mStore.get(), &vsmm::ModStore::workChanged};
+
+        for (int scan = 0; scan < 3; ++scan) {
+            QTest::ignoreMessage(QtInfoMsg, "Reloading mods");
+            mStore->reload();
+            QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 0 installed, 0 with updates");
+            mStore->onModsReloaded();
+            // a delayed timer clears the flag, not the call itself
+            QVERIFY(mStore->isWorkPending());
+            QTRY_VERIFY(!mStore->isWorkPending());
+        }
+
+        // one from reload and one from the delay per scan
+        QCOMPARE(work.count(), 6);
+    }
+
+    void updateWithNothingToDoLeavesWorkClear_data() {
+        QTest::addColumn<bool>("newer");
+        QTest::addColumn<int>("call");
+        QTest::addColumn<QString>("id");
+        QTest::addColumn<int>("type");
+        QTest::addColumn<QString>("message");
+
+        QTest::newRow("unknown-id") << true << int{One} << u"ghost"_s << int{QtWarningMsg}
+                                    << u"Mod ghost is not available for update"_s;
+        QTest::newRow("no-update") << false << int{One} << modId() << int{QtWarningMsg}
+                                   << u"Mod carryon is not available for update"_s;
+        QTest::newRow("all-current") << false << int{All} << QString{} << int{QtInfoMsg} << u"No mods to update"_s;
+        // carryon is outdated but not marked
+        QTest::newRow("nothing-selected") << true << int{Selected} << QString{} << int{QtInfoMsg}
+                                          << u"No mods to update"_s;
+    }
+
+    void updateWithNothingToDoLeavesWorkClear() {
+        QFETCH(const bool, newer);
+        QFETCH(const int, call);
+        QFETCH(const QString, id);
+        QFETCH(const int, type);
+        QFETCH(const QString, message);
+
+        setComponents();
+        addMod(modsDir(), modId(), u"1.0.0"_s);
+        mStore->updateOnline(modId(), newer ? withNewerRelease() : withoutNewerRelease());
+        QVERIFY(finishScan());
+        QSignalSpy requested{mStore.get(), &vsmm::ModStore::modUpdateRequested};
+        QSignalSpy workChanged{mStore.get(), &vsmm::ModStore::workChanged};
+        QTest::ignoreMessage(static_cast<QtMsgType>(type), qPrintable(message));
+
+        if (call == One) {
+            mStore->update(id);
+        } else if (call == All) {
+            mStore->updateAll();
+        } else {
+            mStore->updateSelected();
+        }
+
+        QCOMPARE(requested.count(), 0);
+        QCOMPARE(workChanged.count(), 0);
         QVERIFY(!mStore->isWorkPending());
     }
 
-    void updateRequestCarriesTheModIdAndBlocksReloads() {
+    // a scan or another batch is running, a second batch would reset the first one's progress
+    void updateWhileWorkIsPendingDoesNothing() {
         setComponents();
         addMod(modsDir(), modId(), u"1.0.0"_s);
         mStore->updateOnline(modId(), withNewerRelease());
-        QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 1 installed, 1 with updates");
-        mStore->onModsReloaded();
-        QTRY_VERIFY(!mStore->isWorkPending());
-        QStringList requested;
-        connect(mStore.get(), &vsmm::ModStore::modUpdateRequested, this,
-                [&requested](const QStringList &ids) { requested.append(ids); });
+        mStore->markForUpdate(modId(), true);
+        QVERIFY(mStore->isWorkPending());
+        QSignalSpy requested{mStore.get(), &vsmm::ModStore::modUpdateRequested};
+
+        QTest::ignoreMessage(QtWarningMsg, "Cannot update now, other work is pending");
+        mStore->update(modId());
+        QTest::ignoreMessage(QtWarningMsg, "Cannot update now, other work is pending");
+        mStore->updateAll();
+        QTest::ignoreMessage(QtWarningMsg, "Cannot update now, other work is pending");
+        mStore->updateSelected();
+
+        QCOMPARE(requested.count(), 0);
+    }
+
+    void updateRequestsTheModAndSetsWorkPending() {
+        setComponents();
+        addMod(modsDir(), modId(), u"1.0.0"_s);
+        mStore->updateOnline(modId(), withNewerRelease());
+        QVERIFY(finishScan());
+        QSignalSpy requested{mStore.get(), &vsmm::ModStore::modUpdateRequested};
 
         QTest::ignoreMessage(QtInfoMsg, "Update requested for (1): carryon");
         mStore->update(modId());
 
-        QCOMPARE(requested, QStringList{modId()});
+        QCOMPARE(requested.count(), 1);
+        QCOMPARE(requested.at(0).at(0).toStringList(), QStringList{modId()});
         QVERIFY(mStore->isWorkPending());
     }
 
@@ -430,14 +516,8 @@ class ModStoreUnitTest : public QObject {
         mStore->updateOnline(u"bees"_s, withoutNewerRelease());
         addMod(modsDir(), u"betterruins"_s, u"1.0.0"_s);
         mStore->updateOnline(u"betterruins"_s, withNewerRelease());
-        QList<QStringList> batches;
-        connect(mStore.get(), &vsmm::ModStore::modUpdateRequested, this,
-                [&batches](const QStringList &ids) { batches.append(ids); });
-
-        QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 3 installed, 2 with updates");
-        mStore->onModsReloaded();
-        QTRY_VERIFY(!mStore->isWorkPending());
-
+        QVERIFY(finishScan());
+        QSignalSpy requested{mStore.get(), &vsmm::ModStore::modUpdateRequested};
         QSignalSpy workChangedSignal{mStore.get(), &vsmm::ModStore::workChanged};
 
         QTest::ignoreMessage(QtInfoMsg, "Update requested for (2): betterruins, carryon");
@@ -445,10 +525,9 @@ class ModStoreUnitTest : public QObject {
 
         QVERIFY(mStore->isWorkPending());
         QCOMPARE(workChangedSignal.count(), 1);
-        QCOMPARE(batches.size(), 1);
-        QStringList ids = batches.at(0);
-        ids.sort();
-        QCOMPARE(ids, (QStringList{u"betterruins"_s, modId()}));
+        QCOMPARE(requested.count(), 1);
+        // sorted by id
+        QCOMPARE(requested.at(0).at(0).toStringList(), (QStringList{u"betterruins"_s, modId()}));
     }
 
     void updateSelectedRequestsOnlyTheMarkedOutdatedMods() {
@@ -459,9 +538,7 @@ class ModStoreUnitTest : public QObject {
         mStore->updateOnline(u"bees"_s, withNewerRelease());
         QVERIFY(!mStore->property("modsSelected").toBool());
         QSignalSpy selected{mStore.get(), &vsmm::ModStore::modSelected};
-        QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 2 installed, 2 with updates");
-        mStore->onModsReloaded();
-        QTRY_VERIFY(!mStore->isWorkPending());
+        QVERIFY(finishScan());
 
         QSignalSpy workChangedSignal{mStore.get(), &vsmm::ModStore::workChanged};
         QSignalSpy updated{mStore.get(), &vsmm::ModStore::modUpdated};
@@ -472,16 +549,39 @@ class ModStoreUnitTest : public QObject {
         QCOMPARE(updated.count(), 1);
         QVERIFY(mStore->property("modsSelected").toBool());
 
-        QList<QStringList> batches;
-        connect(mStore.get(), &vsmm::ModStore::modUpdateRequested, this,
-                [&batches](const QStringList &ids) { batches.append(ids); });
+        QSignalSpy requested{mStore.get(), &vsmm::ModStore::modUpdateRequested};
 
         QTest::ignoreMessage(QtInfoMsg, "Update requested for (1): carryon");
         mStore->updateSelected();
 
         QVERIFY(mStore->isWorkPending());
         QCOMPARE(workChangedSignal.count(), 1);
-        QCOMPARE(batches, QList<QStringList>{QStringList{modId()}});
+        QCOMPARE(requested.count(), 1);
+        QCOMPARE(requested.at(0).at(0).toStringList(), QStringList{modId()});
+    }
+
+    // the loader reports through the store, the update model only listens to the store
+    void loaderReportsAreReEmitted() {
+        setComponents();
+        QList<QList<QVariant>> progress;
+        connect(mStore.get(), &vsmm::ModStore::modUpdateProgress, this,
+                [&progress](QStringView id, qint64 received, qint64 total) {
+                    progress.append({id.toString(), received, total});
+                });
+        QStringList failed;
+        connect(mStore.get(), &vsmm::ModStore::modUpdateFailed, this,
+                [&failed](QStringView id, const QString &reason) { failed.append(id.toString() + u':' + reason); });
+        QSignalSpy loaded{mStore.get(), &vsmm::ModStore::modsLoaded};
+
+        mStore->onModUpdateProgress(modId(), 10, 100);
+        QTest::ignoreMessage(QtWarningMsg, "Update of carryon failed: timeout");
+        mStore->onModUpdateFailed(modId(), u"timeout"_s);
+        QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 0 installed, 0 with updates");
+        mStore->onModsReloaded();
+
+        QCOMPARE(progress, (QList<QList<QVariant>>{{modId(), qint64{10}, qint64{100}}}));
+        QCOMPARE(failed, QStringList{u"carryon:timeout"_s});
+        QCOMPARE(loaded.count(), 1);
     }
 
     void modsNotFavouriteIfDoesntExist() {
@@ -586,17 +686,22 @@ class ModStoreUnitTest : public QObject {
 
     void updateDownloadForAnUnknownModIsRefused() {
         setComponents();
+        QStringList events;
+        trackUpdateResults(events);
         QTest::ignoreMessage(QtWarningMsg, "Update downloaded for unknown mod carryon");
 
         addMod(stagingDir(), modId(), u"1.1.0"_s, vsmm::ModStore::ModLoadType::Update);
 
         QCOMPARE(mStore->modsCount(), 0);
+        QCOMPARE(events, QStringList{u"failed:carryon:Downloaded mod is not installed"_s});
     }
 
     // the download is not trusted to be newer, the API decides that and the store checks it
     void updateDownloadThatIsNotNewerIsIgnored() {
         setComponents();
         addMod(modsDir(), modId(), u"1.1.0"_s);
+        QStringList events;
+        trackUpdateResults(events);
         QTest::ignoreMessage(QtWarningMsg, "Got newer or the same version of mod carryon@1.0.0, ignoring");
 
         addMod(stagingDir(), modId(), u"1.0.0"_s, vsmm::ModStore::ModLoadType::Update);
@@ -604,6 +709,26 @@ class ModStoreUnitTest : public QObject {
         QCOMPARE(str(mStore->find(modId())->getVersion()), u"1.1.0"_s);
         // the stale download never reaches the mods dir
         QVERIFY(!modsDir().exists(u"carryon-1.0.0.zip"_s));
+        QCOMPARE(events,
+                 (QStringList{u"installing:carryon"_s, u"failed:carryon:Installed version is the same or newer"_s}));
+    }
+
+    void updateDownloadThatCannotBeCopiedIsReported() {
+        setComponents();
+        addMod(modsDir(), modId(), u"1.0.0"_s);
+        QStringList events;
+        trackUpdateResults(events);
+        // the download is gone before the store copies it
+        const QFileInfo download{stagingDir().absoluteFilePath(u"carryon-1.1.0.zip"_s)};
+        QTest::ignoreMessage(QtInfoMsg, "Got newer version of mod carryon@1.1.0, replacing");
+        QTest::ignoreMessage(QtWarningMsg, qPrintable(u"Failed to copy mod carryon@1.1.0 to %1"_s.arg(
+                                               modsDir().absoluteFilePath(u"carryon-1.1.0.zip"_s))));
+
+        mStore->add(localInfo(modId(), u"1.1.0"_s, download), vsmm::ModStore::ModLoadType::Update);
+
+        QCOMPARE(str(mStore->find(modId())->getVersion()), u"1.0.0"_s);
+        QCOMPARE(events, (QStringList{u"installing:carryon"_s,
+                                      u"failed:carryon:Failed to copy the update into the mods folder"_s}));
     }
 
     void updateInstallsTheDownloadBesideTheOldZipAndRepointsTheEntry() {
@@ -617,11 +742,14 @@ class ModStoreUnitTest : public QObject {
         QStringList updated;
         connect(mStore.get(), &vsmm::ModStore::modUpdated, this,
                 [&updated](QStringView id) { updated.append(id.toString()); });
+        QStringList events;
+        trackUpdateResults(events);
 
         QTest::ignoreMessage(QtInfoMsg, "Got newer version of mod carryon@1.1.0, replacing");
         addMod(stagingDir(), modId(), u"1.1.0"_s, vsmm::ModStore::ModLoadType::Update);
 
         QCOMPARE(updated, QStringList{modId()});
+        QCOMPARE(events, (QStringList{u"installing:carryon"_s, u"finished:carryon"_s}));
         const vsmm::ModEntry *mod = mStore->find(modId());
         QCOMPARE(str(mod->getVersion()), u"1.1.0"_s);
         // the download lands next to the zip it supersedes, and the entry follows it
