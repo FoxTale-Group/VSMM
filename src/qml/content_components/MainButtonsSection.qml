@@ -79,6 +79,7 @@ RowLayout
     Button {
         text: qsTr("Install mod")
         icon.source: Theme.icons.addBoxIcon
+        enabled: ModStore.workPending === false
 
         display: AbstractButton.TextBesideIcon
         Layout.preferredHeight: 40

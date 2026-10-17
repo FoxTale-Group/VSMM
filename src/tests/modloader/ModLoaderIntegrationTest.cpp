@@ -300,20 +300,6 @@ class ModLoaderIntegrationTest : public QObject {
         QCOMPARE(disabledModsOnDisk(mApp->gameDir()), (QJsonArray{u"carryon@1.0.0"_s, u"carryon@1.1.0"_s}));
         QVERIFY(mApp->gameMngr().getDisabledMods().contains(u"carryon"_s));
     }
-
-    void updateOfAModWithoutOneClearsWorkPending() {
-        QVERIFY(!writeMod(mApp->modsDir(), u"carryon"_s, u"1.0.0"_s).isEmpty());
-        mServer->setFallback(info(modJson()));
-        QVERIFY(mApp->start());
-        QTRY_VERIFY(settled());
-        QVERIFY(!mod(u"carryon"_s)->hasUpdate());
-
-        store().update(u"carryon"_s);
-        QVERIFY(store().isWorkPending());
-
-        QTRY_VERIFY(settled());
-        QCOMPARE(mServer->requestCount(), 1);
-    }
 };
 
 QTEST_GUILESS_MAIN(ModLoaderIntegrationTest)

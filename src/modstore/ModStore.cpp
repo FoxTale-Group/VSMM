@@ -20,14 +20,22 @@
 
 #include <QDir>
 #include <QLoggingCategory>
-#include <QTimer>
 #include <QUuid>
 #include <chrono>
 
 Q_STATIC_LOGGING_CATEGORY(cModStore, "modstore");
 
 namespace vsmm {
-ModStore::ModStore(QObject *parent) : IModStore{parent} {}
+ModStore::ModStore(QObject *parent) : IModStore{parent} {
+    using namespace std::chrono_literals;
+    mWorkPendingTimer.setSingleShot(true);
+    mWorkPendingTimer.setInterval(500ms);
+    mWorkPendingTimer.callOnTimeout(this, [this] {
+        mWorkPending = false;
+        qCDebug(cModStore, "Work pending cleared");
+        emit workChanged();
+    });
+}
 void ModStore::setConfig(IConfig *config) {
     if (mConfig) {
         qCWarning(cModStore, "Config already set");
@@ -115,6 +123,10 @@ void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
 }
 
 void ModStore::reload() {
+    if (mWorkPendingTimer.isActive()) {
+        qCDebug(cModStore, "Reload stopped the pending work clear");
+    }
+    mWorkPendingTimer.stop();
     qCInfo(cModStore, "Reloading mods");
     mWorkPending = true;
     // let modlistmodel drop its rows while the entries are still readable
@@ -124,49 +136,44 @@ void ModStore::reload() {
     emit modsChanged();
 }
 
-void ModStore::update(const QString &id) {
-    const auto it = mMods.constFind(id);
-    if (it == mMods.end()) {
-        qCWarning(cModStore, "Update requested for unknown mod %s", qUtf8Printable(id));
+void ModStore::update(const QString &id) { update(UpdateType::One, id); }
+void ModStore::updateAll() { update(UpdateType::All); }
+void ModStore::updateSelected() { update(UpdateType::Selected); }
+
+void ModStore::update(UpdateType updateType, const QString &modId) {
+    if (mWorkPending) {
+        qCWarning(cModStore, "Cannot update now, other work is pending");
         return;
     }
 
-    qCInfo(cModStore, "Update requested for %s", qUtf8Printable(it->toString()));
+    QStringList modsToUpdate;
+    if (updateType != UpdateType::One) {
+        for (const auto &mod : mMods) {
+            if (!mod.hasUpdate() || (updateType == UpdateType::Selected && !mod.isMarkedForUpdate())) {
+                continue;
+            }
+            modsToUpdate.append(mod.getId().toString());
+        }
+    } else {
+        if (const auto iter = mMods.constFind(modId); iter != mMods.constEnd() && iter->hasUpdate()) {
+            modsToUpdate.append(modId);
+        } else {
+            qCWarning(cModStore, "Mod %s is not available for update", qUtf8Printable(modId));
+            return;
+        }
+    }
 
-    // dont allow mods reload while update is happening
+    if (modsToUpdate.isEmpty()) {
+        qCInfo(cModStore, "No mods to update");
+        return;
+    }
+
+    modsToUpdate.sort();
+    qCInfo(cModStore, "Update requested for (%lld): %s", static_cast<long long>(modsToUpdate.size()),
+           qUtf8Printable(modsToUpdate.join(QStringView{u", "})));
     mWorkPending = true;
     emit workChanged();
-    emit modUpdateRequested(*it);
-}
-
-void ModStore::updateAll() {
-    int requested{0};
-    for (const auto &mod : mMods) {
-        if (mod.hasUpdate()) {
-            if (!mWorkPending) {
-                mWorkPending = true;
-                emit workChanged();
-            }
-            emit modUpdateRequested(mod);
-            requested++;
-        }
-    }
-    qCInfo(cModStore, "Update requested for all %d outdated mods", requested);
-}
-
-void ModStore::updateSelected() {
-    int requested{0};
-    for (const auto &mod : mMods) {
-        if (mod.hasUpdate() && mod.isMarkedForUpdate()) {
-            if (!mWorkPending) {
-                mWorkPending = true;
-                emit workChanged();
-            }
-            emit modUpdateRequested(mod);
-            requested++;
-        }
-    }
-    qCInfo(cModStore, "Update requested for %d selected mods", requested);
+    emit modUpdateRequested(std::move(modsToUpdate));
 }
 
 void ModStore::markForUpdate(const QString &id, bool marked) {
@@ -227,23 +234,23 @@ const ModEntry *ModStore::find(const QString &id) const {
 int ModStore::modsCount() const { return static_cast<int>(mMods.size()); }
 
 int ModStore::modUpdatesCount() const {
-    int updates{0};
-    for (const auto &mod : mMods) {
-        if (mod.hasUpdate()) {
-            updates++;
-        }
-    }
-    return updates;
+    return static_cast<int>(std::ranges::count_if(mMods, [](const auto &mod) { return mod.hasUpdate(); }));
 }
 bool ModStore::isWorkPending() const { return mWorkPending; }
 
 void ModStore::onModsReloaded() {
-    constexpr std::chrono::milliseconds delay{500};
-    QTimer::singleShot(delay, this, [this] {
-        mWorkPending = false;
-        emit workChanged();
-    });
+    emit modsLoaded();
+    mWorkPendingTimer.start();
     qCInfo(cModStore, "Mods reloaded: %d installed, %d with updates", modsCount(), modUpdatesCount());
+}
+
+void ModStore::onModUpdateProgress(const QString &modId, qint64 received, qint64 total) {
+    emit modUpdateProgress(modId, received, total);
+}
+
+void ModStore::onModUpdateFailed(QString modId, QString reason) {
+    qCWarning(cModStore, "Update of %s failed: %s", qUtf8Printable(modId), qUtf8Printable(reason));
+    emit modUpdateFailed(modId, std::move(reason));
 }
 
 void ModStore::onModsDirChanged() { reload(); }
@@ -314,12 +321,16 @@ void ModStore::updateMod(ModEntry::LocalInfo localModInfo) {
     const auto it = mMods.find(localModInfo.mId);
     if (it == mMods.end()) {
         qCWarning(cModStore, "Update downloaded for unknown mod %s", qUtf8Printable(localModInfo.mId));
+        emit modUpdateFailed(localModInfo.mId, u"Downloaded mod is not installed"_s);
         return;
     }
+
+    emit modUpdateInstalling(it->getId());
 
     if (it->getVersion() >= localModInfo.mVersion) {
         qCWarning(cModStore, "Got newer or the same version of mod %s, ignoring",
                   qUtf8Printable(localModInfo.toString()));
+        emit modUpdateFailed(it->getId(), u"Installed version is the same or newer"_s);
         return;
     }
 
@@ -340,6 +351,7 @@ void ModStore::updateMod(ModEntry::LocalInfo localModInfo) {
     if (!QFile::copy(localModInfo.mFileInfo.absoluteFilePath(), newModFilePath)) {
         qCWarning(cModStore, "Failed to copy mod %s to %s", qUtf8Printable(localModInfo.toString()),
                   qUtf8Printable(newModFilePath));
+        emit modUpdateFailed(it->getId(), u"Failed to copy the update into the mods folder"_s);
         return;
     }
 
@@ -368,6 +380,7 @@ void ModStore::updateMod(ModEntry::LocalInfo localModInfo) {
 
     qCDebug(cModStore, "Mod %s replaced", qUtf8Printable(it->toString()));
     emit modUpdated(it->getId());
+    emit modUpdateFinished(it->getId());
     emit modsChanged();
 }
 
