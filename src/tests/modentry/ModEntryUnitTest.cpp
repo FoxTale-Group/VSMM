@@ -28,10 +28,10 @@ using namespace vsmm::test;
 
 namespace {
 
-[[nodiscard]] vsmm::ModEntry::LocalInfo carryOnInfo(const QString &version = u"1.0.0"_s) {
+[[nodiscard]] vsmm::ModLocalInfo carryOnInfo(const QString &version = u"1.0.0"_s) {
     return {.mName = u"Carry On (local)"_s,
             .mId = u"carryon"_s,
-            .mAuthor = u"local author"_s,
+            .mAuthors = {u"local author"_s},
             .mVersion = ver(version),
             .mFileInfo = QFileInfo{u"/mods/CarryOn-1.0.0.zip"_s}};
 }
@@ -66,6 +66,19 @@ class ModEntryUnitTest : public QObject {
 
         QCOMPARE(info.toString(), u"carryon@1.2.3-rc.1"_s);
         QCOMPARE(static_cast<QString>(info), u"carryon@1.2.3-rc.1"_s);
+        QCOMPARE(info.versionString(), u"1.2.3-rc.1"_s);
+    }
+
+    void localInfoDefaultsToPlaceholders() {
+        const vsmm::ModLocalInfo info;
+
+        QVERIFY(info.mName.isEmpty());
+        QVERIFY(info.mId.isEmpty());
+        QCOMPARE(info.mDescription, u"None"_s);
+        QCOMPARE(info.mSide, u"Unknown"_s);
+        QCOMPARE(info.mAuthors, QStringList{u"Unknown"_s});
+        QVERIFY(info.mDependencies.isEmpty());
+        QVERIFY(info.mError.isEmpty());
     }
 
     void constructionExposesLocalInfo() {
@@ -73,11 +86,19 @@ class ModEntryUnitTest : public QObject {
 
         QCOMPARE(entry.getId(), u"carryon"_s);
         QCOMPARE(entry.getName(), u"Carry On (local)"_s);
-        QCOMPARE(entry.getAuthor(), u"local author"_s);
+        QCOMPARE(entry.getAuthors(), QStringList{u"local author"_s});
         QCOMPARE(str(entry.getVersion()), u"1.0.0"_s);
         QCOMPARE(entry.getFileInfo().fileName(), u"CarryOn-1.0.0.zip"_s);
         QCOMPARE(entry.toString(), u"carryon@1.0.0"_s);
         QCOMPARE(static_cast<QString>(entry), u"carryon@1.0.0"_s);
+    }
+
+    void allLocalAuthorsAreKept() {
+        auto info = carryOnInfo();
+        info.mAuthors = {u"NerdScurvy"_s, u"Ghost"_s};
+        const vsmm::ModEntry entry{std::move(info)};
+
+        QCOMPARE(entry.getAuthors(), QStringList({u"NerdScurvy"_s, u"Ghost"_s}));
     }
 
     void onlineGettersAreEmptyBeforeInitOnlineInfo() {
@@ -119,7 +140,7 @@ class ModEntryUnitTest : public QObject {
         entry.initOnlineInfo(modJson(), ver(GAME_VERSION), false);
 
         QCOMPARE(entry.getName(), u"Carry On"_s);
-        QCOMPARE(entry.getAuthor(), u"NerdScurvy"_s);
+        QCOMPARE(entry.getAuthors(), QStringList{u"NerdScurvy"_s});
         QCOMPARE(entry.getSide(), u"both"_s);
         QCOMPARE(entry.getTags(), QStringList({u"Storage"_s, u"QoL"_s}));
         // local version is what is installed, so online info must never touch it
@@ -165,7 +186,7 @@ class ModEntryUnitTest : public QObject {
         QTest::ignoreMessage(QtWarningMsg, "Carry On: Invalid JSON format: author is not a string");
         entry.initOnlineInfo(withKey(modJson(), "author"_L1, 42), ver(GAME_VERSION), false);
 
-        QCOMPARE(entry.getAuthor(), u"local author"_s);
+        QCOMPARE(entry.getAuthors(), QStringList{u"local author"_s});
     }
 
     void invalidSideLeavesSideEmpty() {

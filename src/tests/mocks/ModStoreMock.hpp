@@ -31,7 +31,7 @@ namespace vsmm {
 class ModStoreMock final : public IModStore {
   public:
     struct AddCall {
-        ModEntry::LocalInfo mInfo;
+        ModLocalInfo mInfo;
         ModLoadType mLoadType;
     };
     struct OnlineCall {
@@ -51,7 +51,7 @@ class ModStoreMock final : public IModStore {
     };
 
     // only keeps what it received, the loader tests check it
-    void add(ModEntry::LocalInfo localModInfo, ModLoadType loadType) override {
+    void add(ModLocalInfo localModInfo, ModLoadType loadType) override {
         mAddCalls.append({std::move(localModInfo), loadType});
     }
     void updateOnline(QStringView id, QJsonObject onlineInfo) override {

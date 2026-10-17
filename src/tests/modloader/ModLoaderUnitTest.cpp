@@ -316,9 +316,14 @@ class ModLoaderUnitTest : public QObject {
         QCOMPARE(loadType, LoadType::Init);
         QCOMPARE(info.mId, QString::fromLatin1(MOD_ID));
         QCOMPARE(info.mName, u"Carry On"_s);
-        QCOMPARE(info.mAuthor, u"NerdScurvy"_s);
+        QCOMPARE(info.mAuthors, QStringList({u"NerdScurvy"_s, u"Ghost"_s}));
         QCOMPARE(str(info.mVersion), u"1.2.3"_s);
         QCOMPARE(info.mFileInfo.absoluteFilePath(), zip);
+        // optional keys are absent from the fixture
+        QCOMPARE(info.mDescription, u"None"_s);
+        QCOMPARE(info.mSide, u"Unknown"_s);
+        QVERIFY(info.mDependencies.isEmpty());
+        QVERIFY(info.mError.isEmpty());
 
         QCOMPARE(mHttp->callCount(), 1);
         QCOMPARE(mHttp->call(0).mUrl, apiUrl());
@@ -414,10 +419,6 @@ class ModLoaderUnitTest : public QObject {
         QTest::newRow("non-string-modid") << toJson(modInfoWith(u"modid"_s, 1)) << false;
         QTest::newRow("missing-name") << toJson(modInfoWithout(u"name"_s)) << false;
         QTest::newRow("non-string-name") << toJson(modInfoWith(u"name"_s, 1)) << false;
-        QTest::newRow("missing-authors") << toJson(modInfoWithout(u"authors"_s)) << false;
-        QTest::newRow("empty-authors") << toJson(modInfoWith(u"authors"_s, QJsonArray{})) << false;
-        QTest::newRow("non-array-authors") << toJson(modInfoWith(u"authors"_s, u"NerdScurvy"_s)) << false;
-        QTest::newRow("non-string-first-author") << toJson(modInfoWith(u"authors"_s, QJsonArray{1})) << false;
     }
 
     void invalidModInfoIsReported() {
@@ -444,7 +445,10 @@ class ModLoaderUnitTest : public QObject {
         const QJsonObject json{{"ModID"_L1, "carryon"_L1},
                                {"NAME"_L1, "Carry On"_L1},
                                {"Authors"_L1, QJsonArray{"NerdScurvy"_L1}},
-                               {"Version"_L1, "1.2.3"_L1}};
+                               {"Version"_L1, "1.2.3"_L1},
+                               {"Description"_L1, "Carry chests"_L1},
+                               {"SIDE"_L1, "Universal"_L1},
+                               {"Dependencies"_L1, QJsonObject{{"game"_L1, "1.22.0"_L1}}}};
         QVERIFY(!writeMod(u"carryon.zip"_s, toJson(json)).isEmpty());
 
         mLoader->load(QFileInfo{modsPath(u"carryon.zip"_s)});
@@ -453,8 +457,143 @@ class ModLoaderUnitTest : public QObject {
         const auto &info = mStore->addCalls().at(0).mInfo;
         QCOMPARE(info.mId, u"carryon"_s);
         QCOMPARE(info.mName, u"Carry On"_s);
-        QCOMPARE(info.mAuthor, u"NerdScurvy"_s);
+        QCOMPARE(info.mAuthors, QStringList{u"NerdScurvy"_s});
         QCOMPARE(str(info.mVersion), u"1.2.3"_s);
+        QCOMPARE(info.mDescription, u"Carry chests"_s);
+        QCOMPARE(info.mSide, u"Universal"_s);
+        QCOMPARE(info.mDependencies, QStringList{u"game@1.22.0"_s});
+    }
+
+    // authors is optional in modinfo, a mod without usable ones still loads
+    static void unusableAuthorsFallBackToUnknown_data() {
+        QTest::addColumn<QJsonObject>("json");
+
+        QTest::newRow("missing") << modInfoWithout(u"authors"_s);
+        QTest::newRow("empty") << modInfoWith(u"authors"_s, QJsonArray{});
+        QTest::newRow("non-array") << modInfoWith(u"authors"_s, u"NerdScurvy"_s);
+        QTest::newRow("only-non-strings") << modInfoWith(u"authors"_s, QJsonArray{1, QJsonValue::Null});
+    }
+
+    void unusableAuthorsFallBackToUnknown() {
+        QFETCH(QJsonObject, json);
+        const QString zip = writeMod(u"carryon.zip"_s, toJson(json));
+        QVERIFY(!zip.isEmpty());
+
+        const auto info = vsmm::ModLoader::readLocalInfo(QUrl::fromLocalFile(zip));
+
+        QVERIFY(info.mError.isEmpty());
+        QCOMPARE(info.mId, QString::fromLatin1(MOD_ID));
+        QCOMPARE(info.mAuthors, QStringList{u"Unknown"_s});
+    }
+
+    void nonStringAuthorsAreSkipped() {
+        const QJsonArray authors{"NerdScurvy"_L1, 1, QJsonValue::Null, "Ghost"_L1};
+        const QString zip = writeMod(u"carryon.zip"_s, toJson(modInfoWith(u"authors"_s, authors)));
+        QVERIFY(!zip.isEmpty());
+
+        const auto info = vsmm::ModLoader::readLocalInfo(QUrl::fromLocalFile(zip));
+
+        QCOMPARE(info.mAuthors, QStringList({u"NerdScurvy"_s, u"Ghost"_s}));
+    }
+
+    void optionalModInfoKeysAreRead() {
+        QJsonObject json = modInfo();
+        json["description"_L1] = "Carry chests"_L1;
+        json["side"_L1] = "Universal"_L1;
+        json["dependencies"_L1] = QJsonObject{{"game"_L1, "1.22.0"_L1}, {"survival"_L1, "1.22.0"_L1}};
+        const QString zip = writeMod(u"carryon.zip"_s, toJson(json));
+        QVERIFY(!zip.isEmpty());
+
+        const auto info = vsmm::ModLoader::readLocalInfo(QUrl::fromLocalFile(zip));
+
+        QCOMPARE(info.mDescription, u"Carry chests"_s);
+        QCOMPARE(info.mSide, u"Universal"_s);
+        QCOMPARE(info.mDependencies, QStringList({u"game@1.22.0"_s, u"survival@1.22.0"_s}));
+    }
+
+    // empty version means any version, the dependency is still required
+    void emptyDependencyVersionBecomesAnyVersion() {
+        const QJsonObject deps{{"game"_L1, ""_L1}, {"survival"_L1, "*"_L1}};
+        const QString zip = writeMod(u"carryon.zip"_s, toJson(modInfoWith(u"dependencies"_s, deps)));
+        QVERIFY(!zip.isEmpty());
+
+        const auto info = vsmm::ModLoader::readLocalInfo(QUrl::fromLocalFile(zip));
+
+        QCOMPARE(info.mDependencies, QStringList({u"game@*"_s, u"survival@*"_s}));
+    }
+
+    void nonStringDependencyVersionsAreSkipped() {
+        const QJsonObject deps{{"game"_L1, "1.22.0"_L1}, {"oldlib"_L1, 1}, {"otherlib"_L1, QJsonValue::Null}};
+        const QString zip = writeMod(u"carryon.zip"_s, toJson(modInfoWith(u"dependencies"_s, deps)));
+        QVERIFY(!zip.isEmpty());
+
+        const auto info = vsmm::ModLoader::readLocalInfo(QUrl::fromLocalFile(zip));
+
+        QCOMPARE(info.mDependencies, QStringList{u"game@1.22.0"_s});
+    }
+
+    static void invalidOptionalKeysKeepTheirDefaults_data() {
+        QTest::addColumn<QString>("key");
+        QTest::addColumn<QJsonValue>("value");
+
+        QTest::newRow("non-string-description") << u"description"_s << QJsonValue{1};
+        QTest::newRow("non-string-side") << u"side"_s << QJsonValue{QJsonArray{"Client"_L1}};
+        QTest::newRow("non-object-dependencies") << u"dependencies"_s << QJsonValue{u"game"_s};
+    }
+
+    void invalidOptionalKeysKeepTheirDefaults() {
+        QFETCH(QString, key);
+        QFETCH(QJsonValue, value);
+        const QString zip = writeMod(u"carryon.zip"_s, toJson(modInfoWith(key, value)));
+        QVERIFY(!zip.isEmpty());
+
+        const auto info = vsmm::ModLoader::readLocalInfo(QUrl::fromLocalFile(zip));
+
+        QVERIFY(info.mError.isEmpty());
+        QCOMPARE(info.mDescription, u"None"_s);
+        QCOMPARE(info.mSide, u"Unknown"_s);
+        QVERIFY(info.mDependencies.isEmpty());
+    }
+
+    // qml reads it before installing, so nothing reaches the store or the API
+    void readLocalInfoOnlyReadsTheZip() {
+        const QString zip = writeMod();
+        QVERIFY(!zip.isEmpty());
+
+        const auto info = vsmm::ModLoader::readLocalInfo(QUrl::fromLocalFile(zip));
+
+        QVERIFY(info.mError.isEmpty());
+        QCOMPARE(info.mId, QString::fromLatin1(MOD_ID));
+        QCOMPARE(info.mName, u"Carry On"_s);
+        QCOMPARE(info.versionString(), u"1.2.3"_s);
+        QCOMPARE(info.mFileInfo.absoluteFilePath(), zip);
+        QVERIFY(mStore->addCalls().isEmpty());
+        QCOMPARE(mHttp->callCount(), 0);
+    }
+
+    void readLocalInfoReturnsTheErrorOfAnUnreadableZip() {
+        QVERIFY(writeStubZip(QDir{mDir->path()}, u"carryon.zip"_s).exists());
+        const QString zip = modsPath(u"carryon.zip"_s);
+        const QRegularExpression pattern{
+            u"^Failed to open archive %1: .+$"_s.arg(QRegularExpression::escape(zip))};
+
+        QTest::ignoreMessage(QtWarningMsg, pattern);
+        const auto info = vsmm::ModLoader::readLocalInfo(QUrl::fromLocalFile(zip));
+
+        QVERIFY2(pattern.match(info.mError).hasMatch(), qPrintable(info.mError));
+        QVERIFY(info.mId.isEmpty());
+    }
+
+    void readLocalInfoReturnsTheErrorOfAnInvalidModInfo() {
+        const QString zip = writeMod(u"carryon.zip"_s, toJson(modInfoWithout(u"modid"_s)));
+        QVERIFY(!zip.isEmpty());
+        const QString message = u"Failed to parse modinfo.json from zip file: %1"_s.arg(zip);
+
+        QTest::ignoreMessage(QtWarningMsg, qPrintable(message));
+        const auto info = vsmm::ModLoader::readLocalInfo(QUrl::fromLocalFile(zip));
+
+        QCOMPARE(info.mError, message);
+        QVERIFY(info.mId.isEmpty());
     }
 
     void onlineInfoIsHandedToTheStore() {
