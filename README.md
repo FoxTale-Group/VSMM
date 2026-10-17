@@ -287,7 +287,27 @@ cmake --build build-dir --config Release
 > Replace `CMAKE_PREFIX_PATH` with wherever the Qt installer put your `6.10.0\msvc2022_64` folder, and `CMAKE_TOOLCHAIN_FILE` with wherever you cloned vcpkg in the step above.
 
 > [!IMPORTANT]
-> The built `VSMM.exe` needs Qt's DLLs next to it to run. Either run `windeployqt build-dir\VSMM.exe` (ships with Qt, copies the DLLs it needs right next to the exe) or add Qt's `bin` folder (e.g. `C:\Qt\6.10.0\msvc2022_64\bin`) to your `PATH` before launching it.
+> The build directory can't be launched directly on Windows: `VSMM.exe` needs Qt's DLLs and VSMM's own libraries, which are built into separate subfolders, and Windows only finds them through `PATH`. To build and run the app, use `py scripts\build.py -r` instead (see [Using the build script](#using-the-build-script)), which sets `PATH` up for you.
+
+## Using the build script
+
+Once the dependencies above are installed, `scripts/build.py` runs the same steps for you on both Linux and Windows. It needs [Python](https://www.python.org/) 3.10 or newer.
+
+```bash
+./scripts/build.py              # Release build into build/
+./scripts/build.py -d -r        # Debug build into build-debug/, then run the app
+./scripts/build.py -t           # Debug build, then run the tests
+```
+
+On Windows, run it as `py scripts\build.py`. It loads the Visual Studio C++ environment by itself, so any terminal works, and it puts the Qt and project DLLs on `PATH` when running the app or the tests. Tell it where vcpkg and Qt are once:
+
+```bat
+set VCPKG_ROOT=C:\path\to\vcpkg
+py scripts\build.py -- -DCMAKE_PREFIX_PATH=C:\Qt\6.10.0\msvc2022_64
+```
+
+> [!NOTE]
+> Arguments after `--` go straight to CMake's configure step. CMake remembers `CMAKE_PREFIX_PATH` in the build directory, so later runs don't need it. Run `./scripts/build.py --help` for all options.
 
 ---
 
