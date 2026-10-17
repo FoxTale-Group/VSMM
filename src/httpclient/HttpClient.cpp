@@ -36,12 +36,12 @@ HttpClient::HttpClient(QObject *parent) : QObject{parent} {
 }
 
 void HttpClient::sendGet(const QUrl &url, QObject *context, const QString &contentType, SuccessFn successFn,
-                         FailedFn failedFn) {
-    sendGetImpl(url, context, contentType, std::move(successFn), std::move(failedFn), 0);
+                         FailedFn failedFn, ProgressFn progressFn) {
+    sendGetImpl(url, context, contentType, std::move(successFn), std::move(failedFn), 0, std::move(progressFn));
 }
 
 void HttpClient::sendGetImpl(const QUrl &url, QObject *context, const QString &contentType, SuccessFn successFn,
-                             FailedFn failedFn, uint retryCount) {
+                             FailedFn failedFn, uint retryCount, ProgressFn progressFn) {
     QNetworkRequest request(url);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferNetwork);
     request.setHeader(QNetworkRequest::KnownHeaders::UserAgentHeader,
@@ -56,23 +56,34 @@ void HttpClient::sendGetImpl(const QUrl &url, QObject *context, const QString &c
     qCDebug(cHttpClient, "GET %s (attempt %u)", qUtf8Printable(url.toString()), retryCount + 1);
 
     QNetworkReply *reply = mNetworkManager.get(request);
+    if (progressFn) {
+        // reply has to be successful
+        connect(reply, &QNetworkReply::downloadProgress, context,
+                [reply, progressFn](qint64 bytesReceived, qint64 bytesTotal) mutable {
+                    if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 200) {
+                        return;
+                    }
+                    progressFn(bytesReceived, bytesTotal);
+                });
+    }
     connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
     connect(reply, &QNetworkReply::finished, context,
             [this, context, reply, url, contentType, onSuccess = std::move(successFn), onFailed = std::move(failedFn),
-             retryCount] mutable {
+             retryCount, progressFn = std::move(progressFn)] mutable {
                 if (shouldRetry(reply, retryCount)) {
                     const std::chrono::milliseconds delay = backoffDelay(reply, retryCount);
                     qCDebug(cHttpClient, "Retrying %s in %lld ms", qUtf8Printable(url.toString()),
                             static_cast<long long>(delay.count()));
-                    QTimer::singleShot(delay, context,
-                                       [self = QPointer{this}, url, contentType, context, retryCount,
-                                        onSuccess = std::move(onSuccess), onFailed = std::move(onFailed)]() mutable {
-                                           if (!self) {
-                                               return;
-                                           }
-                                           self->sendGetImpl(url, context, contentType, std::move(onSuccess),
-                                                             std::move(onFailed), retryCount + 1);
-                                       });
+                    QTimer::singleShot(
+                        delay, context,
+                        [self = QPointer{this}, url, contentType, context, retryCount, onSuccess = std::move(onSuccess),
+                         onFailed = std::move(onFailed), progressFn = std::move(progressFn)]() mutable {
+                            if (!self) {
+                                return;
+                            }
+                            self->sendGetImpl(url, context, contentType, std::move(onSuccess), std::move(onFailed),
+                                              retryCount + 1, std::move(progressFn));
+                        });
                     return;
                 }
 
