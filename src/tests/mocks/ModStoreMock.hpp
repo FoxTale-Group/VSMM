@@ -107,6 +107,15 @@ class ModStoreMock final : public IModStore {
 
     void requestUpdate(const QStringList &modIds) { emit modUpdateRequested(modIds); }
 
+    // what ModStore re-emits for the update model while a batch runs
+    void reportProgress(const QString &id, qint64 received, qint64 total) {
+        emit modUpdateProgress(id, received, total);
+    }
+    void reportInstalling(const QString &id) { emit modUpdateInstalling(id); }
+    void reportFinished(const QString &id) { emit modUpdateFinished(id); }
+    void reportFailed(const QString &id, const QString &reason) { emit modUpdateFailed(id, reason); }
+    void finishLoading() { emit modsLoaded(); }
+
     [[nodiscard]] const QList<AddCall> &addCalls() const { return mAddCalls; }
     [[nodiscard]] const QList<OnlineCall> &onlineCalls() const { return mOnlineCalls; }
     [[nodiscard]] int reloadedCount() const { return mReloadedCount; }

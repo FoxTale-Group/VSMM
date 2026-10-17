@@ -31,6 +31,7 @@
 #include <ModLoader.hpp>
 #include <ModSortFilterModel.hpp>
 #include <ModStore.hpp>
+#include <ModUpdateModel.hpp>
 
 Q_STATIC_LOGGING_CATEGORY(cApp, "app");
 
@@ -85,8 +86,10 @@ void App::initQmlEngine() {
     auto modSortFilterModel = mQmlEngine.singletonInstance<ModSortFilterModel *>("vsmm", "ModSortFilterModel");
     auto modStore = mQmlEngine.singletonInstance<ModStore *>("vsmm", "ModStore");
     auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmm", "ModListModel");
+    auto modUpdateModel = mQmlEngine.singletonInstance<ModUpdateModel *>("vsmm", "ModUpdateModel");
 
     modListModel->setStore(modStore);
+    modUpdateModel->setStore(modStore);
 
     modSortFilterModel->setSourceModel(modListModel);
 
