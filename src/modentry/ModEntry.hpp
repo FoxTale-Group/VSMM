@@ -25,6 +25,32 @@
 
 namespace vsmm {
 
+struct MODENTRY_EXPORT ModLocalInfo {
+    Q_GADGET
+    Q_PROPERTY(QString name MEMBER mName)
+    Q_PROPERTY(QString id MEMBER mId)
+    Q_PROPERTY(QString description MEMBER mDescription)
+    Q_PROPERTY(QString side MEMBER mSide)
+    Q_PROPERTY(QString version READ versionString)
+    Q_PROPERTY(QStringList authors MEMBER mAuthors)
+    Q_PROPERTY(QStringList dependencies MEMBER mDependencies)
+
+    Q_PROPERTY(QString error MEMBER mError)
+
+  public:
+    QString mName{}, mId{}, mDescription{QStringLiteral(u"None")}, mSide{QStringLiteral(u"Unknown")}, mError{};
+    QStringList mAuthors{{QStringLiteral(u"Unknown")}}, mDependencies{};
+    semver::version<> mVersion{};
+    QFileInfo mFileInfo{};
+    [[nodiscard]] QString toString() const {
+        return QStringLiteral(u"%1@%2").arg(mId).arg(QString::fromStdString(mVersion.to_string()));
+    }
+    [[nodiscard]] QString versionString() const { return QString::fromStdString(mVersion.to_string()); }
+
+    // ReSharper disable once CppNonExplicitConversionOperator
+    operator QString() const { return toString(); }
+};
+
 class MODENTRY_EXPORT ModEntry {
   public:
     struct LatestVersion {
@@ -34,19 +60,8 @@ class MODENTRY_EXPORT ModEntry {
         QStringList mSupportedVersions;
         bool mHasUpdate{false};
     };
-    struct LocalInfo {
-        QString mName, mId, mAuthor;
-        semver::version<> mVersion{};
-        QFileInfo mFileInfo;
-        [[nodiscard]] QString toString() const {
-            return QStringLiteral("%1@%2").arg(mId).arg(QString::fromStdString(mVersion.to_string()));
-        }
 
-        // ReSharper disable once CppNonExplicitConversionOperator
-        operator QString() const { return toString(); }
-    };
-
-    explicit ModEntry(LocalInfo info);
+    explicit ModEntry(ModLocalInfo info);
 
     [[nodiscard]] QString toString() const;
 
@@ -55,7 +70,7 @@ class MODENTRY_EXPORT ModEntry {
 
     [[nodiscard]] QStringView getId() const;
     [[nodiscard]] QStringView getName() const;
-    [[nodiscard]] QStringView getAuthor() const;
+    [[nodiscard]] QStringList getAuthors() const;
     [[nodiscard]] const semver::version<> &getVersion() const;
     [[nodiscard]] const QFileInfo &getFileInfo() const;
     [[nodiscard]] bool isMarkedForUpdate() const;
@@ -86,7 +101,7 @@ class MODENTRY_EXPORT ModEntry {
 
     void initName(const QJsonObject &json);
     void initLatestRelease(const QJsonObject &json, const semver::version<> &gameVersion, bool cfgIncludePrerelease);
-    void initAuthor(const QJsonObject &json);
+    void initAuthors(const QJsonObject &json);
     void initTags(const QJsonObject &json);
     void initModUrl(const QJsonObject &json);
     void initSide(const QJsonObject &json);
@@ -97,7 +112,7 @@ class MODENTRY_EXPORT ModEntry {
 
     QString mName;
     semver::version<> mVersion;
-    QString mAuthor;
+    QStringList mAuthors;
     QString mModId;
     QFileInfo mFileInfo;
     OnlineInfo mOnlineInfo;

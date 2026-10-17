@@ -73,7 +73,7 @@ void ModStore::setGameMngr(IGameMngr *gameMngr) {
     connect(mGameMngr, &IGameMngr::modsDirsChanged, this, &ModStore::onModsDirChanged);
 }
 
-void ModStore::add(ModEntry::LocalInfo localModInfo, ModLoadType loadType) {
+void ModStore::add(ModLocalInfo localModInfo, ModLoadType loadType) {
     if (localModInfo.mId.isEmpty()) {
         qCWarning(cModStore, "Refusing mod without an id from %s",
                   qUtf8Printable(localModInfo.mFileInfo.absoluteFilePath()));
@@ -258,7 +258,7 @@ bool ModStore::modsSelected() const {
     return std::ranges::any_of(mMods.begin(), mMods.end(), [](const auto &mod) { return mod.isMarkedForUpdate(); });
 }
 
-void ModStore::addOnInit(ModEntry::LocalInfo localModInfo) {
+void ModStore::addOnInit(ModLocalInfo localModInfo) {
     // Check if there is already a mod with the same id
     if (auto it = mMods.find(localModInfo.mId); it != mMods.end()) {
         if (it->getVersion() >= localModInfo.mVersion) {
@@ -284,7 +284,7 @@ void ModStore::addOnInit(ModEntry::LocalInfo localModInfo) {
     }
 }
 
-void ModStore::addFromGUI(ModEntry::LocalInfo localModInfo) {
+void ModStore::addFromGUI(ModLocalInfo localModInfo) {
     if (mGameMngr->getModsDirs().isEmpty()) {
         qCCritical(cModStore, "No mods dir to add %s to", qUtf8Printable(localModInfo.toString()));
         return;
@@ -315,7 +315,7 @@ void ModStore::addFromGUI(ModEntry::LocalInfo localModInfo) {
     emit modsChanged();
 }
 
-void ModStore::updateMod(ModEntry::LocalInfo localModInfo) {
+void ModStore::updateMod(ModLocalInfo localModInfo) {
     using namespace Qt::StringLiterals;
 
     const auto it = mMods.find(localModInfo.mId);

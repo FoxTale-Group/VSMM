@@ -30,6 +30,13 @@
 #include <qqmlintegration.h>
 
 namespace vsmm {
+
+struct LocalInfoForeign {
+    Q_GADGET
+    QML_VALUE_TYPE(localModInfo)
+    QML_FOREIGN(ModLocalInfo)
+};
+
 class MODLOADER_EXPORT ModLoader : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -44,6 +51,9 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     static constexpr QLatin1StringView LOCAL_JSON_MODID_KEY{"modid"};
     static constexpr QLatin1StringView LOCAL_JSON_AUTHORS_KEY{"authors"};
     static constexpr QLatin1StringView LOCAL_JSON_NAME_KEY{"name"};
+    static constexpr QLatin1StringView LOCAL_JSON_DESC_KEY{"description"};
+    static constexpr QLatin1StringView LOCAL_JSON_SIDE_KEY{"side"};
+    static constexpr QLatin1StringView LOCAL_JSON_DEPS_KEY{"dependencies"};
 
   public:
     ModLoader();
@@ -55,6 +65,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     void setApiUrl(QUrl apiUrl);
     void load(QFileInfo &&fileInfo);
     Q_INVOKABLE void load(const QUrl &filePath);
+    Q_INVOKABLE static ModLocalInfo readLocalInfo(const QUrl &filePath);
 
   signals:
     void allModsReloaded(); // used by modstore
