@@ -61,17 +61,17 @@ class MODLOADER_EXPORT ModLoader : public QObject {
 
   public slots:
     void onModsReloading();
-    void onModUpdateRequested(const ModEntry &mod);
+    void onModUpdateRequested(QStringList modIds);
 
   private:
-    void load_(QFileInfo &&fileInfo, IModStore::ModLoadType modLoadType);
+    // updatedModId names the requested mod for an Update load, so a broken download can be reported
+    void load_(QFileInfo fileInfo, IModStore::ModLoadType modLoadType, QString updatedModId = {});
+    void onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion, QString modId);
+    void reportUpdateFailed(QString modId, QString reason);
+    void incrementModsLoadingInProgress(qint64 count = 1);
+    void decrementModsLoadingInProgress(bool notify = true);
 
-    void onModInfoRetrieved(QString modId, QByteArray data);
-    void onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion);
-    void incrementModsLoadingInProgress();
-    void decrementModsLoadingInProgress();
-
-    [[nodiscard]] static QVariant getLocalInfoFromZip(QFileInfo &&fileInfo);
+    [[nodiscard]] static QVariant getLocalInfoFromZip(QFileInfo fileInfo);
     [[nodiscard]] static QVariant parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo);
     [[nodiscard]] static QJsonObject createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId);
 

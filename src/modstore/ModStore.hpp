@@ -26,6 +26,7 @@
 
 #include <QHash>
 #include <QObject>
+#include <QTimer>
 #include <qqmlintegration.h>
 
 namespace vsmm {
@@ -67,11 +68,16 @@ class MODSTORE_EXPORT ModStore : public IModStore {
 
   public slots:
     void onModsReloaded() override;
+    void onModUpdateProgress(const QString &modId, qint64 received, qint64 total) override;
+    void onModUpdateFailed(QString modId, QString reason) override;
 
   private slots:
     void onModsDirChanged();
 
   private:
+    enum class UpdateType : quint8 { One = 0, Selected, All };
+
+    void update(UpdateType updateType, const QString &modId = {});
     [[nodiscard]] bool modsSelected() const;
     void addOnInit(ModEntry::LocalInfo localModInfo);
     void addFromGUI(ModEntry::LocalInfo localModInfo);
@@ -86,5 +92,6 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     IConfig *mConfig{nullptr};
     IGameMngr *mGameMngr{nullptr};
     QSet<QString> mFavoriteMods;
+    QTimer mWorkPendingTimer{this};
 };
 } // namespace vsmm
