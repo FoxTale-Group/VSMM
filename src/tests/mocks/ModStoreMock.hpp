@@ -38,6 +38,17 @@ class ModStoreMock final : public IModStore {
         QString mId;
         QJsonObject mOnlineInfo;
     };
+    struct ProgressCall {
+        QString mId;
+        qint64 mReceived;
+        qint64 mTotal;
+    };
+    struct FailedCall {
+        QString mId;
+        QString mReason;
+
+        bool operator==(const FailedCall &) const = default;
+    };
 
     // only keeps what it received, the loader tests check it
     void add(ModEntry::LocalInfo localModInfo, ModLoadType loadType) override {
@@ -47,6 +58,12 @@ class ModStoreMock final : public IModStore {
         mOnlineCalls.append({id.toString(), std::move(onlineInfo)});
     }
     void onModsReloaded() override { ++mReloadedCount; }
+    void onModUpdateProgress(const QString &modId, qint64 received, qint64 total) override {
+        mProgressCalls.append({modId, received, total});
+    }
+    void onModUpdateFailed(QString modId, QString reason) override {
+        mFailedCalls.append({std::move(modId), std::move(reason)});
+    }
 
     [[nodiscard]] const ModEntry *find(const QString &id) const override {
         const auto it = mMods.constFind(id);
@@ -88,16 +105,29 @@ class ModStoreMock final : public IModStore {
     // for initOnlineInfo and setFavorite, follow with update() like ModStore does
     [[nodiscard]] ModEntry &entry(const QString &id) { return mMods.find(id).value(); }
 
-    void requestUpdate(const ModEntry &mod) { emit modUpdateRequested(mod); }
+    void requestUpdate(const QStringList &modIds) { emit modUpdateRequested(modIds); }
+
+    // what ModStore re-emits for the update model while a batch runs
+    void reportProgress(const QString &id, qint64 received, qint64 total) {
+        emit modUpdateProgress(id, received, total);
+    }
+    void reportInstalling(const QString &id) { emit modUpdateInstalling(id); }
+    void reportFinished(const QString &id) { emit modUpdateFinished(id); }
+    void reportFailed(const QString &id, const QString &reason) { emit modUpdateFailed(id, reason); }
+    void finishLoading() { emit modsLoaded(); }
 
     [[nodiscard]] const QList<AddCall> &addCalls() const { return mAddCalls; }
     [[nodiscard]] const QList<OnlineCall> &onlineCalls() const { return mOnlineCalls; }
     [[nodiscard]] int reloadedCount() const { return mReloadedCount; }
+    [[nodiscard]] const QList<ProgressCall> &progressCalls() const { return mProgressCalls; }
+    [[nodiscard]] const QList<FailedCall> &failedCalls() const { return mFailedCalls; }
 
   private:
     QHash<QString, ModEntry> mMods;
     QList<AddCall> mAddCalls;
     QList<OnlineCall> mOnlineCalls;
+    QList<ProgressCall> mProgressCalls;
+    QList<FailedCall> mFailedCalls;
     int mReloadedCount{0};
 };
 } // namespace vsmm

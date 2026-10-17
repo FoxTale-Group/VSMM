@@ -147,72 +147,113 @@ void ModLoader::load(const QUrl &filePath) {
     load_(QFileInfo{filePath.toLocalFile()}, IModStore::ModLoadType::GUI);
 }
 
-void ModLoader::onModUpdateRequested(const ModEntry &mod) {
-    if (!mod.hasUpdate()) {
-        // inform ModStore, so it would set mWorkPending = false and if not other updates are pending
-        if (!mModsLoadingInProgress.loadRelaxed()) {
-            emit allModsReloaded();
+void ModLoader::onModUpdateRequested(QStringList modIds) {
+    incrementModsLoadingInProgress(modIds.size());
+
+    for (const auto &id : modIds) {
+        const ModEntry *mod = mStore->find(id);
+
+        // Should never happen, but check just in case
+        if (!mod) {
+            qCCritical(cModLoader, "Mod with id %s not found", qUtf8Printable(id));
+            decrementModsLoadingInProgress(false);
+            continue;
         }
-        return;
+
+        // copied, the entry is replaced once the update is installed
+        ModEntry::LatestVersion latestVersion = mod->getLatestVersion();
+        const QUrl url = latestVersion.mUrl;
+        qCDebug(cModLoader, "Downloading %s %s from %s", qUtf8Printable(id), latestVersion.mVersion.to_string().c_str(),
+                qUtf8Printable(url.toString()));
+        mHttpClient->sendGet(
+            url, this, DOWNLOAD_CONTENT_TYPE,
+            [this, id = id, latestVersion = std::move(latestVersion)](QByteArray data) mutable {
+                onModUpdateRetrieved(std::move(data), std::move(latestVersion), std::move(id));
+            },
+            [this, id = id](QString error) mutable {
+                qCWarning(cModLoader, "Failed to retrieve update for %s: %s", qUtf8Printable(id),
+                          qUtf8Printable(error));
+                mStore->onModUpdateFailed(std::move(id), std::move(error));
+                decrementModsLoadingInProgress();
+            },
+            [this, id](qint64 received, qint64 total) { mStore->onModUpdateProgress(id, received, total); });
     }
 
-    incrementModsLoadingInProgress();
-
-    ModEntry::LatestVersion latestVersion = mod.getLatestVersion();
-    mHttpClient->sendGet(
-        latestVersion.mUrl, this, DOWNLOAD_CONTENT_TYPE,
-        [this, latestVersion](QByteArray data) mutable {
-            onModUpdateRetrieved(std::move(data), std::move(latestVersion));
-        },
-        [this, id = mod.getId().toString()](QString error) {
-            qCWarning(cModLoader, "Failed to retrieve update for %s: %s", qUtf8Printable(id),
-                      qUtf8Printable(std::move(error)));
-            decrementModsLoadingInProgress();
-        });
+    // inform ModStore, so it would set mWorkPending = false if no other loads are pending
+    if (!mModsLoadingInProgress.loadRelaxed()) {
+        qCDebug(cModLoader, "Nothing left in progress");
+        emit allModsReloaded();
+    }
 }
 
-void ModLoader::onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion) {
-    mThreadPoolProcessUpdate.start([this, latestVersion = std::move(latestVersion), data = std::move(data)] {
+void ModLoader::onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion, QString modId) {
+    mThreadPoolProcessUpdate.start([this, latestVersion = std::move(latestVersion), data = std::move(data),
+                                    modId = std::move(modId)] mutable {
         QFile modUpdateFile{QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QDir::separator() +
                             latestVersion.mFileName};
         if (!modUpdateFile.open(QIODeviceBase::WriteOnly | QIODeviceBase::Truncate)) {
             qCWarning(cModLoader, "Failed to create file for mod update %s", qUtf8Printable(latestVersion.mFileName));
-            decrementModsLoadingInProgress();
+            reportUpdateFailed(std::move(modId), u"Failed to create the update file"_s);
             return;
         }
         if (modUpdateFile.write(data) != data.size()) {
             qCWarning(cModLoader, "Failed to write mod update data to %s", qUtf8Printable(modUpdateFile.fileName()));
-            decrementModsLoadingInProgress();
+            reportUpdateFailed(std::move(modId), u"Failed to write the update file"_s);
             return;
         }
         modUpdateFile.close();
+        qCDebug(cModLoader, "Saved update for %s to %s (%lld bytes)", qUtf8Printable(modId),
+                qUtf8Printable(modUpdateFile.fileName()), static_cast<long long>(data.size()));
         QFileInfo fileInfo{modUpdateFile.fileName()};
         QMetaObject::invokeMethod(
-            this, [this, fileInfo] mutable { load_(std::move(fileInfo), IModStore::ModLoadType::Update); },
+            this,
+            [this, fileInfo, modId = std::move(modId)] mutable {
+                load_(std::move(fileInfo), IModStore::ModLoadType::Update, std::move(modId));
+            },
             Qt::QueuedConnection);
     });
 }
 
-void ModLoader::incrementModsLoadingInProgress() { mModsLoadingInProgress.fetchAndAddRelaxed(1); }
+void ModLoader::reportUpdateFailed(QString modId, QString reason) {
+    // report about failure is before the decrement, so the failure reaches the store before allModsReloaded is emitted
+    QMetaObject::invokeMethod(
+        this,
+        [this, modId = std::move(modId), reason = std::move(reason)] mutable {
+            mStore->onModUpdateFailed(std::move(modId), std::move(reason));
+            decrementModsLoadingInProgress();
+        },
+        Qt::QueuedConnection);
+}
 
-void ModLoader::decrementModsLoadingInProgress() {
-    if (mModsLoadingInProgress.fetchAndSubRelaxed(1) == 1) {
+void ModLoader::incrementModsLoadingInProgress(qint64 count) { mModsLoadingInProgress.fetchAndAddRelaxed(count); }
+
+void ModLoader::decrementModsLoadingInProgress(bool notify) {
+    if (mModsLoadingInProgress.fetchAndSubRelaxed(1) == 1 && notify) {
+        qCDebug(cModLoader, "Nothing left in progress");
         QMetaObject::invokeMethod(this, [this] { emit allModsReloaded(); }, Qt::QueuedConnection);
     }
 }
 
 void ModLoader::onModsReloading() { initModsList(); }
 
-void ModLoader::load_(QFileInfo &&fileInfo, IModStore::ModLoadType modLoadType) {
-    mThreadPoolExtractZips.start([this, fileInfo, modLoadType] mutable {
-        auto localInfo = getLocalInfoFromZip(std::move(fileInfo));
+void ModLoader::load_(QFileInfo fileInfo, IModStore::ModLoadType modLoadType, QString updatedModId) {
+    mThreadPoolExtractZips.start([this, fileInfo, modLoadType, updatedModId = std::move(updatedModId)] mutable {
+        auto localInfo = getLocalInfoFromZip(fileInfo);
 
         if (localInfo.canConvert<ModEntry::LocalInfo>()) {
             QMetaObject::invokeMethod(
                 this,
-                [this, modInfo_ = std::move(localInfo).value<ModEntry::LocalInfo>(), modLoadType] mutable {
+                [this, modInfo_ = std::move(localInfo).value<ModEntry::LocalInfo>(), modLoadType,
+                 updatedModId] mutable {
                     // Copy id for info retrieval
                     QString modId = modInfo_.mId;
+
+                    if (modLoadType == IModStore::ModLoadType::Update && modId != updatedModId) {
+                        mStore->onModUpdateFailed(
+                            updatedModId, u"Different updated mod got: %1 expected: %2"_s.arg(modId, updatedModId));
+                        decrementModsLoadingInProgress();
+                        return;
+                    }
 
                     // Auto disable new version if old one is disabled
                     if (mGameMngr->getDisabledMods().contains(modId)) {
@@ -223,34 +264,31 @@ void ModLoader::load_(QFileInfo &&fileInfo, IModStore::ModLoadType modLoadType) 
                     mHttpClient->sendGet(
                         GetModUrlApi(mApiUrl, modId), this, ONLINE_CONTENT_TYPE,
                         [this, modId](QByteArray data) mutable {
-                            onModInfoRetrieved(std::move(modId), std::move(data));
+                            if (QJsonObject modObj = createOnlineModEntry(data, modId); !modObj.isEmpty()) {
+                                mStore->updateOnline(modId, std::move(modObj));
+                            }
+                            decrementModsLoadingInProgress();
                         },
                         [this, modId](QString error) {
                             qCWarning(cModLoader, "Error retrieving info for %s: %s", qUtf8Printable(modId),
                                       qUtf8Printable(std::move(error)));
                             decrementModsLoadingInProgress();
-                        });
+                        },
+                        {});
                 },
                 Qt::QueuedConnection);
             return;
         }
-        qCCritical(cModLoader, "%s", qUtf8Printable(std::move(localInfo).value<QString>()));
+        qCWarning(cModLoader, "%s", qUtf8Printable(std::move(localInfo).value<QString>()));
+        if (modLoadType == IModStore::ModLoadType::Update) {
+            reportUpdateFailed(std::move(updatedModId), u"Downloaded update is not a valid mod"_s);
+            return;
+        }
         QMetaObject::invokeMethod(this, [this] { decrementModsLoadingInProgress(); }, Qt::QueuedConnection);
     });
 }
 
-void ModLoader::onModInfoRetrieved(QString modId, QByteArray data) {
-    QJsonObject modObj = createOnlineModEntry(data, modId);
-    if (modObj.isEmpty()) {
-        decrementModsLoadingInProgress();
-        return;
-    }
-
-    mStore->updateOnline(modId, std::move(modObj));
-    decrementModsLoadingInProgress();
-}
-
-QVariant ModLoader::getLocalInfoFromZip(QFileInfo &&fileInfo) {
+QVariant ModLoader::getLocalInfoFromZip(QFileInfo fileInfo) {
     const QString absoluteFilePath = fileInfo.absoluteFilePath();
     ZipArchive zipArchive(absoluteFilePath);
 

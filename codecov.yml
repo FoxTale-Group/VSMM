@@ -43,6 +43,9 @@ component_management:
     - component_id: modsortfiltermodel
       name: ModSortFilterModel
       paths: [src/modsortfiltermodel/**]
+    - component_id: modupdatemodel
+      name: ModUpdateModel
+      paths: [src/modupdatemodel/**]
     - component_id: modstore
       name: ModStore
       paths: [src/modstore/**]
