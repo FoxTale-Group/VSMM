@@ -828,6 +828,32 @@ class ModStoreUnitTest : public QObject {
 
         QCOMPARE(mStore->modsCount(), 0);
     }
+
+    void enabledCountLeavesOutModsDisabledInTheGame() {
+        setComponents();
+        mGameMngr->setDisabledMods({modId()});
+        QSignalSpy changed{mStore.get(), &vsmm::ModStore::modsChanged};
+
+        addMod(modsDir(), modId(), u"1.0.0"_s);
+        addMod(modsDir(), u"bees"_s, u"1.0.0"_s);
+        addMod(modsDir(), u"rivers"_s, u"1.0.0"_s);
+
+        // every added mod notifies the count
+        QCOMPARE(changed.count(), 3);
+        QCOMPARE(mStore->property("enabledModsCount").toInt(), 2);
+    }
+
+    void disabledModsChangeNotifiesTheEnabledCount() {
+        setComponents();
+        addMod(modsDir(), modId(), u"1.0.0"_s);
+        QCOMPARE(mStore->property("enabledModsCount").toInt(), 1);
+        QSignalSpy changed{mStore.get(), &vsmm::ModStore::modsChanged};
+
+        mGameMngr->setDisabledMods({modId()});
+
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(mStore->property("enabledModsCount").toInt(), 0);
+    }
 };
 
 QTEST_GUILESS_MAIN(ModStoreUnitTest)

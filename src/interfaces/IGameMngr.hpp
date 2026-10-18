@@ -54,7 +54,7 @@ class INTERFACES_EXPORT IGameMngr : public QObject {
 
   signals:
     void modsDirsChanged();     // used by modstore
-    void disabledModsChanged(); // used by qml
+    void disabledModsChanged(); // used by qml & modstore
     void gameVersionChanged();  // used by qml
 };
 } // namespace vsmm

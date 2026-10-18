@@ -35,7 +35,18 @@
     \qmlproperty int ModStore::updatesCount
     \readonly
     Number of installed mods with an update available. Shares its change
-    signal with \l installedModsCount.
+    signal with \l installedModsCount and \l enabledModsCount.
+*/
+
+/*!
+    \qmlproperty int ModStore::enabledModsCount
+    \readonly
+    Number of installed mods that are not disabled in the game's
+    \c clientsettings.json. Changes when mods are added or removed, and when
+    \l {GameMngr::disabledMods}{GameMngr.disabledMods} changes.
+
+    \sa {GameMngr::addDisabledMod()}{GameMngr.addDisabledMod()},
+        {GameMngr::removeDisabledMod()}{GameMngr.removeDisabledMod()}
 */
 
 /*!

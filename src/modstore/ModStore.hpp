@@ -38,6 +38,7 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     Q_PROPERTY(int updatesCount READ modUpdatesCount NOTIFY modsChanged)
     Q_PROPERTY(bool workPending READ isWorkPending NOTIFY workChanged)
     Q_PROPERTY(bool modsSelected READ modsSelected NOTIFY modSelected)
+    Q_PROPERTY(int enabledModsCount READ enabledModsCount NOTIFY modsChanged)
 
   public:
     explicit ModStore(QObject *parent = nullptr);
@@ -60,10 +61,11 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     [[nodiscard]] int modsCount() const;
     [[nodiscard]] int modUpdatesCount() const;
     [[nodiscard]] bool isWorkPending() const;
+    [[nodiscard]] int enabledModsCount() const;
 
   signals:
     void modSelected(); // NOTIFY modsSelected - QML bindings only
-    void modsChanged(); // NOTIFY installedModsCount/updatesCount - QML bindings only
+    void modsChanged(); // NOTIFY installedModsCount/updatesCount/enabledModsCount - QML bindings only
     void workChanged(); // NOTIFY workPending - QML bindings only
 
   public slots:
