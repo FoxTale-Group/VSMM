@@ -32,8 +32,8 @@ QUrl GetModUrlByAssetId(qint64 assetId) { return u"https://mods.vintagestory.at/
 
 namespace vsmm {
 
-ModEntry::ModEntry(LocalInfo info)
-    : mName{std::move(info.mName)}, mVersion{std::move(info.mVersion)}, mAuthor{std::move(info.mAuthor)},
+ModEntry::ModEntry(ModLocalInfo info)
+    : mName{std::move(info.mName)}, mVersion{std::move(info.mVersion)}, mAuthors{std::move(info.mAuthors)},
       mModId{std::move(info.mId)} {
     mFileInfo = std::move(info.mFileInfo);
 }
@@ -49,11 +49,11 @@ QStringView ModEntry::getName() const {
     return mOnlineInfo.mName;
 }
 
-QStringView ModEntry::getAuthor() const {
+QStringList ModEntry::getAuthors() const {
     if (mOnlineInfo.mAuthor.isEmpty()) {
-        return mAuthor;
+        return mAuthors;
     }
-    return mOnlineInfo.mAuthor;
+    return {mOnlineInfo.mAuthor};
 }
 
 const semver::version<> &ModEntry::getVersion() const { return mVersion; }
@@ -66,7 +66,7 @@ void ModEntry::setFavorite(bool favorite) { mFavorite = favorite; }
 void ModEntry::initOnlineInfo(QJsonObject json, const semver::version<> &gameVersion, bool cfgIncludePrerelease) {
     initName(json);
     initModUrl(json);
-    initAuthor(json);
+    initAuthors(json);
     initTags(json);
     initLatestRelease(json, gameVersion, cfgIncludePrerelease);
     initSide(json);
@@ -114,7 +114,7 @@ void ModEntry::initLatestRelease(const QJsonObject &json, const semver::version<
     mOnlineInfo.mLatestVersion.mHasUpdate = true;
 }
 
-void ModEntry::initAuthor(const QJsonObject &json) {
+void ModEntry::initAuthors(const QJsonObject &json) {
     if (!json["author"_L1].isString()) {
         qCWarning(cModEntry, "%s: Invalid JSON format: author is not a string", qUtf8Printable(mOnlineInfo.mName));
         return;

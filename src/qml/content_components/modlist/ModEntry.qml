@@ -75,7 +75,7 @@ Rectangle {
 
                 // Mod Author
                 Label {
-                    text: qsTr("by %1").arg(modAuthor)
+                    text: qsTr("by %1").arg(modAuthor[0])
                     font.pixelSize: Theme.fonts.body
                     color: Theme.colors.labelAlt
                 }

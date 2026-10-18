@@ -38,7 +38,7 @@ class INTERFACES_EXPORT IModStore : public QObject {
     explicit IModStore(QObject *parent = nullptr) : QObject{parent} {}
     ~IModStore() override;
 
-    virtual void add(ModEntry::LocalInfo localModInfo, ModLoadType loadType) = 0;
+    virtual void add(ModLocalInfo localModInfo, ModLoadType loadType) = 0;
     virtual void updateOnline(QStringView id, QJsonObject onlineInfo) = 0;
     [[nodiscard]] virtual const ModEntry *find(const QString &id) const = 0;
 

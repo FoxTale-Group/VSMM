@@ -55,10 +55,10 @@ using namespace Qt::StringLiterals;
     return QFileInfo{path};
 }
 
-[[nodiscard]] inline ModEntry::LocalInfo localInfo(const QString &id, const QString &version, const QFileInfo &file) {
+[[nodiscard]] inline ModLocalInfo localInfo(const QString &id, const QString &version, const QFileInfo &file) {
     return {.mName = u"%1 (local)"_s.arg(id),
             .mId = id,
-            .mAuthor = u"local author"_s,
+            .mAuthors = {u"local author"_s},
             .mVersion = ver(version),
             .mFileInfo = file};
 }

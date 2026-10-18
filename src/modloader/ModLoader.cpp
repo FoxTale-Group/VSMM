@@ -147,6 +147,15 @@ void ModLoader::load(const QUrl &filePath) {
     load_(QFileInfo{filePath.toLocalFile()}, IModStore::ModLoadType::GUI);
 }
 
+ModLocalInfo ModLoader::readLocalInfo(const QUrl &filePath) {
+    auto localInfo = getLocalInfoFromZip(QFileInfo{filePath.toLocalFile()});
+    if (!localInfo.canConvert<ModLocalInfo>()) {
+        qCWarning(cModLoader, "%s", qUtf8Printable(localInfo.value<QString>()));
+        return {.mError = std::move(localInfo).value<QString>()};
+    }
+    return std::move(localInfo).value<ModLocalInfo>();
+}
+
 void ModLoader::onModUpdateRequested(QStringList modIds) {
     incrementModsLoadingInProgress(modIds.size());
 
@@ -240,11 +249,10 @@ void ModLoader::load_(QFileInfo fileInfo, IModStore::ModLoadType modLoadType, QS
     mThreadPoolExtractZips.start([this, fileInfo, modLoadType, updatedModId = std::move(updatedModId)] mutable {
         auto localInfo = getLocalInfoFromZip(fileInfo);
 
-        if (localInfo.canConvert<ModEntry::LocalInfo>()) {
+        if (localInfo.canConvert<ModLocalInfo>()) {
             QMetaObject::invokeMethod(
                 this,
-                [this, modInfo_ = std::move(localInfo).value<ModEntry::LocalInfo>(), modLoadType,
-                 updatedModId] mutable {
+                [this, modInfo_ = std::move(localInfo).value<ModLocalInfo>(), modLoadType, updatedModId] mutable {
                     // Copy id for info retrieval
                     QString modId = modInfo_.mId;
 
@@ -309,7 +317,7 @@ QVariant ModLoader::getLocalInfoFromZip(QFileInfo fileInfo) {
 }
 
 QVariant ModLoader::parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo) {
-    ModEntry::LocalInfo info;
+    ModLocalInfo info;
     info.mFileInfo = std::move(fileInfo);
 
     QJsonParseError errorCode{.error = QJsonParseError::NoError};
@@ -329,12 +337,33 @@ QVariant ModLoader::parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&
             info.mId = value.toString();
         } else if (lowercaseKey == LOCAL_JSON_NAME_KEY && value.isString()) {
             info.mName = value.toString();
-        } else if (lowercaseKey == LOCAL_JSON_AUTHORS_KEY && value.isArray() && !value.toArray().isEmpty()) {
-            info.mAuthor = value.toArray().at(0).toString();
+        } else if (lowercaseKey == LOCAL_JSON_AUTHORS_KEY && value.isArray()) {
+            QStringList authors;
+            for (const auto &author : value.toArray()) {
+                if (author.isString()) {
+                    authors.append(author.toString());
+                }
+            }
+            if (!authors.isEmpty()) {
+                info.mAuthors = std::move(authors);
+            }
+        } else if (lowercaseKey == LOCAL_JSON_DESC_KEY && value.isString()) {
+            info.mDescription = value.toString();
+        } else if (lowercaseKey == LOCAL_JSON_SIDE_KEY && value.isString()) {
+            info.mSide = value.toString();
+        } else if (lowercaseKey == LOCAL_JSON_DEPS_KEY && value.isObject()) {
+            for (const auto &[depName, depVersion] : value.toObject().asKeyValueRange()) {
+                if (!depVersion.isString()) {
+                    continue;
+                }
+                const auto version = depVersion.toString();
+                // if version is empty, use "*" as the version
+                info.mDependencies.append(depName.toString() + '@' + (version.isEmpty() ? u"*"_s : version));
+            }
         }
     }
 
-    if (info.mId.isEmpty() || info.mAuthor.isEmpty() || info.mName.isEmpty()) {
+    if (info.mId.isEmpty() || info.mName.isEmpty()) {
         return u"Failed to parse modinfo.json from zip file: %1"_s.arg(info.mFileInfo.absoluteFilePath());
     }
 

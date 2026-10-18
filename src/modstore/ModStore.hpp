@@ -45,7 +45,7 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     void setConfig(IConfig *config);
     void setGameMngr(IGameMngr *gameMngr);
 
-    void add(ModEntry::LocalInfo localModInfo, ModLoadType loadType) override;
+    void add(ModLocalInfo localModInfo, ModLoadType loadType) override;
     void updateOnline(QStringView id, QJsonObject onlineInfo) override;
     Q_INVOKABLE void reload();
     Q_INVOKABLE void update(const QString &id);
@@ -79,9 +79,9 @@ class MODSTORE_EXPORT ModStore : public IModStore {
 
     void update(UpdateType updateType, const QString &modId = {});
     [[nodiscard]] bool modsSelected() const;
-    void addOnInit(ModEntry::LocalInfo localModInfo);
-    void addFromGUI(ModEntry::LocalInfo localModInfo);
-    void updateMod(ModEntry::LocalInfo localModInfo);
+    void addOnInit(ModLocalInfo localModInfo);
+    void addFromGUI(ModLocalInfo localModInfo);
+    void updateMod(ModLocalInfo localModInfo);
     static void toUniqueFileName(QString &name);
 
     QHash<QString, ModEntry> mMods;

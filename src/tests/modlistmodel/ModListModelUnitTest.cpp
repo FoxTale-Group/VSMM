@@ -318,7 +318,7 @@ class ModListModelUnitTest : public QObject {
         mStore->add(mod(u"carryon"_s, u"1.2.3"_s));
 
         QCOMPARE(role(0, Roles::NameRole).toString(), u"carryon (local)"_s);
-        QCOMPARE(role(0, Roles::AuthorRole).toString(), u"local author"_s);
+        QCOMPARE(role(0, Roles::AuthorRole).toStringList(), QStringList{u"local author"_s});
         QCOMPARE(role(0, Roles::VersionRole).toString(), u"1.2.3"_s);
         QCOMPARE(role(0, Roles::IdRole).toString(), u"carryon"_s);
         QVERIFY(role(0, Roles::SideRole).toString().isEmpty());
@@ -348,7 +348,7 @@ class ModListModelUnitTest : public QObject {
         QVERIFY(changed.at(0).at(2).value<QList<int>>().isEmpty());
 
         QCOMPARE(role(0, Roles::NameRole).toString(), u"Carry On"_s);
-        QCOMPARE(role(0, Roles::AuthorRole).toString(), u"NerdScurvy"_s);
+        QCOMPARE(role(0, Roles::AuthorRole).toStringList(), QStringList{u"NerdScurvy"_s});
         QCOMPARE(role(0, Roles::VersionRole).toString(), u"1.0.0"_s);
         QCOMPARE(role(0, Roles::SideRole).toString(), u"both"_s);
         QCOMPARE(role(0, Roles::TagsRole).toStringList(), QStringList({u"Storage"_s, u"QoL"_s}));

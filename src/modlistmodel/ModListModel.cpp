@@ -48,7 +48,7 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
     case VersionRole:
         return QString::fromStdString(mod->getVersion().to_string());
     case AuthorRole:
-        return mod->getAuthor().toString();
+        return mod->getAuthors();
     case LatestVersionRole:
         return QString::fromStdString(mod->getLatestVersion().mVersion.to_string());
     case TagsRole:
