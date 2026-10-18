@@ -69,8 +69,8 @@ of mockability. Note this trade-off in a comment so it does not look accidental.
 |---|---|
 | `src/qml/content_components/settings/SettingsTab_General.qml` | add `property var config: null`; route the three `Config.general.*` reads through it |
 | `src/qml/content_components/settings/SettingsTab_Configuration.qml` | add `property var config: null`; route the `Config.paths.*` reads (incl. the two `TextEdit` "Current Path" bindings) through it |
-| `src/qml/content_components/MainButtonsSection.qml` | add `property var modStore: null`; route `modsSelected` / `workPending` / `updatesCount` / `reload()` / `updateSelected()` / `updateAll()` through it |
-| `src/qml/content_components/StatCards.qml` | add `property var modStore: null`; route `installedModsCount` / `updatesCount` through it |
+| `src/qml/content_components/main/MainButtonsSection.qml` | add `property var modStore: null`; route `modsSelected` / `workPending` / `updatesCount` / `reload()` / `updateSelected()` / `updateAll()` through it |
+| `src/qml/content_components/main/StatCards.qml` | add `property var modStore: null`; route `installedModsCount` / `updatesCount` through it |
 | `src/qml/Settings.qml` | pass `config: Config` to all three tabs |
 | `src/qml/Main.qml` | pass `modStore: ModStore` to `MainButtonsSection` and `StatCards` |
 
