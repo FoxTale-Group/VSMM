@@ -94,6 +94,9 @@ jobs:
     if: needs.prepare-release-version.outputs.bumpVersion != 'none'
 
     runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: ${{ steps.release.outputs.html_url }}
     steps:
       - name: Create GitHub App token
         id: create-token
@@ -140,6 +143,7 @@ jobs:
           pattern: 'release-packages-*'
           merge-multiple: true
       - name: Create release
+        id: release
         uses: ncipollo/release-action@v1.21.0
         with:
           token: ${{ steps.create-token.outputs.token }}
