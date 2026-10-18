@@ -1,0 +1,511 @@
+/*!
+    \class vsmm::IConfig
+    \inmodule VSMM
+    \brief Interface of the user settings, declares the properties \l vsmm::Config exposes to QML.
+
+    IConfig is the abstract base of the user settings. It stores the three
+    settings sections (\l vsmm::GeneralSettings, \l vsmm::PathSettings and
+    \l vsmm::AppearanceSettings) and the list of favorite mod IDs in protected
+    members, and returns them through its getters. Subclasses implement the
+    section setters and \l validate().
+
+    Other backend classes use a pointer to IConfig instead of
+    \l vsmm::Config, so unit tests can pass a mock. \l vsmm::GameMngr connects
+    to \l gameConfigPathChanged() and \l gameExePathChanged(), and
+    \l vsmm::ModStore reads and writes the favorites through
+    \l getFavorites() and \l setFavorites().
+
+    \sa vsmm::Config
+*/
+
+/*!
+    \variable vsmm::IConfig::CONFIG_FILE_NAME
+    File name of the settings file, \c config.json.
+*/
+
+/*!
+    \variable vsmm::IConfig::FAVORITES_KEY_NAME
+    JSON key of the favorite mod ID list in the settings file, \c favorites.
+*/
+
+/*!
+    \fn vsmm::IConfig::~IConfig()
+    Destroys the object.
+*/
+
+/*!
+    \property vsmm::IConfig::general
+    \brief General behavior settings.
+
+    \sa vsmm::GeneralSettings
+*/
+
+/*!
+    \property vsmm::IConfig::paths
+    \brief Paths to the game data folder and the game executable.
+
+    \sa vsmm::PathSettings
+*/
+
+/*!
+    \property vsmm::IConfig::appearance
+    \brief Theme and accent color.
+
+    \sa vsmm::AppearanceSettings
+*/
+
+/*!
+    \fn vsmm::GeneralSettings vsmm::IConfig::general() const
+    Returns the stored general settings.
+
+    \sa setGeneral()
+*/
+
+/*!
+    \fn vsmm::PathSettings vsmm::IConfig::paths() const
+    Returns the stored path settings.
+
+    \sa setPaths()
+*/
+
+/*!
+    \fn vsmm::AppearanceSettings vsmm::IConfig::appearance() const
+    Returns the stored appearance settings.
+
+    \sa setAppearance()
+*/
+
+/*!
+    \fn void vsmm::IConfig::setGeneral(const vsmm::GeneralSettings &data)
+    Replaces the general settings with \a data. Subclasses implement this.
+
+    \sa general(), generalChanged()
+*/
+
+/*!
+    \fn void vsmm::IConfig::setPaths(const vsmm::PathSettings &data)
+    Replaces the path settings with \a data. Subclasses implement this.
+
+    \sa paths(), pathsChanged()
+*/
+
+/*!
+    \fn void vsmm::IConfig::setAppearance(const vsmm::AppearanceSettings &data)
+    Replaces the appearance settings with \a data. Subclasses implement this.
+
+    \sa appearance(), appearanceChanged()
+*/
+
+/*!
+    \fn void vsmm::IConfig::validate()
+    Checks the loaded settings and emits the change signals for them.
+    Subclasses implement this. \l vsmm::App calls it once after it connects
+    the backend objects.
+*/
+
+/*!
+    \fn const QStringList &vsmm::IConfig::getFavorites() const
+    Returns the IDs of the favorite mods.
+
+    \sa setFavorites()
+*/
+
+/*!
+    \fn void vsmm::IConfig::setFavorites(QStringList favorites)
+    Replaces the IDs of the favorite mods with \a favorites. The base
+    implementation only stores the list.
+
+    \sa getFavorites()
+*/
+
+/*!
+    \fn void vsmm::IConfig::generalChanged()
+    This signal is emitted when the \l general property changes.
+*/
+
+/*!
+    \fn void vsmm::IConfig::pathsChanged()
+    This signal is emitted when the \l paths property changes.
+*/
+
+/*!
+    \fn void vsmm::IConfig::appearanceChanged()
+    This signal is emitted when the \l appearance property changes.
+*/
+
+/*!
+    \fn void vsmm::IConfig::gameConfigPathChanged()
+    This signal is emitted when the game data folder path
+    (\l {vsmm::PathSettings::gameConfig}{PathSettings::gameConfig}) changes,
+    and once by \l {vsmm::IConfig::validate()}{validate()}.
+    \l vsmm::GameMngr connects to it to read the game client settings again.
+
+    \sa gameExePathChanged()
+*/
+
+/*!
+    \fn void vsmm::IConfig::gameExePathChanged()
+    This signal is emitted when the game executable path
+    (\l {vsmm::PathSettings::gameExe}{PathSettings::gameExe}) changes.
+    \l vsmm::GameMngr connects to it to read the game version again.
+
+    \sa gameConfigPathChanged()
+*/
+
+/*!
+    \variable vsmm::IConfig::mGeneral
+    The stored general settings, returned by \l general().
+*/
+
+/*!
+    \variable vsmm::IConfig::mPaths
+    The stored path settings, returned by \l paths().
+*/
+
+/*!
+    \variable vsmm::IConfig::mAppearance
+    The stored appearance settings, returned by \l appearance().
+*/
+
+/*!
+    \variable vsmm::IConfig::mFavorites
+    The stored favorite mod IDs, returned by \l getFavorites().
+*/
+
+/*!
+    \class vsmm::Config
+    \inmodule VSMM
+    \brief User settings stored in \c config.json.
+
+    Config is the \l vsmm::IConfig implementation the app uses. It is
+    registered as the QML singleton \c Config. The settings file is
+    \c config.json inside the writable \c QStandardPaths::AppConfigLocation.
+
+    The constructor creates the config directory if needed and reads the file
+    when it exists and can be opened for reading and writing. A missing file, or a file whose top level is not a JSON
+    object, leaves every section at its default values. A file that is not
+    valid JSON stops the app with a fatal log message. Each section and the
+    favorites list are read only when their key is present, and missing keys
+    inside a section get the section defaults.
+
+    The section setters do not save to disk. Call \l saveToFile() after a
+    change, or rely on the destructor, which also saves:
+
+    \code
+    vsmm::PathSettings paths = config->paths();
+    paths.gameConfig = QStringLiteral("/new/path");
+    config->setPaths(paths);
+    config->saveToFile();
+    \endcode
+
+    \l setFavorites() is the exception and saves the file right away.
+*/
+
+/*!
+    \fn vsmm::Config::Config()
+    Creates the settings object and loads \c config.json if it exists.
+*/
+
+/*!
+    \fn vsmm::Config::~Config()
+    Saves the settings to \c config.json and destroys the object.
+
+    \sa saveToFile()
+*/
+
+/*!
+    \fn void vsmm::Config::validate()
+    \reimp
+    Logs a critical message and emits nothing when the game data folder path
+    is empty or the folder does not exist. Otherwise it emits
+    \l {vsmm::IConfig::generalChanged()}{generalChanged()},
+    \l {vsmm::IConfig::appearanceChanged()}{appearanceChanged()},
+    \l {vsmm::IConfig::pathsChanged()}{pathsChanged()} and
+    \l {vsmm::IConfig::gameConfigPathChanged()}{gameConfigPathChanged()}.
+*/
+
+/*!
+    \fn void vsmm::Config::setFavorites(QStringList favorites)
+    \reimp
+    Also saves the settings file right away.
+*/
+
+/*!
+    \fn void vsmm::Config::setGeneral(const vsmm::GeneralSettings &data)
+    \reimp
+    Does nothing when the value is equal to the stored one, otherwise emits
+    \l {vsmm::IConfig::generalChanged()}{generalChanged()}.
+*/
+
+/*!
+    \fn void vsmm::Config::setPaths(const vsmm::PathSettings &data)
+    \reimp
+    Does nothing when the value is equal to the stored one. Otherwise it emits
+    \l {vsmm::IConfig::pathsChanged()}{pathsChanged()}, then
+    \l {vsmm::IConfig::gameExePathChanged()}{gameExePathChanged()} and
+    \l {vsmm::IConfig::gameConfigPathChanged()}{gameConfigPathChanged()} for
+    the paths that differ.
+*/
+
+/*!
+    \fn void vsmm::Config::setAppearance(const vsmm::AppearanceSettings &data)
+    \reimp
+    Does nothing when the value is equal to the stored one, otherwise emits
+    \l {vsmm::IConfig::appearanceChanged()}{appearanceChanged()}.
+*/
+
+/*!
+    \fn void vsmm::Config::saveToFile() const
+    Writes the three settings sections and the favorite mod IDs to
+    \c config.json as one JSON object. The write goes through \c QSaveFile, so
+    the old file stays intact when writing fails. Failures are logged as
+    warnings. QML can call this function.
+*/
+
+/*!
+    \class vsmm::GeneralSettings
+    \inmodule VSMM
+    \brief General section of the user settings.
+
+    GeneralSettings is a value type for the \c general section of
+    \c config.json. Its members always have a value, and the defaults come
+    from the \c DEFAULT_VALUE_ constants. \l fromHash() and \l toHash()
+    convert the section to and from the JSON object that \l vsmm::Config reads
+    and writes.
+
+    QML sees this type as \c generalSettings, the type of
+    \l {vsmm::IConfig::general}{Config.general}.
+*/
+
+/*!
+    \variable vsmm::GeneralSettings::KEY_NAME
+    JSON key of this section in the settings file, \c general.
+*/
+
+/*!
+    \variable vsmm::GeneralSettings::DEFAULT_VALUE_DELETE_OLD_MOD_VERSION
+    Default of \l deleteOldModVersion, \c true.
+*/
+
+/*!
+    \variable vsmm::GeneralSettings::DELETE_OLD_MOD_VERSION_KEY
+    JSON key of \l deleteOldModVersion, \c deleteOldModVersion.
+*/
+
+/*!
+    \variable vsmm::GeneralSettings::DEFAULT_VALUE_INCLUDE_MOD_PRERELEASE
+    Default of \l includeModPrerelease, \c false.
+*/
+
+/*!
+    \variable vsmm::GeneralSettings::INCLUDE_MOD_PRERELEASE_KEY
+    JSON key of \l includeModPrerelease, \c includeModPrerelease.
+*/
+
+/*!
+    \property vsmm::GeneralSettings::deleteOldModVersion
+    Move the old zip to the trash when a mod is updated, by a download or by
+    loading a newer zip of a known mod with the QML invokable \c load() of
+    \l vsmm::ModLoader. A scan never deletes anything. Defaults to \c true.
+*/
+
+/*!
+    \property vsmm::GeneralSettings::includeModPrerelease
+    Consider pre-release versions when checking for updates. Defaults to
+    \c false.
+*/
+
+/*!
+    \fn bool vsmm::GeneralSettings::operator==(const vsmm::GeneralSettings &) const
+    Returns \c true when every member equals the matching member of the
+    other value.
+*/
+
+/*!
+    \fn vsmm::GeneralSettings vsmm::GeneralSettings::fromHash(const QVariantHash &hash)
+    Returns the settings read from \a hash. A missing key gets its default
+    value.
+
+    \sa toHash()
+*/
+
+/*!
+    \fn QVariantHash vsmm::GeneralSettings::toHash() const
+    Returns the settings as a hash with one entry per member, keyed by the
+    \c _KEY constants.
+
+    \sa fromHash()
+*/
+
+/*!
+    \class vsmm::PathSettings
+    \inmodule VSMM
+    \brief Path section of the user settings.
+
+    PathSettings is a value type for the \c paths section of \c config.json.
+    Both paths are empty by default. \l fromHash() and \l toHash() convert the
+    section to and from the JSON object that \l vsmm::Config reads and writes.
+
+    QML sees this type as \c pathSettings, the type of
+    \l {vsmm::IConfig::paths}{Config.paths}.
+*/
+
+/*!
+    \variable vsmm::PathSettings::KEY_NAME
+    JSON key of this section in the settings file, \c paths.
+*/
+
+/*!
+    \variable vsmm::PathSettings::GAME_CONFIG_KEY
+    JSON key of \l gameConfig, \c gameConfig.
+*/
+
+/*!
+    \variable vsmm::PathSettings::GAME_EXE_KEY
+    JSON key of \l gameExe, \c gameExe.
+*/
+
+/*!
+    \property vsmm::PathSettings::gameConfig
+    The \c VintagestoryData folder. Empty by default.
+*/
+
+/*!
+    \property vsmm::PathSettings::gameExe
+    The Vintage Story executable. Empty by default.
+*/
+
+/*!
+    \fn bool vsmm::PathSettings::operator==(const vsmm::PathSettings &) const
+    Returns \c true when every member equals the matching member of the
+    other value.
+*/
+
+/*!
+    \fn vsmm::PathSettings vsmm::PathSettings::fromHash(const QVariantHash &hash)
+    Returns the settings read from \a hash. A missing key gives an empty path.
+
+    \sa toHash()
+*/
+
+/*!
+    \fn QVariantHash vsmm::PathSettings::toHash() const
+    Returns the settings as a hash with one entry per member, keyed by the
+    \c _KEY constants.
+
+    \sa fromHash()
+*/
+
+/*!
+    \class vsmm::AppearanceSettings
+    \inmodule VSMM
+    \brief Appearance section of the user settings.
+
+    AppearanceSettings is a value type for the \c appearance section of
+    \c config.json. It stores the color theme and the index of the accent
+    color. \l fromHash() and \l toHash() convert the section to and from the
+    JSON object that \l vsmm::Config reads and writes. The file stores the
+    theme as its lowercase name, see \l vsmm::themeToString() and
+    \l vsmm::themeFromString().
+
+    QML sees this type as \c appearanceSettings, the type of
+    \l {vsmm::IConfig::appearance}{Config.appearance}.
+*/
+
+/*!
+    \variable vsmm::AppearanceSettings::KEY_NAME
+    JSON key of this section in the settings file, \c appearance.
+*/
+
+/*!
+    \variable vsmm::AppearanceSettings::DEFAULT_VALUE_THEME
+    Default of \l theme, \c {vsmm::appearance::Theme::Dark}.
+*/
+
+/*!
+    \variable vsmm::AppearanceSettings::THEME_KEY
+    JSON key of \l theme, \c theme.
+*/
+
+/*!
+    \variable vsmm::AppearanceSettings::DEFAULT_VALUE_ACCENT_IDX
+    Default of \l accentIndex, \c 0.
+*/
+
+/*!
+    \variable vsmm::AppearanceSettings::ACCENT_IDX_KEY
+    JSON key of \l accentIndex, \c accentIndex.
+*/
+
+/*!
+    \property vsmm::AppearanceSettings::theme
+    The color theme. Defaults to \c Dark.
+
+    \sa vsmm::appearance::Theme
+*/
+
+/*!
+    \property vsmm::AppearanceSettings::accentIndex
+    Index of the accent color. Defaults to \c 0.
+*/
+
+/*!
+    \fn bool vsmm::AppearanceSettings::operator==(const vsmm::AppearanceSettings &) const
+    Returns \c true when every member equals the matching member of the
+    other value.
+*/
+
+/*!
+    \fn vsmm::AppearanceSettings vsmm::AppearanceSettings::fromHash(const QVariantHash &hash)
+    Returns the settings read from \a hash. The theme is parsed with
+    \l vsmm::themeFromString(), so a missing or unknown theme name gives
+    \c Dark. A missing accent index gives \c 0.
+
+    \sa toHash()
+*/
+
+/*!
+    \fn QVariantHash vsmm::AppearanceSettings::toHash() const
+    Returns the settings as a hash with one entry per member, keyed by the
+    \c _KEY constants. The theme is stored as the string from
+    \l vsmm::themeToString().
+
+    \sa fromHash()
+*/
+
+/*!
+    \namespace vsmm::appearance
+    \inmodule VSMM
+    \brief Enums of the appearance settings.
+
+    The namespace is registered with the meta-object system, so its enums are
+    available to QML and to \c QMetaEnum.
+*/
+
+/*!
+    \enum vsmm::appearance::Theme
+    The color theme of the app.
+
+    \value Dark Dark theme. This is the default.
+    \value Light Light theme.
+
+    \sa vsmm::AppearanceSettings::theme
+*/
+
+/*!
+    \fn QString vsmm::themeToString(vsmm::appearance::Theme theme)
+    \relates vsmm::AppearanceSettings
+    Returns the enumerator name of \a theme in lowercase, for example
+    \c dark.
+
+    \sa themeFromString()
+*/
+
+/*!
+    \fn vsmm::appearance::Theme vsmm::themeFromString(const QString &name)
+    \relates vsmm::AppearanceSettings
+    Returns the theme whose enumerator name matches \a name, ignoring case.
+    Returns \c Dark when no name matches.
+
+    \sa themeToString()
+*/

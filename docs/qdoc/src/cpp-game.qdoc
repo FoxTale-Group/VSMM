@@ -1,0 +1,271 @@
+/*!
+    \class vsmm::IGameMngr
+    \inmodule VSMM
+    \brief Interface of the game manager, declares the properties \l vsmm::GameMngr exposes to QML.
+
+    IGameMngr is the abstract base of \l vsmm::GameMngr. It declares the
+    installed game version, the extra mods folders, the disabled mods and a
+    function that starts the game.
+
+    \l vsmm::ModStore and \l vsmm::ModLoader take a pointer to this interface
+    through their \c setGameMngr() functions, not to \l vsmm::GameMngr, so
+    unit tests can pass a mock instead. \l vsmm::ModStore reloads the mods
+    when \l modsDirsChanged() is emitted.
+
+    The two properties and the invokable functions are what QML sees on the
+    \c GameMngr singleton.
+
+    \sa vsmm::GameMngr
+*/
+
+/*!
+    \property vsmm::IGameMngr::gameVersion
+    \brief The installed game version as a string, for example \c 1.21.0.
+
+    The value is empty when the version is unknown. It is read with
+    \l getGameVersionString() and changes are announced with
+    \l gameVersionChanged().
+
+    \sa getGameVersion()
+*/
+
+/*!
+    \property vsmm::IGameMngr::disabledMods
+    \brief Ids of the mods disabled in the game's \c clientsettings.json.
+
+    The value is read with \l getDisabledModsQML() and changes are announced
+    with \l disabledModsChanged().
+
+    \sa getDisabledMods()
+*/
+
+/*!
+    \fn vsmm::IGameMngr::~IGameMngr()
+    Destroys the game manager.
+*/
+
+/*!
+    \fn const QList<QDir> &vsmm::IGameMngr::getModsDirs() const
+    Returns the mods folders listed in the game's client settings.
+
+    \sa modsDirsChanged()
+*/
+
+/*!
+    \fn const std::optional<semver::version<>> &vsmm::IGameMngr::getGameVersion() const
+    Returns the installed game version, or an empty optional when the version
+    is unknown.
+
+    \sa getGameVersionString(), gameVersionChanged()
+*/
+
+/*!
+    \fn QString vsmm::IGameMngr::getGameVersionString() const
+    Returns the result of \l getGameVersion() formatted as a string, or an
+    empty string when the version is unknown.
+
+    This function is not virtual, so every implementation formats the version
+    the same way. It is the READ accessor of the \l gameVersion property.
+*/
+
+/*!
+    \fn void vsmm::IGameMngr::launchGame() const
+    Starts the game. This function is invokable from QML.
+*/
+
+/*!
+    \fn void vsmm::IGameMngr::addDisabledMod(const QString &modId, const QString &version)
+    Disables the mod \a modId at \a version in the game's client settings.
+    This function is invokable from QML.
+
+    \sa removeDisabledMod(), disabledModsChanged()
+*/
+
+/*!
+    \fn void vsmm::IGameMngr::removeDisabledMod(const QString &modId)
+    Enables the mod \a modId again by removing it from the disabled mods in
+    the game's client settings. This function is invokable from QML.
+
+    \sa addDisabledMod(), disabledModsChanged()
+*/
+
+/*!
+    \fn const QSet<QString> &vsmm::IGameMngr::getDisabledMods() const
+    Returns the ids of the disabled mods as a set.
+
+    \sa getDisabledModsQML()
+*/
+
+/*!
+    \fn QStringList vsmm::IGameMngr::getDisabledModsQML() const
+    Returns the ids of the disabled mods as a list. It is the READ accessor
+    of the \l disabledMods property.
+
+    \sa getDisabledMods()
+*/
+
+/*!
+    \fn void vsmm::IGameMngr::modsDirsChanged()
+    This signal is emitted when the mods should be reloaded, for example
+    after the mods folders change. \l vsmm::ModStore reloads the mods when it
+    receives it.
+
+    \sa getModsDirs()
+*/
+
+/*!
+    \fn void vsmm::IGameMngr::disabledModsChanged()
+    This signal is emitted when the set of disabled mod ids changes. It is
+    the NOTIFY signal of the \l disabledMods property.
+*/
+
+/*!
+    \fn void vsmm::IGameMngr::gameVersionChanged()
+    This signal is emitted when the game version changes. It is the NOTIFY
+    signal of the \l gameVersion property.
+*/
+
+/*!
+    \class vsmm::GameMngr
+    \inmodule VSMM
+    \brief Reads the game version, mods folders and disabled mods, and launches the game.
+
+    GameMngr is the implementation of \l vsmm::IGameMngr. It is a QML
+    singleton named \c GameMngr. \l vsmm::App takes the instance from the
+    QML engine and passes the settings to it with \l setConfig().
+
+    The game version is read by running the executable from the
+    \c gameExe path of \l vsmm::PathSettings with the \c --version argument
+    and parsing its output as a semantic version. \l setConfig() does this
+    once and waits up to three seconds for the result. When the \c gameExe
+    path changes later, the version is read again without blocking, with the
+    same three second limit. A \c gameExe change while a read is running is
+    ignored with a warning. A process that does not exit in time is killed.
+    When the read fails, the version becomes unknown.
+
+    The mods folders and the disabled mods come from \c clientsettings.json in
+    the \c gameConfig folder of \l vsmm::PathSettings. Only files with
+    \c settingsVersion \c 1.16 are accepted. The file is read every time
+    \l {vsmm::IConfig::gameConfigPathChanged()}{gameConfigPathChanged()} is
+    emitted and every time the file changes on disk.
+    A file that cannot be read on a change on disk leaves the current values
+    as they are.
+
+    \l {vsmm::IGameMngr::modsDirsChanged()}{modsDirsChanged()} is emitted when
+    the mods folders change, every time
+    \l {vsmm::IConfig::gameConfigPathChanged()}{gameConfigPathChanged()} is
+    emitted, and
+    when the game version changes after the mods folders were read once.
+    While a version read is running, the signal waits until the read ends.
+*/
+
+/*!
+    \fn vsmm::GameMngr::GameMngr()
+    Constructs the game manager. Nothing is read until \l setConfig() is
+    called.
+*/
+
+/*!
+    \fn vsmm::GameMngr::~GameMngr()
+    Destroys the game manager. A running version read process is killed.
+*/
+
+/*!
+    \fn void vsmm::GameMngr::setConfig(vsmm::IConfig *config)
+    Sets the settings to \a config and reads the game version.
+
+    This function blocks for up to three seconds while the game executable
+    prints its version. After this call, a change of the \c gameConfig path
+    reads \c clientsettings.json again and a change of the \c gameExe path
+    reads the version again.
+
+    The settings can be set only once. A second call logs a warning and does
+    nothing. A null \a config is a fatal error.
+
+    \sa vsmm::IConfig
+*/
+
+/*!
+    \fn const QList<QDir> &vsmm::GameMngr::getModsDirs() const
+    \reimp
+    Entries named \c Mods and empty entries of \c modPaths are skipped.
+*/
+
+/*!
+    \fn const std::optional<semver::version<>> &vsmm::GameMngr::getGameVersion() const
+    \reimp
+*/
+
+/*!
+    \fn void vsmm::GameMngr::launchGame() const
+    \reimp
+    Starts the \c gameExe executable as a detached process, with its own
+    folder as the working directory.
+*/
+
+/*!
+    \fn void vsmm::GameMngr::addDisabledMod(const QString &modId, const QString &version)
+    \reimp
+    Appends \c {modId@version} to \c disabledMods in \c clientsettings.json
+    unless the same entry is already there.
+*/
+
+/*!
+    \fn void vsmm::GameMngr::removeDisabledMod(const QString &modId)
+    \reimp
+    Removes every \c disabledMods entry with this mod id from
+    \c clientsettings.json, whatever its version.
+*/
+
+/*!
+    \fn const QSet<QString> &vsmm::GameMngr::getDisabledMods() const
+    \reimp
+*/
+
+/*!
+    \fn QStringList vsmm::GameMngr::getDisabledModsQML() const
+    \reimp
+*/
+
+/*!
+    \class vsmm::App
+    \inmodule VSMM
+    \brief The application, creates the QML engine and connects the backend singletons.
+
+    App is the \c QGuiApplication subclass that \c main() creates. Its
+    constructor does all of the startup work: it sets the application name,
+    version and icon, handles the \c --help and \c --version command line
+    options, and loads the QML user interface.
+
+    The backend objects are QML singletons. App takes them from the QML
+    engine and connects them to each other: \l vsmm::Config,
+    \l vsmm::GameMngr, \l vsmm::ModStore, \l vsmm::ModLoader,
+    \l vsmm::ModListModel, \l vsmm::ModSortFilterModel and
+    \l vsmm::ModUpdateModel. It also owns the \l vsmm::HttpClient used by
+    \l vsmm::ModLoader and by the \l vsmm::ModImageProvider registered as
+    \c {image://modicon}.
+*/
+
+/*!
+    \fn vsmm::App::App(int &argc, char *argv[])
+    Constructs the application with the command line given by \a argc and
+    \a argv.
+
+    The constructor sets the Quick Controls style to \c VSMMStyle with
+    \c Basic as the fallback, registers the \c modicon image provider and
+    loads the \c Main QML component. It sets the \c IS_LINUX, \c IS_WINDOWS
+    and \c IS_MACOS context properties for the current platform.
+
+    It then passes the store, settings, game manager and HTTP client to the
+    singletons that need them, and calls \c validate() on \l vsmm::Config,
+    which makes \l vsmm::GameMngr read \c clientsettings.json when the
+    \c gameConfig path points to an existing folder. A critical message is logged when the game
+    version is unknown, because update detection is disabled then.
+
+    A failure to create the QML root object is a fatal error.
+*/
+
+/*!
+    \fn vsmm::App::~App()
+    Destroys the application.
+*/

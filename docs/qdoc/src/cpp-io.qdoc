@@ -1,0 +1,224 @@
+/*!
+    \class vsmm::IHttpClient
+    \inmodule VSMM
+    \brief Interface for asynchronous HTTP GET requests with callbacks.
+
+    IHttpClient declares one operation, sendGet(). The caller passes the URL,
+    a context object, the expected content type and three callbacks. The
+    implementation calls the success callback with the response body, or the
+    failure callback with an error message. A progress callback receives
+    download progress.
+
+    \l vsmm::HttpClient is the implementation the application uses. Tests use
+    a mock of this interface. \l vsmm::ModLoader uses it to fetch mod info from
+    the mod API and to download mod updates. \l vsmm::ModImageProvider uses it
+    to download mod icons.
+
+    \sa vsmm::HttpClient
+*/
+
+/*!
+    \typedef vsmm::IHttpClient::SuccessFn
+
+    Callback type \c {std::function<void(QByteArray)>}. It receives the body
+    of a successful response.
+*/
+
+/*!
+    \typedef vsmm::IHttpClient::FailedFn
+
+    Callback type \c {std::function<void(QString)>}. It receives a message
+    that describes why the request failed.
+*/
+
+/*!
+    \typedef vsmm::IHttpClient::ProgressFn
+
+    Callback type \c {std::function<void(qint64 received, qint64 total)>}.
+    It receives the number of bytes received so far and the total number of
+    bytes of the response. \a total is \c -1 when the size is unknown.
+*/
+
+/*!
+    \fn vsmm::IHttpClient::~IHttpClient()
+
+    Destroys the interface.
+*/
+
+/*!
+    \fn void vsmm::IHttpClient::sendGet(const QUrl &url, QObject *context, const QString &contentType, vsmm::IHttpClient::SuccessFn successFn, vsmm::IHttpClient::FailedFn failedFn, vsmm::IHttpClient::ProgressFn progressFn)
+
+    Sends a GET request to \a url and returns without waiting for the
+    response.
+
+    When the response arrives and its content type starts with
+    \a contentType, the implementation calls \a successFn with the response
+    body. On failure it calls \a failedFn with an error message.
+    \a progressFn receives download progress while the response arrives.
+    The callbacks are bound to \a context.
+
+    \sa vsmm::HttpClient::sendGet()
+*/
+
+/*!
+    \class vsmm::HttpClient
+    \inmodule VSMM
+    \brief HTTP client based on QNetworkAccessManager, with a disk cache and retries.
+
+    HttpClient implements \l vsmm::IHttpClient. It owns a
+    QNetworkAccessManager and a QNetworkDiskCache. The cache directory is
+    QStandardPaths::CacheLocation and the cache size limit is 200 MiB.
+
+    Every request sets the \c User-Agent header to the application name and
+    version, separated by a slash, and uses a transfer timeout of 15 seconds.
+    The first attempt uses QNetworkRequest::PreferNetwork. Retries use
+    QNetworkRequest::AlwaysNetwork, so a retry never reads the cache.
+
+    A failed request is retried up to three times. HTTP status 408, 429, 500,
+    502, 503 and 504 are retried. Other 4xx status codes and 501 are not
+    retried. Other network errors are retried. The delay before a retry is
+    the value of the \c Retry-After header in seconds, when the header holds
+    a non-negative integer. Otherwise the delay starts at 500 milliseconds
+    and doubles with each retry. The delay is never longer than 10 seconds.
+
+    A request fails when the reply has an error or the HTTP status is not
+    200. The failure message contains the Qt error string and the HTTP
+    status. A request also fails when the \c Content-Type header of the
+    response does not start with the expected content type. The prefix check
+    lets a caller pass \c {image/} to accept any image type. When all checks
+    pass, the client reads the whole response body and passes it to the
+    success callback.
+
+    \sa vsmm::IHttpClient
+*/
+
+/*!
+    \fn vsmm::HttpClient::HttpClient(QObject *parent)
+
+    Constructs a client with the given \a parent and sets up its disk cache.
+*/
+
+/*!
+    \fn vsmm::HttpClient::~HttpClient()
+
+    Destroys the client. A retry scheduled before the client is destroyed
+    does not send a new request.
+*/
+
+/*!
+    \fn void vsmm::HttpClient::sendGet(const QUrl &url, QObject *context, const QString &contentType, vsmm::IHttpClient::SuccessFn successFn, vsmm::IHttpClient::FailedFn failedFn, vsmm::IHttpClient::ProgressFn progressFn)
+    \reimp
+
+    Sends the request with the retry, cache and content type rules described
+    in the class documentation. \a failedFn and \a progressFn can be empty,
+    \a progressFn is only called while the HTTP status is 200, and no
+    callback runs after \a context is destroyed.
+*/
+
+/*!
+    \class vsmm::ZipArchive
+    \inmodule VSMM
+    \brief Read-only access to the entries of a zip file, based on libzip.
+
+    ZipArchive opens a zip file in read-only mode and reads single entries
+    into memory. The constructor only stores the path. Call open() before
+    reading. Look up an entry by name with getFileIndex(), then read its
+    content with getFileContent().
+
+    Every function that can fail returns a \c std::expected. The error is a
+    message that names the archive and contains the libzip error, when there
+    is one.
+
+    \l vsmm::ModLoader uses ZipArchive to read \c modinfo.json from a mod zip
+    file.
+
+    The class can be moved but not copied. The destructor closes the archive
+    when it is open.
+
+    \code
+    vsmm::ZipArchive archive(path);
+    if (const auto opened = archive.open(); !opened) {
+        return opened.error();
+    }
+    const auto index = archive.getFileIndex("modinfo.json");
+    if (!index) {
+        return index.error();
+    }
+    const auto content = archive.getFileContent(*index);
+    \endcode
+*/
+
+/*!
+    \typedef vsmm::ZipArchive::FileIndex
+
+    Index of an entry in the archive. It is the libzip type \c zip_int64_t.
+
+    \sa getFileIndex(), getFileContent()
+*/
+
+/*!
+    \typedef vsmm::ZipArchive::FileContentSize
+
+    Size of the content of an entry. It is the libzip type \c zip_int64_t.
+*/
+
+/*!
+    \fn vsmm::ZipArchive::ZipArchive(QString file)
+
+    Constructs an archive for the zip file at the path \a file. The file is
+    not opened until open() is called.
+*/
+
+/*!
+    \fn vsmm::ZipArchive::ZipArchive(vsmm::ZipArchive &&other) noexcept
+
+    Move-constructs an archive from \a other. The new object takes the open
+    archive of \a other, and \a other is left without an open archive.
+*/
+
+/*!
+    \fn vsmm::ZipArchive &vsmm::ZipArchive::operator=(vsmm::ZipArchive &&other) noexcept
+
+    Move-assigns \a other to this archive and returns a reference to this
+    archive. The two objects swap their paths and archive handles, so
+    \a other closes the previous archive of this object when it is destroyed.
+*/
+
+/*!
+    \fn std::expected<void, QString> vsmm::ZipArchive::open()
+
+    Opens the zip file in read-only mode. Returns an empty value on success
+    and when the archive is already open. Returns an error message when
+    libzip cannot open the file.
+*/
+
+/*!
+    \fn std::expected<vsmm::ZipArchive::FileIndex, QString> vsmm::ZipArchive::getFileIndex(QUtf8StringView fileName) const
+
+    Returns the index of the entry named \a fileName. The name is UTF-8.
+
+    Returns an error message when the archive is not open or when no entry
+    has this name.
+
+    \sa getFileContent()
+*/
+
+/*!
+    \fn std::expected<QByteArray, QString> vsmm::ZipArchive::getFileContent(vsmm::ZipArchive::FileIndex fileIndex) const
+
+    Reads the whole uncompressed content of the entry at \a fileIndex and
+    returns it.
+
+    Returns an error message when the archive is not open, when libzip
+    cannot read the entry information, when the entry size is unknown, when
+    the entry cannot be opened, or when fewer bytes than the entry size are
+    read.
+
+    \sa getFileIndex()
+*/
+
+/*!
+    \fn vsmm::ZipArchive::~ZipArchive()
+
+    Destroys the object and closes the archive when it is open.
+*/

@@ -1,0 +1,98 @@
+/*!
+    \page index.html
+    \title VSMM Developer Reference
+    \brief Reference for the C++ backend of the Vintage Story Mod Manager and the API it exposes to QML.
+
+    The backend is split into small libraries. Each library that QML uses is
+    also its own QML module and registers one singleton.
+
+    \section1 Using the backend from QML
+
+    The app module \c vsmm lists every backend module in its \c IMPORTS, so a
+    QML file in the app needs only one import. Every singleton below is then
+    reachable by name:
+
+    \qml
+    import vsmm
+
+    Label { text: ModStore.installedModsCount }
+    \endqml
+
+    The engine creates the singletons when the main QML file loads.
+    \l vsmm::App then connects them to each other and calls \c validate() on
+    Config, before the event loop starts.
+
+    \table
+    \header \li Singleton \li QML module \li Use it for
+    \row \li \l [QML] {Config} \li Config \li Reading and writing user settings.
+    \row \li \l [QML] {ModStore} \li ModStore \li Mod counts, selection, updates and removal.
+    \row \li \l [QML] {ModSortFilterModel} \li ModSortFilterModel \li Sorted and filtered model of the installed mods.
+    \row \li \l [QML] {ModListModel} \li ModListModel \li Source model, defines the roles of each mod row.
+    \row \li \l [QML] {ModUpdateModel} \li ModUpdateModel \li Progress of the current update batch.
+    \row \li \l [QML] {GameMngr} \li GameMngr \li Launching the game, game version, disabled mods.
+    \row \li \l [QML] {ModLoader} \li ModLoader \li Reading and installing a mod zip from a file.
+    \endtable
+
+    \section1 Mod icons
+
+    The \c modicon image provider is registered on the engine before the
+    main QML file loads. Its URLs have this form:
+
+    \badcode
+    image://modicon/<modId>?url=<percent-encoded logo url>
+    \endcode
+
+    Bind to the \c modThumbnail role of \l [QML] {ModListModel}
+    instead of building the URL. The model encodes the nested URL and returns
+    an empty string while no icon is known:
+
+    \qml
+    Image {
+        source: modThumbnail
+        visible: modThumbnail !== ""
+    }
+    \endqml
+
+    \section1 Context properties
+
+    \c App sets three \c bool context properties on the root context:
+    \c IS_LINUX, \c IS_WINDOWS and \c IS_MACOS. They are compile time
+    constants for the platform VSMM was built for. Context properties are
+    untyped and unknown to qmlls, so using one gives an unqualified access
+    warning.
+
+    \section1 All types
+
+    \list
+    \li \l {VSMM QML Types}
+    \li \l {VSMM C++ Classes}
+    \endlist
+*/
+
+/*!
+    \page vsmm-qml-types.html
+    \title VSMM QML Types
+    \brief Every QML type the backend registers.
+
+    \section1 Singletons
+
+    \generatelist qmltypesbymodule Config
+    \generatelist qmltypesbymodule ModStore
+    \generatelist qmltypesbymodule ModSortFilterModel
+    \generatelist qmltypesbymodule ModListModel
+    \generatelist qmltypesbymodule ModUpdateModel
+    \generatelist qmltypesbymodule GameMngr
+    \generatelist qmltypesbymodule ModLoader
+
+    \section1 Value types
+
+    \generatelist qmlvaluetypes
+*/
+
+/*!
+    \page vsmm-cpp-classes.html
+    \title VSMM C++ Classes
+    \brief Every documented class of the backend.
+
+    \generatelist classesbymodule VSMM
+*/

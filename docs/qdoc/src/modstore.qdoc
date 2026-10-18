@@ -1,0 +1,98 @@
+/*!
+    \qmlmodule ModStore
+    \title ModStore QML Module
+    \brief The installed mods and every change to them except adding one.
+*/
+
+/*!
+    \qmltype ModStore
+    \nativetype vsmm::ModStore
+    \inqmlmodule ModStore
+    \brief Installed mods, their selection, updates and removal.
+
+    Adding a mod goes through \l {ModLoader::load()}{ModLoader.load()}
+    instead. The \c id argument of every method is the \c modId role of
+    \l [QML] {ModListModel}.
+
+    \qml
+    Button {
+        enabled: !ModStore.workPending && ModStore.updatesCount > 0
+        onClicked: ModStore.updateAll()
+    }
+    \endqml
+
+    Only the change signals of the properties below are meant for QML. The
+    other signals are used between the backend libraries.
+*/
+
+/*!
+    \qmlproperty int ModStore::installedModsCount
+    \readonly
+    Number of installed mods.
+*/
+
+/*!
+    \qmlproperty int ModStore::updatesCount
+    \readonly
+    Number of installed mods with an update available. Shares its change
+    signal with \l installedModsCount.
+*/
+
+/*!
+    \qmlproperty bool ModStore::workPending
+    \readonly
+    \c true while an update or a reload runs. Starts as \c true and turns
+    \c false 500 ms after the first scan and its online info requests
+    finish. It stays \c true while
+    \l {pathSettings::gameConfig}{Config.paths.gameConfig} is empty or
+    missing at startup.
+*/
+
+/*!
+    \qmlproperty bool ModStore::modsSelected
+    \readonly
+    \c true when at least one mod is marked for update.
+
+    \sa markForUpdate()
+*/
+
+/*!
+    \qmlmethod void ModStore::reload()
+    Drops all mods and scans the mods folders again. Sets \l workPending.
+*/
+
+/*!
+    \qmlmethod void ModStore::update(string id)
+    Updates the mod \a id. Does nothing when the mod has no update or
+    \l workPending is \c true.
+*/
+
+/*!
+    \qmlmethod void ModStore::updateAll()
+    Updates every mod with an available update. Does nothing while
+    \l workPending is \c true.
+*/
+
+/*!
+    \qmlmethod void ModStore::updateSelected()
+    Updates the mods marked with markForUpdate() that have an update. Does
+    nothing while \l workPending is \c true.
+*/
+
+/*!
+    \qmlmethod void ModStore::markForUpdate(string id, bool marked)
+    Marks or unmarks the mod \a id for updateSelected(), depending on
+    \a marked. Changes \l modsSelected and the \c isMarkedForUpdate role.
+*/
+
+/*!
+    \qmlmethod void ModStore::setFavorite(string id, bool favorite)
+    Sets whether the mod \a id is a favorite, depending on \a favorite. The
+    favorites are saved to \c config.json right away.
+*/
+
+/*!
+    \qmlmethod void ModStore::remove(string id)
+    Deletes the zip of the mod \a id from disk and removes the mod from the
+    store and its row from \l [QML] {ModListModel}. The file is deleted, not moved to the trash.
+*/

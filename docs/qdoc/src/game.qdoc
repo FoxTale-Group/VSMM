@@ -1,0 +1,178 @@
+/*!
+    \qmlmodule GameMngr
+    \title GameMngr QML Module
+    \brief The installed game: launching it, its version and disabled mods.
+*/
+
+/*!
+    \qmltype GameMngr
+    \nativetype vsmm::GameMngr
+    \inqmlmodule GameMngr
+    \brief Launches the game and reads its version and disabled mods.
+
+    GameMngr reads the game's \c clientsettings.json from
+    \l {pathSettings::gameConfig}{Config.paths.gameConfig} and watches it
+    for changes.
+
+    \qml
+    Button {
+        text: qsTr("Launch Game")
+        onClicked: GameMngr.launchGame()
+    }
+    \endqml
+
+    \qml
+    Label {
+        text: GameMngr.gameVersion ? qsTr("Vintage Story %1").arg(GameMngr.gameVersion)
+                                   : qsTr("Game version unknown")
+    }
+    \endqml
+*/
+
+/*!
+    \qmlproperty string GameMngr::gameVersion
+    \readonly
+    Installed game version, for example \c 1.21.0, or an empty string when
+    unknown.
+
+    The version is read by running the game executable. The first read
+    happens during startup, after the main QML file loads and before the
+    event loop starts, and blocks for up to three seconds. It
+    is read again in the background whenever
+    \l {pathSettings::gameExe}{Config.paths.gameExe} changes, and becomes
+    empty when a read fails or times out. Update detection is off while it is
+    empty, so bind to the property instead of reading it once.
+*/
+
+/*!
+    \qmlproperty list<string> GameMngr::disabledMods
+    \readonly
+    Ids of the mods disabled in the game's \c clientsettings.json.
+*/
+
+/*!
+    \qmlmethod void GameMngr::launchGame()
+    Starts the executable from \l {pathSettings::gameExe}{Config.paths.gameExe}
+    as a detached process.
+*/
+
+/*!
+    \qmlmethod void GameMngr::addDisabledMod(string modId, string version)
+    Disables the mod \a modId in \c clientsettings.json, stored there as
+    \c {modId@version} with \a version.
+*/
+
+/*!
+    \qmlmethod void GameMngr::removeDisabledMod(string modId)
+    Enables the mod \a modId again by removing every disabled entry with this
+    id from \c clientsettings.json.
+*/
+
+/*!
+    \qmlmodule ModLoader
+    \title ModLoader QML Module
+    \brief Reads mod zips into the store.
+*/
+
+/*!
+    \qmltype ModLoader
+    \nativetype vsmm::ModLoader
+    \inqmlmodule ModLoader
+    \brief Reads mod zips and adds them to the store.
+
+    ModLoader runs the startup scan and installs downloaded updates on its
+    own. From QML it reads a mod zip without installing it, or installs one:
+
+    \qml
+    FileDialog {
+        onAccepted: {
+            const info = ModLoader.readLocalInfo(selectedFile)
+            if (info.error === "")
+                ModLoader.load(selectedFile)
+        }
+    }
+    \endqml
+*/
+
+/*!
+    \qmlmethod localModInfo ModLoader::readLocalInfo(url filePath)
+    Reads \c modinfo.json from the zip at \a filePath and returns it without
+    installing anything. Runs on the calling thread.
+
+    When the zip or its \c modinfo.json cannot be read, the result has only
+    \l {localModInfo::error}{error} set.
+*/
+
+/*!
+    \qmlmethod void ModLoader::load(url filePath)
+    Reads \c modinfo.json from the zip at \a filePath on a worker thread and
+    installs the zip into the mods folder. When the mod id is already
+    installed, the call counts as an update: the zip is copied next to the
+    installed one, and the old zip is moved to the trash when
+    \l {generalSettings::deleteOldModVersion}{deleteOldModVersion} is \c true.
+
+    Nothing is reported back to QML. A file that is not a readable mod zip,
+    or a version that is not newer than the installed one, is only logged.
+*/
+
+/*!
+    \qmlvaluetype localModInfo
+    \nativetype vsmm::ModLocalInfo
+    \inqmlmodule ModLoader
+    \brief Contents of a mod zip's \c modinfo.json, returned by \l {ModLoader::readLocalInfo()}{ModLoader.readLocalInfo()}.
+
+    Check \l error first. When it is not empty, the zip could not be read and
+    the other members hold their defaults.
+
+    \qml
+    FileDialog {
+        onAccepted: {
+            const info = ModLoader.readLocalInfo(selectedFile)
+            if (info.error === "")
+                console.log(info.name, info.version, info.authors.join(", "))
+        }
+    }
+    \endqml
+*/
+
+/*!
+    \qmlproperty string localModInfo::id
+    Mod id.
+*/
+
+/*!
+    \qmlproperty string localModInfo::name
+    Display name.
+*/
+
+/*!
+    \qmlproperty string localModInfo::version
+    \readonly
+    Mod version.
+*/
+
+/*!
+    \qmlproperty list<string> localModInfo::authors
+    Authors, \c ["Unknown"] when \c modinfo.json lists none.
+*/
+
+/*!
+    \qmlproperty string localModInfo::description
+    Description, \c None when \c modinfo.json has none.
+*/
+
+/*!
+    \qmlproperty string localModInfo::side
+    Side the mod runs on, \c Unknown when \c modinfo.json has none.
+*/
+
+/*!
+    \qmlproperty list<string> localModInfo::dependencies
+    Dependencies as \c {modId@version}, with \c * as the version when
+    \c modinfo.json leaves it empty.
+*/
+
+/*!
+    \qmlproperty string localModInfo::error
+    Why the zip could not be read, empty on success.
+*/
