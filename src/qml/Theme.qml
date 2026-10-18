@@ -172,7 +172,15 @@ QtObject {
         readonly property color switchTrackOn:  accent
         readonly property color switchThumb:    "#ffffff"
 
-        // Button role colors. One base each; hover and press are derived via Theme.shade().
+        // Progress bar colors.
+        readonly property color progressBarTrack:  "#1e1e1e"
+        readonly property color progressBarBorder: "#4a4a4a"
+        readonly property color progressBarFill:   accent
+
+        // Busy indicator color.
+        readonly property color busyIndicator: accent
+
+        // Button role colors.
         readonly property color highlightButton: accent
         readonly property color buttonLaunch:    accent
         readonly property color buttonUpdate:    "#a6842e"

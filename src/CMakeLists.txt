@@ -105,11 +105,13 @@ qt_add_resources(${PROJECT_NAME} "VSMMStyle"
         BASE "qml/styles/VSMMStyle"
         FILES
             qml/styles/VSMMStyle/qmldir
+            qml/styles/VSMMStyle/BusyIndicator.qml
             qml/styles/VSMMStyle/Button.qml
             qml/styles/VSMMStyle/CheckBox.qml
             qml/styles/VSMMStyle/ComboBox.qml
             qml/styles/VSMMStyle/Label.qml
             qml/styles/VSMMStyle/Pane.qml
+            qml/styles/VSMMStyle/ProgressBar.qml
             qml/styles/VSMMStyle/RadioButton.qml
             qml/styles/VSMMStyle/ScrollBar.qml
             qml/styles/VSMMStyle/Switch.qml
