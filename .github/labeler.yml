@@ -1,0 +1,35 @@
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: ['**/*.qml', 'src/qml/**', 'assets/icons/**']
+
+backend:
+  - changed-files:
+      - all-globs-to-any-file: ['src/**/*.{cpp,hpp,hpp.in}', '!src/tests/**']
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: ['src/tests/**']
+
+build:
+  - changed-files:
+      - any-glob-to-any-file: ['**/CMakeLists.txt', '**/*.cmake', 'vcpkg.json']
+
+'tooling|CI/CD workflows':
+  - changed-files:
+      - any-glob-to-any-file: ['.github/workflows/**', '.github/dependabot.yml', 'cliff.toml', 'codecov.yml']
+
+'tooling|scripts':
+  - changed-files:
+      - any-glob-to-any-file: ['scripts/**']
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file: ['docs/**', '**/*.md']
+
+packaging:
+  - changed-files:
+      - any-glob-to-any-file: ['packaging/**']
+
+'packaging|AppImage':
+  - changed-files:
+      - any-glob-to-any-file: ['packaging/appimage/**', 'scripts/build_appimage.py']
