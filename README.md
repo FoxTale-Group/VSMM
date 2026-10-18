@@ -296,7 +296,10 @@ Once the dependencies above are installed, `scripts/build.py` runs the same step
 ```bash
 ./scripts/build.py              # Release build into build/
 ./scripts/build.py -d -r        # Debug build into build-debug/, then run the app
+./scripts/build.py -dr --no-tests  # same, but skip compiling the tests
 ./scripts/build.py -t           # Debug build, then run the tests
+./scripts/build.py -dc          # delete build-debug/ and build it again from scratch
+./scripts/build.py --rel-with-deb-info  # optimised build with debug info into build-relwithdebinfo/
 ```
 
 On Windows, run it as `py scripts\build.py`. It loads the Visual Studio C++ environment by itself, so any terminal works, and it puts the Qt and project DLLs on `PATH` when running the app or the tests. Tell it where vcpkg and Qt are once:
