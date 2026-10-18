@@ -4,8 +4,13 @@ r"""VSMM build helper for Linux and Windows.
     ./scripts/build.py              # Release build into build/
     ./scripts/build.py -d           # Debug build into build-debug/
     ./scripts/build.py -d -r        # Debug build, then run it
+    ./scripts/build.py -dr --no-tests
+                                    # Debug build without the tests, then run it
     ./scripts/build.py -t           # Debug build, then run the tests
-    ./scripts/build.py -b out -r    # Release build into out/, then run
+    ./scripts/build.py -dc          # delete build-debug/, then build it from scratch
+    ./scripts/build.py --rel-with-deb-info -r
+                                    # RelWithDebInfo build into build-relwithdebinfo/, then run
+    ./scripts/build.py -B out -r    # Release build into out/, then run
     ./scripts/build.py -d -- -DENABLE_COVERAGE=ON
                                     # extra arguments for the configure step
 
@@ -24,6 +29,7 @@ or pass it on the first run:
 import argparse
 import os
 import shutil
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -33,6 +39,15 @@ IS_WINDOWS = sys.platform == "win32"
 APP_BINARY_NAME = "VSMM.exe" if IS_WINDOWS else "VSMM"
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+DEFAULT_BUILD_DIRS = {
+    "Release": "build",
+    "Debug": "build-debug",
+    "RelWithDebInfo": "build-relwithdebinfo",
+}
+
+# The build types for which CMakeLists.txt includes CTest and compiles the tests.
+TEST_BUILD_TYPES = {"Debug", "RelWithDebInfo"}
 
 
 class BuildError(Exception):
@@ -44,24 +59,41 @@ def parse_args() -> argparse.Namespace:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument(
+    build_type = parser.add_mutually_exclusive_group()
+    build_type.add_argument(
         "-d", "--debug",
-        action="store_true",
+        action="store_const", dest="build_type", const="Debug",
         help="Debug build (default: Release)",
     )
+    build_type.add_argument(
+        "--rel-with-deb-info",
+        action="store_const", dest="build_type", const="RelWithDebInfo",
+        help="Optimised build with debug info (RelWithDebInfo)",
+    )
     parser.add_argument(
-        "-b", "--build-dir",
+        "-B", "--build-dir",
         type=Path,
         default=None,
-        metavar="DIR",
+        metavar="<DIR>",
         help="Build directory, relative to the current directory "
-             "(default: build, or build-debug with --debug, in the project root)",
+             "(default: build, build-debug or build-relwithdebinfo in the project root)",
+    )
+    parser.add_argument(
+        "-c", "--clean-build",
+        action="store_true",
+        help="Delete the build directory first and build from scratch",
     )
     parser.add_argument(
         "-t", "--test",
         action="store_true",
-        help="Run the tests after a successful build (implies --debug; Release "
-             "builds do not compile the tests)",
+        help="Run the tests after a successful build (implies --debug unless "
+             "--rel-with-deb-info is given; Release builds do not compile the tests)",
+    )
+    parser.add_argument(
+        "--no-tests",
+        action="store_true",
+        help="Do not compile the tests (Debug and RelWithDebInfo builds compile them "
+             "by default)",
     )
     parser.add_argument(
         "-r", "--run",
@@ -78,8 +110,13 @@ def parse_args() -> argparse.Namespace:
     # A bare word would otherwise reach CMake, which reads it as a source or build path.
     if args.cmake_args and "--" not in sys.argv[1:]:
         parser.error("extra CMake arguments must come after --")
-    if args.test:
-        args.debug = True
+    if args.test and args.no_tests:
+        parser.error("--test and --no-tests cannot be used together")
+    if args.build_type is None:
+        args.build_type = "Debug" if args.test else "Release"
+    if args.no_tests and args.build_type not in TEST_BUILD_TYPES:
+        print("warning: --no-tests has no effect on Release builds, which never compile "
+              "the tests", file=sys.stderr)
     return args
 
 
@@ -101,6 +138,31 @@ def find_tool(name: str, env: dict[str, str]) -> str:
     if path is None:
         raise BuildError(f"{name} not found on PATH")
     return path
+
+
+def remove_build_dir(build_dir: Path) -> None:
+    """Delete a CMake build directory, refusing anything that does not look like one."""
+    if not build_dir.exists():
+        return
+    if build_dir == REPO_ROOT or build_dir in REPO_ROOT.parents:
+        raise BuildError(f"refusing to delete {build_dir}: it contains the project sources")
+    if not (build_dir / "CMakeCache.txt").is_file():
+        raise BuildError(f"refusing to delete {build_dir}: it has no CMakeCache.txt")
+
+    def make_writable_and_retry(func, path, _exc) -> None:
+        # Git checkouts made by FetchContent hold read-only files, which Windows will not
+        # delete until the read-only flag is cleared.
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    log(f"removing {build_dir}")
+    try:
+        if sys.version_info >= (3, 12):
+            shutil.rmtree(build_dir, onexc=make_writable_and_retry)
+        else:
+            shutil.rmtree(build_dir, onerror=make_writable_and_retry)
+    except OSError as exc:
+        raise BuildError(f"could not delete {build_dir}: {exc}") from exc
 
 
 def parse_env_block(text: str) -> dict[str, str]:
@@ -192,18 +254,21 @@ def main() -> int:
     if not (REPO_ROOT / "CMakeLists.txt").is_file():
         raise BuildError(f"cannot find CMakeLists.txt in {REPO_ROOT}")
 
-    build_type = "Debug" if args.debug else "Release"
+    build_type = args.build_type
 
-    # Separate default directories so Debug and Release do not share one cache.
+    # Separate default directories so build types do not share one cache.
     if args.build_dir is not None:
         build_dir = args.build_dir.resolve()
     else:
-        build_dir = REPO_ROOT / ("build-debug" if args.debug else "build")
+        build_dir = REPO_ROOT / DEFAULT_BUILD_DIRS[build_type]
 
     env = msvc_env() if IS_WINDOWS else dict(os.environ)
     cmake = find_tool("cmake", env)
     find_tool("ninja", env)
     ctest = find_tool("ctest", env) if args.test else None
+
+    if args.clean_build:
+        remove_build_dir(build_dir)
 
     log(f"{build_type} build in {build_dir}")
 
@@ -214,6 +279,9 @@ def main() -> int:
         "-B", str(build_dir),
         f"-DCMAKE_BUILD_TYPE={build_type}",
     ]
+    if build_type in TEST_BUILD_TYPES:
+        # Passed on every run: CMake caches it, so an earlier --no-tests would otherwise stick.
+        configure.append(f"-DBUILD_TESTING={'OFF' if args.no_tests else 'ON'}")
     if IS_WINDOWS:
         # Without these, CMake may pick up another compiler on PATH (MinGW, Clang).
         configure += ["-DCMAKE_C_COMPILER=cl", "-DCMAKE_CXX_COMPILER=cl"]
