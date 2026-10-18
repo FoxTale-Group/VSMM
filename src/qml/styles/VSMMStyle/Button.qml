@@ -6,19 +6,18 @@ import vsmm
 T.Button {
     id: rootButton
 
-    // Set `modEntry: true` for the mod-row icon button variant.
-    property bool modEntry: false
+    // `flat: true` gives the icon-only variant with no background until hovered or pressed.
 
     // Set `defaultColor` alone: hover and press are derived from it, so a call site needs
     // one colour per button. Both remain assignable for roles that are not a lightness
-    // ramp -- the modEntry variant among them, whose transparent base has nothing to shade.
-    property color defaultColor: modEntry ? Theme.colors.modEntryButtonDefault : Theme.colors.buttonDefault
-    property color hoverColor:   modEntry ? Theme.colors.modEntryButtonHover
-                                         : Theme.shade(rootButton.defaultColor, Theme.hoverShade)
-    property color pressColor:   modEntry ? Theme.colors.modEntryButtonPress
-                                         : Theme.shade(rootButton.defaultColor, Theme.pressShade)
-    property color inactiveColor: modEntry ? Theme.colors.modEntryButtonDefault : Theme.colors.buttonInactive
-    property color iconColor:    modEntry ? Theme.colors.icon                  : Theme.colors.buttonIcon
+    // ramp -- the flat variant among them, whose transparent base has nothing to shade.
+    property color defaultColor: flat ? Theme.colors.flatButtonDefault : Theme.colors.buttonDefault
+    property color hoverColor:   flat ? Theme.colors.flatButtonHover
+                                     : Theme.shade(rootButton.defaultColor, Theme.hoverShade)
+    property color pressColor:   flat ? Theme.colors.flatButtonPress
+                                     : Theme.shade(rootButton.defaultColor, Theme.pressShade)
+    property color inactiveColor: flat ? Theme.colors.flatButtonDefault : Theme.colors.buttonInactive
+    property color iconColor:    flat ? Theme.colors.icon              : Theme.colors.buttonIcon
     property int   radius:       Theme.radius.button
     property string tooltipText: ""
 
@@ -28,15 +27,17 @@ T.Button {
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                              implicitContentHeight + topPadding + bottomPadding)
 
-    padding: 8
+    // Flat buttons size from their icon, so set `icon.width`/`icon.height` to resize one
+    // rather than `implicitWidth`, which would leave the padding eating the icon.
+    padding: flat ? 4 : 8
     spacing: 6
 
     font.pixelSize: Theme.fonts.label
     font.bold: true
-    icon.width:  modEntry ? 20 : 30
-    icon.height: modEntry ? 20 : 30
+    icon.width:  flat ? 20 : 30
+    icon.height: flat ? 20 : 30
     icon.color:  iconColor
-    display:     modEntry ? T.AbstractButton.IconOnly : T.AbstractButton.TextBesideIcon
+    display:     flat ? T.AbstractButton.IconOnly : T.AbstractButton.TextBesideIcon
 
     scale: rootButton.down ? 0.95 : 1.0
     Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }

@@ -22,7 +22,7 @@ RowLayout {
     }
 
     Button {
-        modEntry: true
+        flat: true
         icon.source: Theme.icons.downloadOneIcon
 
         Layout.preferredHeight: 35
@@ -48,7 +48,7 @@ RowLayout {
 
 
     Button {
-        modEntry: true
+        flat: true
 
         icon.source: isFavoriteMod ? Theme.icons.favoriteFilledIcon : Theme.icons.favoriteIcon
         iconColor: isFavoriteMod ? Theme.colors.modFavButton : Theme.colors.icon
@@ -69,7 +69,7 @@ RowLayout {
     }
 
     Button {
-        modEntry: true
+        flat: true
 
         icon.source: Theme.icons.openLinkIcon
 
@@ -85,7 +85,7 @@ RowLayout {
     }
 
     Button {
-        modEntry: true
+        flat: true
 
         icon.source: Theme.icons.deleteIcon
         iconColor: Theme.colors.modDelButtonIcon

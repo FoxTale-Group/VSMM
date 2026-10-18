@@ -76,7 +76,7 @@ Item {
             visible: titleBar.showMinimize
 
             background: Rectangle {
-                color: parent.hovered ? Theme.colors.modEntryButtonHover : "transparent"
+                color: parent.hovered ? Theme.colors.flatButtonHover : "transparent"
                 radius: 8
             }
 
@@ -95,7 +95,7 @@ Item {
             visible: titleBar.showMaximize
 
             background: Rectangle {
-                color: parent.hovered ? Theme.colors.modEntryButtonHover : "transparent"
+                color: parent.hovered ? Theme.colors.flatButtonHover : "transparent"
                 radius: 8
             }
 
