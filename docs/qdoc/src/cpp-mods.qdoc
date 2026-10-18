@@ -1,0 +1,848 @@
+/*!
+    \class vsmm::IModStore
+    \inmodule VSMM
+    \brief Interface of the mod store, declares the signals between the backend libraries.
+
+    IModStore is the abstract base of \l vsmm::ModStore. The other backend
+    libraries depend on this interface instead of \l vsmm::ModStore, so
+    their tests can use a mock store.
+
+    The signals tell the list models, the update model, the image provider
+    and \l vsmm::ModLoader about changes to the installed mods and about the
+    state of mod updates. The public slots receive progress and results from
+    the loader. \l vsmm::ModLoader connects to modsReloading(),
+    modUpdateRequested() and onModsReloaded() in its \c setStore() function
+    and calls the other slots directly.
+*/
+
+/*!
+    \enum vsmm::IModStore::ModLoadType
+
+    Tells add() where a mod zip comes from.
+
+    \value Init
+        The zip is in a mods folder and was found by a scan of the mods
+        folders, at startup or on a reload.
+    \value GUI
+        The zip was passed to the QML invokable \c load() of
+        \l vsmm::ModLoader. \l vsmm::ModStore copies it into the mods
+        folder, or treats it as an update when a mod with the same id is
+        already installed.
+    \value Update
+        The zip is a downloaded update of an installed mod.
+*/
+
+/*!
+    \fn vsmm::IModStore::IModStore(QObject *parent)
+
+    Constructs the store with the given \a parent.
+*/
+
+/*!
+    \fn vsmm::IModStore::~IModStore()
+
+    Destroys the store.
+*/
+
+/*!
+    \fn void vsmm::IModStore::add(vsmm::ModLocalInfo localModInfo, vsmm::IModStore::ModLoadType loadType)
+
+    Adds the mod described by \a localModInfo to the store. \a loadType tells
+    where the mod zip comes from.
+
+    \sa ModLoadType
+*/
+
+/*!
+    \fn void vsmm::IModStore::updateOnline(QStringView id, QJsonObject onlineInfo)
+
+    Sets the online info of the mod \a id. \a onlineInfo is the \c mod object
+    of the mod API response.
+*/
+
+/*!
+    \fn const vsmm::ModEntry *vsmm::IModStore::find(const QString &id) const
+
+    Returns the mod with the id \a id, or \c nullptr when no such mod is
+    installed.
+*/
+
+/*!
+    \fn void vsmm::IModStore::modAdded(QStringView modId)
+
+    This signal is emitted after the mod \a modId is added to the store.
+*/
+
+/*!
+    \fn void vsmm::IModStore::modUpdated(QStringView modId)
+
+    This signal is emitted after the data of the installed mod \a modId
+    changes, for example when its online info arrives or a newer version
+    replaces it.
+*/
+
+/*!
+    \fn void vsmm::IModStore::modsReloading()
+
+    This signal is emitted when a reload starts, before the store drops its
+    mods. The entries are still readable while the signal is handled.
+    \l vsmm::ModLoader starts a new scan of the mods folders on this signal.
+*/
+
+/*!
+    \fn void vsmm::IModStore::modRemoved(QStringView modId)
+
+    This signal is emitted when the mod \a modId is removed, after its file
+    is deleted and before the store drops the entry.
+*/
+
+/*!
+    \fn void vsmm::IModStore::modUpdateRequested(QStringList modIds)
+
+    This signal is emitted when \l vsmm::ModStore starts an update of the
+    mods \a modIds, from \c update(), \c updateAll() or \c updateSelected(). \l vsmm::ModLoader downloads the updates on this signal.
+*/
+
+/*!
+    \fn void vsmm::IModStore::modUpdateProgress(QStringView modId, qint64 received, qint64 total)
+
+    This signal is emitted while the update of the mod \a modId downloads.
+    \a received is the number of bytes received so far and \a total the
+    size of the download.
+*/
+
+/*!
+    \fn void vsmm::IModStore::modUpdateInstalling(QStringView modId)
+
+    This signal is emitted when the store starts to replace the installed
+    mod \a modId with a new zip.
+*/
+
+/*!
+    \fn void vsmm::IModStore::modUpdateFinished(QStringView modId)
+
+    This signal is emitted after the update of the mod \a modId is
+    installed.
+*/
+
+/*!
+    \fn void vsmm::IModStore::modUpdateFailed(QStringView modId, QString reason)
+
+    This signal is emitted when the update of the mod \a modId fails.
+    \a reason is a message that says why.
+*/
+
+/*!
+    \fn void vsmm::IModStore::modsLoaded()
+
+    This signal is emitted when the loader has no loads or downloads left in
+    progress.
+*/
+
+/*!
+    \fn void vsmm::IModStore::onModsReloaded()
+
+    Called when the loader has no loads or downloads left in progress.
+*/
+
+/*!
+    \fn void vsmm::IModStore::onModUpdateProgress(const QString &modId, qint64 received, qint64 total)
+
+    Called while the update of the mod \a modId downloads. \a received is the
+    number of bytes received so far and \a total the size of the download.
+*/
+
+/*!
+    \fn void vsmm::IModStore::onModUpdateFailed(QString modId, QString reason)
+
+    Called when the update of the mod \a modId fails before it reaches the
+    store. \a reason is a message that says why.
+*/
+
+/*!
+    \class vsmm::ModStore
+    \inmodule VSMM
+    \brief Holds the installed mods and runs updates and removals.
+
+    ModStore keeps one \l vsmm::ModEntry per installed mod, keyed by mod id.
+    It is a QML singleton. It exposes the counts and the busy state as
+    properties, and invokable methods to reload, update, mark, favorite and
+    remove mods. Adding a mod goes through
+    \l vsmm::ModLoader instead, which calls add().
+
+    Before the first add(), call setConfig() and setGameMngr(). The store
+    reads the favorite mods and the update settings from the config, and the
+    game version and the mods folders from the game manager. It does not take
+    ownership of either.
+
+    When two zips in the mods folders have the same mod id, the store keeps
+    the one with the higher version. A mod loaded as \l {vsmm::IModStore::ModLoadType}{ModLoadType::GUI} is copied into
+    the first mods folder. An update is copied next to the old zip. When
+    \c deleteOldModVersion is set in the config, the old zip is moved to the
+    trash.
+
+    The \l workPending property is \c true while a reload or an update runs.
+    It starts as \c true and turns \c false 500 ms after onModsReloaded() is
+    called, unless a new reload starts first.
+*/
+
+/*!
+    \property vsmm::ModStore::installedModsCount
+    \brief The number of installed mods.
+*/
+
+/*!
+    \property vsmm::ModStore::updatesCount
+    \brief The number of installed mods with an update available.
+
+    It shares its change signal with \l installedModsCount.
+*/
+
+/*!
+    \property vsmm::ModStore::workPending
+    \brief Whether a reload or an update runs.
+
+    It starts as \c true and turns \c false 500 ms after the first scan and
+    its online info requests finish. It stays \c true while the \c gameConfig
+    path is empty or missing at startup, because no scan starts.
+*/
+
+/*!
+    \property vsmm::ModStore::modsSelected
+    \brief Whether at least one mod is marked for update.
+
+    \sa markForUpdate()
+*/
+
+/*!
+    \fn vsmm::ModStore::ModStore(QObject *parent)
+
+    Constructs an empty store with the given \a parent.
+*/
+
+/*!
+    \fn void vsmm::ModStore::setConfig(vsmm::IConfig *config)
+
+    Sets the user settings to \a config and loads the favorite mods from it.
+    A second call only logs a warning. A null \a config is a fatal error.
+*/
+
+/*!
+    \fn void vsmm::ModStore::setGameMngr(vsmm::IGameMngr *gameMngr)
+
+    Sets the game manager to \a gameMngr. The store reloads its mods whenever
+    the mods folders of the game manager change. A second call only logs a
+    warning. A null \a gameMngr is a fatal error.
+*/
+
+/*!
+    \fn void vsmm::ModStore::add(vsmm::ModLocalInfo localModInfo, vsmm::IModStore::ModLoadType loadType)
+    \reimp
+
+    Ignores \a localModInfo when its id is empty, and handles it according to
+    \a loadType otherwise.
+*/
+
+/*!
+    \fn void vsmm::ModStore::updateOnline(QStringView id, QJsonObject onlineInfo)
+    \reimp
+
+    Ignores \a onlineInfo when no mod with the id \a id is installed.
+*/
+
+/*!
+    \fn void vsmm::ModStore::reload()
+
+    Drops all mods and starts a new scan of the mods folders. Sets
+    \l workPending to \c true.
+
+    The store emits modsReloading() before it drops the mods.
+    \l vsmm::ModLoader starts the scan on that signal.
+*/
+
+/*!
+    \fn void vsmm::ModStore::update(const QString &id)
+
+    Starts the update of the mod \a id. Does nothing when the mod is not
+    installed, has no update, or \l workPending is \c true.
+
+    \sa updateAll(), updateSelected()
+*/
+
+/*!
+    \fn void vsmm::ModStore::updateAll()
+
+    Starts the update of every mod with an available update. Does nothing
+    while \l workPending is \c true.
+
+    \sa update(), updateSelected()
+*/
+
+/*!
+    \fn void vsmm::ModStore::updateSelected()
+
+    Starts the update of the mods marked with markForUpdate() that have an
+    update. Does nothing while \l workPending is \c true.
+
+    \sa update(), updateAll()
+*/
+
+/*!
+    \fn void vsmm::ModStore::markForUpdate(const QString &id, bool marked)
+
+    Marks or unmarks the mod \a id for updateSelected(), depending on
+    \a marked. Does nothing when the mod is not installed.
+
+    \sa modsSelected
+*/
+
+/*!
+    \fn void vsmm::ModStore::setFavorite(const QString &id, bool favorite)
+
+    Sets whether the mod \a id is a favorite, depending on \a favorite, and
+    passes the new list of favorites to the config. Does nothing when the
+    mod is not installed.
+*/
+
+/*!
+    \fn void vsmm::ModStore::remove(const QString &id)
+
+    Deletes the zip of the mod \a id from disk and removes the mod from the
+    store. The file is deleted, not moved to the trash. When the file cannot
+    be deleted, the mod stays in the store.
+*/
+
+/*!
+    \fn bool vsmm::ModStore::contains(const QString &id) const
+
+    Returns \c true when a mod with the id \a id is installed.
+*/
+
+/*!
+    \fn const vsmm::ModEntry *vsmm::ModStore::find(const QString &id) const
+    \reimp
+*/
+
+/*!
+    \fn int vsmm::ModStore::modsCount() const
+
+    Returns the number of installed mods.
+
+    \sa installedModsCount
+*/
+
+/*!
+    \fn int vsmm::ModStore::modUpdatesCount() const
+
+    Returns the number of installed mods with an update available.
+
+    \sa updatesCount
+*/
+
+/*!
+    \fn bool vsmm::ModStore::isWorkPending() const
+
+    Returns \c true while a reload or an update runs.
+
+    \sa workPending
+*/
+
+/*!
+    \fn void vsmm::ModStore::modSelected()
+
+    This signal is emitted when a mod is marked or unmarked for update. It is
+    the change signal of \l modsSelected.
+*/
+
+/*!
+    \fn void vsmm::ModStore::modsChanged()
+
+    This signal is emitted when the number of installed mods or of available
+    updates can change. It is the change signal of \l installedModsCount and
+    \l updatesCount.
+*/
+
+/*!
+    \fn void vsmm::ModStore::workChanged()
+
+    This signal is emitted when \l workPending changes.
+*/
+
+/*!
+    \fn void vsmm::ModStore::onModsReloaded()
+    \reimp
+
+    Emits modsLoaded() and clears \l workPending after 500 ms.
+*/
+
+/*!
+    \fn void vsmm::ModStore::onModUpdateProgress(const QString &modId, qint64 received, qint64 total)
+    \reimp
+*/
+
+/*!
+    \fn void vsmm::ModStore::onModUpdateFailed(QString modId, QString reason)
+    \reimp
+*/
+
+/*!
+    \class vsmm::ModEntry
+    \inmodule VSMM
+    \brief One installed mod, its local zip info and its online info.
+
+    A ModEntry is built from the \l vsmm::ModLocalInfo of a mod zip. It keeps
+    the id, name, version, authors and file of the zip. The description, side,
+    dependencies and error of the local info are not kept.
+
+    initOnlineInfo() adds the data from the mod API: the online name and
+    author, tags, side, mod page URL, logo URL and the latest compatible
+    release. Once online info is set, getName() and getAuthors() return the
+    online values instead of the local ones.
+
+    \l vsmm::ModStore owns the entries. Other classes get read access through
+    \l vsmm::IModStore::find().
+*/
+
+/*!
+    \class vsmm::ModEntry::LatestVersion
+    \inmodule VSMM
+    \brief The newest release of a mod that can update the installed version.
+
+    initOnlineInfo() fills it. Until then, and when no release qualifies,
+    \l mHasUpdate is \c false, \l mUrl and \l mFileName are empty and
+    \l mVersion holds the default \c 0.1.0.
+*/
+
+/*!
+    \variable vsmm::ModEntry::LatestVersion::mUrl
+
+    Download URL of the release zip.
+*/
+
+/*!
+    \variable vsmm::ModEntry::LatestVersion::mVersion
+
+    Version of the release.
+*/
+
+/*!
+    \variable vsmm::ModEntry::LatestVersion::mFileName
+
+    File name of the release zip.
+*/
+
+/*!
+    \variable vsmm::ModEntry::LatestVersion::mSupportedVersions
+
+    Game versions the release supports. \l vsmm::ModEntry does not fill it,
+    so it is always empty.
+*/
+
+/*!
+    \variable vsmm::ModEntry::LatestVersion::mHasUpdate
+
+    \c true when a release newer than the installed version was found.
+*/
+
+/*!
+    \fn vsmm::ModEntry::ModEntry(vsmm::ModLocalInfo info)
+
+    Constructs an entry from the local zip info \a info. The entry has no
+    online info and is neither marked for update nor a favorite.
+*/
+
+/*!
+    \fn QString vsmm::ModEntry::toString() const
+
+    Returns the mod as \c {id@version}, for example in log messages.
+*/
+
+/*!
+    \fn vsmm::ModEntry::operator QString() const
+
+    Returns toString().
+*/
+
+/*!
+    \fn QStringView vsmm::ModEntry::getId() const
+
+    Returns the mod id.
+*/
+
+/*!
+    \fn QStringView vsmm::ModEntry::getName() const
+
+    Returns the online name, or the name from \c modinfo.json when the online
+    name is empty.
+*/
+
+/*!
+    \fn QStringList vsmm::ModEntry::getAuthors() const
+
+    Returns the online author as a one item list, or the authors from
+    \c modinfo.json when the online author is empty.
+*/
+
+/*!
+    \fn const semver::version<> &vsmm::ModEntry::getVersion() const
+
+    Returns the installed version.
+*/
+
+/*!
+    \fn const QFileInfo &vsmm::ModEntry::getFileInfo() const
+
+    Returns the file info of the installed zip.
+*/
+
+/*!
+    \fn bool vsmm::ModEntry::isMarkedForUpdate() const
+
+    Returns \c true when the mod is marked for update.
+
+    \sa setMarkedForUpdate()
+*/
+
+/*!
+    \fn bool vsmm::ModEntry::isFavorite() const
+
+    Returns \c true when the mod is a favorite.
+
+    \sa setFavorite()
+*/
+
+/*!
+    \fn void vsmm::ModEntry::setMarkedForUpdate(bool marked)
+
+    Marks or unmarks the mod for update, depending on \a marked.
+
+    \sa isMarkedForUpdate()
+*/
+
+/*!
+    \fn void vsmm::ModEntry::setFavorite(bool favorite)
+
+    Sets whether the mod is a favorite, depending on \a favorite.
+
+    \sa isFavorite()
+*/
+
+/*!
+    \fn void vsmm::ModEntry::initOnlineInfo(QJsonObject json, const semver::version<> &gameVersion, bool cfgIncludePrerelease)
+
+    Reads the online info from \a json, the \c mod object of the mod API
+    response. A field with an unexpected type is logged and skipped.
+
+    The latest version is the newest release that is newer than the installed
+    version and has a tag with the same major and minor version as
+    \a gameVersion. Prerelease versions count only when the installed version
+    is a prerelease or \a cfgIncludePrerelease is \c true. When such a
+    release exists, hasUpdate() returns \c true.
+
+    \sa getLatestVersion()
+*/
+
+/*!
+    \fn const QUrl &vsmm::ModEntry::getUrl() const
+
+    Returns the mod page URL on the mod database. It uses the URL alias of
+    the mod when it has one, and the asset id otherwise. The URL is empty
+    until initOnlineInfo() is called.
+*/
+
+/*!
+    \fn const vsmm::ModEntry::LatestVersion &vsmm::ModEntry::getLatestVersion() const
+
+    Returns the latest release that can update the installed version.
+
+    \sa hasUpdate(), initOnlineInfo()
+*/
+
+/*!
+    \fn const QStringList &vsmm::ModEntry::getTags() const
+
+    Returns the online tags of the mod.
+*/
+
+/*!
+    \fn QStringView vsmm::ModEntry::getSide() const
+
+    Returns the online side the mod runs on. It is empty until
+    initOnlineInfo() is called.
+*/
+
+/*!
+    \fn bool vsmm::ModEntry::hasUpdate() const
+
+    Returns \c true when a newer compatible release was found.
+
+    \sa getLatestVersion()
+*/
+
+/*!
+    \fn const QUrl &vsmm::ModEntry::getLogoUrl() const
+
+    Returns the URL of the mod logo from the online info, or an empty URL
+    when the online info has none.
+*/
+
+/*!
+    \class vsmm::ModLocalInfo
+    \inmodule VSMM
+    \brief Contents of a mod zip's \c modinfo.json.
+
+    \l vsmm::ModLoader reads a ModLocalInfo from each mod zip and passes it
+    to \l {vsmm::IModStore::add()}{IModStore::add()}. The struct is a
+    Q_GADGET and QML gets it as the \c localModInfo value type from
+    \l {vsmm::ModLoader::readLocalInfo()}{ModLoader::readLocalInfo()}.
+
+    Fields missing from \c modinfo.json keep their defaults: \c None for the
+    description, \c Unknown for the side and a list with \c Unknown for the
+    authors. When the zip cannot be read, only \l mError is set.
+*/
+
+/*!
+    \property vsmm::ModLocalInfo::name
+    \brief The display name, the same as \l mName.
+*/
+
+/*!
+    \property vsmm::ModLocalInfo::id
+    \brief The mod id, the same as \l mId.
+*/
+
+/*!
+    \property vsmm::ModLocalInfo::description
+    \brief The description, the same as \l mDescription.
+*/
+
+/*!
+    \property vsmm::ModLocalInfo::side
+    \brief The side the mod runs on, the same as \l mSide.
+*/
+
+/*!
+    \property vsmm::ModLocalInfo::version
+    \brief The mod version as a string.
+
+    \sa versionString()
+*/
+
+/*!
+    \property vsmm::ModLocalInfo::authors
+    \brief The authors, the same as \l mAuthors.
+*/
+
+/*!
+    \property vsmm::ModLocalInfo::dependencies
+    \brief The dependencies, the same as \l mDependencies.
+*/
+
+/*!
+    \property vsmm::ModLocalInfo::error
+    \brief Why the zip could not be read, the same as \l mError.
+*/
+
+/*!
+    \variable vsmm::ModLocalInfo::mName
+
+    Display name.
+*/
+
+/*!
+    \variable vsmm::ModLocalInfo::mId
+
+    Mod id.
+*/
+
+/*!
+    \variable vsmm::ModLocalInfo::mDescription
+
+    Description, \c None by default.
+*/
+
+/*!
+    \variable vsmm::ModLocalInfo::mSide
+
+    Side the mod runs on, \c Unknown by default.
+*/
+
+/*!
+    \variable vsmm::ModLocalInfo::mError
+
+    Why the zip could not be read. Empty on success.
+*/
+
+/*!
+    \variable vsmm::ModLocalInfo::mAuthors
+
+    Authors, a list with \c Unknown by default.
+*/
+
+/*!
+    \variable vsmm::ModLocalInfo::mDependencies
+
+    Dependencies as \c {modId@version}, with \c * as the version when
+    \c modinfo.json leaves it empty.
+*/
+
+/*!
+    \variable vsmm::ModLocalInfo::mVersion
+
+    Mod version.
+*/
+
+/*!
+    \variable vsmm::ModLocalInfo::mFileInfo
+
+    File info of the mod zip.
+*/
+
+/*!
+    \fn QString vsmm::ModLocalInfo::toString() const
+
+    Returns the mod as \c {id@version}, for example in log messages.
+*/
+
+/*!
+    \fn QString vsmm::ModLocalInfo::versionString() const
+
+    Returns \l mVersion as a string.
+*/
+
+/*!
+    \fn vsmm::ModLocalInfo::operator QString() const
+
+    Returns toString().
+*/
+
+/*!
+    \class vsmm::ModLoader
+    \inmodule VSMM
+    \brief Reads mod zips, fetches online info and downloads updates.
+
+    ModLoader scans the mods folders and reads \c modinfo.json from each zip
+    on a worker thread. For each readable zip it calls
+    \l {vsmm::IModStore::add()}{IModStore::add()}, then requests the online
+    info of the mod from the mod API and passes it to
+    \l {vsmm::IModStore::updateOnline()}{IModStore::updateOnline()}. When the
+    mod id is disabled in the game, the loader disables the loaded version as
+    well.
+
+    The loader also downloads updates. It saves each download in the
+    temporary folder and loads it as a
+    \l {vsmm::IModStore::ModLoadType}{ModLoadType::Update}, so the store
+    replaces the installed zip. When the
+    downloaded zip has a different mod id, the update fails.
+
+    It is a QML singleton. readLocalInfo() reads a zip without installing
+    it, load() installs it. Both are invokable from QML.
+
+    Call setGameMngr(), setHttpClient() and setStore() before the first scan.
+    The loader does not take ownership of these objects. It counts loads and
+    downloads in progress and emits allModsReloaded() when none are left.
+*/
+
+/*!
+    \fn vsmm::ModLoader::ModLoader()
+
+    Constructs the loader. Zips are read and downloads are saved on two
+    thread pools with at most four threads each.
+*/
+
+/*!
+    \fn bool vsmm::ModLoader::initModsList()
+
+    Scans the mods folders of the game manager and loads every readable
+    \c .zip file in them. A folder that does not exist is skipped with a
+    warning.
+
+    Returns \c false when the game manager has no mods folders, and \c true
+    otherwise.
+*/
+
+/*!
+    \fn void vsmm::ModLoader::setHttpClient(vsmm::IHttpClient *httpClient)
+
+    Sets the HTTP client for online info and downloads to \a httpClient. A
+    second call only logs a warning. A null \a httpClient is a fatal error.
+*/
+
+/*!
+    \fn void vsmm::ModLoader::setGameMngr(vsmm::IGameMngr *gameMngr)
+
+    Sets the game manager to \a gameMngr. The loader reads the mods folders
+    and the disabled mods from it. A second call only logs a warning. A null
+    \a gameMngr is a fatal error.
+*/
+
+/*!
+    \fn void vsmm::ModLoader::setStore(vsmm::IModStore *store)
+
+    Sets the mod store to \a store and connects the loader to it. The loader
+    starts a scan on \l {vsmm::IModStore::modsReloading()}{modsReloading()},
+    downloads updates on
+    \l {vsmm::IModStore::modUpdateRequested()}{modUpdateRequested()}, and
+    allModsReloaded() calls
+    \l {vsmm::IModStore::onModsReloaded()}{onModsReloaded()}. A second call
+    only logs a warning. A null \a store is a fatal error.
+*/
+
+/*!
+    \fn void vsmm::ModLoader::setApiUrl(QUrl apiUrl)
+
+    Sets the base URL of the mod API to \a apiUrl. The mod id is appended to
+    it for each request. The default is
+    \c {https://mods.vintagestory.at/api/mod/}.
+*/
+
+/*!
+    \fn void vsmm::ModLoader::load(QFileInfo &&fileInfo)
+
+    Loads the zip \a fileInfo from a mods folder as a
+    \l {vsmm::IModStore::ModLoadType}{ModLoadType::Init}. The zip is read on
+    a worker thread.
+*/
+
+/*!
+    \fn void vsmm::ModLoader::load(const QUrl &filePath)
+
+    Loads the zip at the local file URL \a filePath as a
+    \l {vsmm::IModStore::ModLoadType}{ModLoadType::GUI}, so the store copies
+    it into the first mods folder, or installs it as an update when the mod
+    id is already installed. The zip is read on a worker thread. A file that
+    is not a readable mod zip is only logged.
+*/
+
+/*!
+    \fn vsmm::ModLocalInfo vsmm::ModLoader::readLocalInfo(const QUrl &filePath)
+
+    Reads \c modinfo.json from the zip at the local file URL \a filePath and
+    returns it without installing anything. Runs on the calling thread.
+
+    When the zip cannot be opened, has no \c modinfo.json, or its
+    \c modinfo.json has no id or name or an invalid version, the result has
+    only \l {vsmm::ModLocalInfo::mError}{mError} set.
+*/
+
+/*!
+    \fn void vsmm::ModLoader::allModsReloaded()
+
+    This signal is emitted when no loads or downloads are left in progress.
+*/
+
+/*!
+    \fn void vsmm::ModLoader::onModsReloading()
+
+    Starts a new scan with initModsList().
+*/
+
+/*!
+    \fn void vsmm::ModLoader::onModUpdateRequested(QStringList modIds)
+
+    Downloads the latest version of each mod in \a modIds. The download
+    progress goes to
+    \l {vsmm::IModStore::onModUpdateProgress()}{IModStore::onModUpdateProgress()}
+    and a failed download to
+    \l {vsmm::IModStore::onModUpdateFailed()}{IModStore::onModUpdateFailed()}.
+*/

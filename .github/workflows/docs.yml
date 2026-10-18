@@ -1,0 +1,59 @@
+name: Docs
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/qdoc/**'
+      - 'src/**/*.hpp'
+      - 'CMakeLists.txt'
+      - '.github/workflows/docs.yml'
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-docs:
+    name: Build
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y ninja-build libzip-dev qt6-{base,declarative,tools}-dev qdoc-qt6
+
+      - name: Fetch repository
+        uses: actions/checkout@v7
+
+      - name: Configure
+        run: cmake -B ${{ github.workspace }}/build -DCMAKE_GENERATOR=Ninja
+
+      - name: Generate docs
+        run: cmake --build ${{ github.workspace }}/build --target docs
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ github.workspace }}/build/docs/qdoc/html
+
+  deploy-docs:
+    name: Deploy
+    needs: build-docs
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

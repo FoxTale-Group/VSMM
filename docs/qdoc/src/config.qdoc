@@ -1,0 +1,133 @@
+/*!
+    \qmlmodule Config
+    \title Config QML Module
+    \brief User settings, saved to \c config.json.
+*/
+
+/*!
+    \qmltype Config
+    \nativetype vsmm::Config
+    \inqmlmodule Config
+    \brief User settings, grouped into three value type sections.
+
+    The settings are stored in \c config.json inside the application config
+    location. Each section is a value type with real properties, and every
+    member always has a value, so reads need no \c ?? guard.
+
+    \qml
+    Label { text: Config.paths.gameConfig }
+    \endqml
+
+    Assigning a member runs the setter of the whole section, then the change
+    has to be saved:
+
+    \qml
+    Button {
+        onClicked: {
+            Config.paths.gameConfig = "/new/path"
+            Config.saveToFile()
+        }
+    }
+    \endqml
+
+    Because every assignment goes through the section setter:
+    \list
+    \li Each assignment emits its own change signal, so setting two members
+        of \c paths emits \c pathsChanged twice.
+    \li Assigning an unchanged value does nothing and emits nothing.
+    \endlist
+
+    The destructor also saves, so values survive a clean shutdown without a
+    \l saveToFile() call.
+*/
+
+/*!
+    \qmlproperty generalSettings Config::general
+    General behavior settings.
+*/
+
+/*!
+    \qmlproperty pathSettings Config::paths
+    Paths to the game data folder and the game executable.
+*/
+
+/*!
+    \qmlproperty appearanceSettings Config::appearance
+    Theme and accent color.
+*/
+
+/*!
+    \qmlmethod void Config::saveToFile()
+    Writes all three sections and the favorite mods to \c config.json.
+    Changes to the sections are saved only by this call or at a clean
+    shutdown. Favorite
+    mods are the exception, they are saved as soon as they change.
+*/
+
+/*!
+    \qmlvaluetype generalSettings
+    \nativetype vsmm::GeneralSettings
+    \inqmlmodule Config
+    \brief General behavior settings, the type of \l {Config::general}{Config.general}.
+
+    Read a member directly, for example \c {Config.general.includeModPrerelease}.
+    Assigning a member runs the setter of the whole section, which emits the
+    section's change signal only when a value changed.
+*/
+
+/*!
+    \qmlproperty bool generalSettings::deleteOldModVersion
+    Move the old zip to the trash when a mod is updated, by a download or by
+    loading a newer zip of a known mod with \l {ModLoader::load()}{ModLoader.load()}. A scan never deletes
+    anything. Defaults to \c true.
+*/
+
+/*!
+    \qmlproperty bool generalSettings::includeModPrerelease
+    Consider pre-release versions when checking for updates. Defaults to
+    \c false.
+*/
+
+/*!
+    \qmlvaluetype pathSettings
+    \nativetype vsmm::PathSettings
+    \inqmlmodule Config
+    \brief Game paths, the type of \l {Config::paths}{Config.paths}.
+
+    \l [QML] GameMngr reads both paths. Changing \l gameConfig makes it read the
+    mods folders and disabled mods again, changing \l gameExe makes it read the
+    game version again.
+*/
+
+/*!
+    \qmlproperty string pathSettings::gameConfig
+    The \c VintagestoryData folder. Empty by default.
+*/
+
+/*!
+    \qmlproperty string pathSettings::gameExe
+    The Vintage Story executable. Empty by default.
+*/
+
+/*!
+    \qmlvaluetype appearanceSettings
+    \nativetype vsmm::AppearanceSettings
+    \inqmlmodule Config
+    \brief Look of the app, the type of \l {Config::appearance}{Config.appearance}.
+
+    The backend only stores these values. The QML layer decides what the
+    theme and accent index look like.
+*/
+
+/*!
+    \qmlproperty enumeration appearanceSettings::theme
+    The color theme. Defaults to \c Dark. Compare it with \c 0 or \c 1.
+
+    \value Dark (0) Dark theme.
+    \value Light (1) Light theme.
+*/
+
+/*!
+    \qmlproperty int appearanceSettings::accentIndex
+    Index of the accent color. Defaults to \c 0.
+*/

@@ -1,0 +1,150 @@
+/*!
+    \qmlmodule ModListModel
+    \title ModListModel QML Module
+    \brief Source list model of the installed mods.
+*/
+
+/*!
+    \qmltype ModListModel
+    \nativetype vsmm::ModListModel
+    \inqmlmodule ModListModel
+    \brief List model with one row per installed mod.
+
+    \l [QML] {ModSortFilterModel} sorts and filters this model. ModListModel
+    has no properties or methods of its own, it defines the roles of each
+    row:
+
+    \table
+    \header \li Role \li Type \li Description
+    \row \li \c modId \li string \li Mod id.
+    \row \li \c modName \li string \li Display name.
+    \row \li \c modAuthor \li list<string> \li Authors.
+    \row \li \c modVersion \li string \li Installed version.
+    \row \li \c modLatestVersion \li string \li Version of the available update. Only meaningful when \c modHasUpdate is \c true, otherwise \c 0.1.0.
+    \row \li \c modHasUpdate \li bool \li An update is available.
+    \row \li \c modTags \li list<string> \li Tags from the online info.
+    \row \li \c modUrl \li url \li Page of the mod on mods.vintagestory.at.
+    \row \li \c modSide \li string \li The \c side field of the online info, for example \c both. Empty until the online info arrives.
+    \row \li \c modThumbnail \li string \li \c modicon image URL, empty while the online info has no logo URL.
+    \row \li \c isFavoriteMod \li bool \li The mod is a favorite.
+    \row \li \c isMarkedForUpdate \li bool \li The mod is marked with \l {ModStore::markForUpdate()}{ModStore.markForUpdate()}.
+    \endtable
+
+    A delegate can read the roles unqualified:
+
+    \qml
+    Label { text: modName }
+    \endqml
+
+    \qml
+    Rectangle { visible: modHasUpdate }
+    \endqml
+*/
+
+/*!
+    \qmlmodule ModSortFilterModel
+    \title ModSortFilterModel QML Module
+    \brief Sorted and filtered model of the installed mods.
+*/
+
+/*!
+    \qmltype ModSortFilterModel
+    \nativetype vsmm::ModSortFilterModel
+    \inqmlmodule ModSortFilterModel
+    \brief Sorted and filtered proxy over \l [QML] {ModListModel}.
+
+    It has the same roles as \l [QML] {ModListModel}. Rows are sorted by
+    \c modName, ascending and case insensitive.
+
+    \qml
+    ListView {
+        model: ModSortFilterModel
+    }
+    \endqml
+
+    \qml
+    TextField {
+        onTextChanged: ModSortFilterModel.filterText = text
+    }
+    \endqml
+*/
+
+/*!
+    \qmlproperty string ModSortFilterModel::filterText
+    Keeps only the rows whose \c modName contains this text, case
+    insensitive. Author, tags and id are not searched. An empty string accepts
+    every row.
+*/
+
+/*!
+    \qmlmodule ModUpdateModel
+    \title ModUpdateModel QML Module
+    \brief Progress of the current mod update batch.
+*/
+
+/*!
+    \qmltype ModUpdateModel
+    \nativetype vsmm::ModUpdateModel
+    \inqmlmodule ModUpdateModel
+    \brief List model with one row per mod of the current update batch.
+
+    A batch starts when \l [QML] {ModStore} begins an update.
+    Rows stay in the model after their mod finishes. A finished batch is
+    removed by \l clear() or replaced when the next batch starts.
+
+    \table
+    \header \li Role \li Type \li Description
+    \row \li \c modId \li string \li Mod id.
+    \row \li \c modName \li string \li Display name.
+    \row \li \c fromVersion \li string \li Installed version.
+    \row \li \c toVersion \li string \li Version being installed.
+    \row \li \c updateState \li enumeration \li One of the State values below.
+    \row \li \c progress \li real \li Between \c 0 and \c 1, or \c -1 while downloading with an unknown size.
+    \row \li \c errorText \li string \li Failure reason, empty unless \c updateState is \c Failed.
+    \endtable
+
+    The \c updateState role uses these values:
+
+    \value ModUpdateModel.Queued No download progress has arrived yet.
+    \value ModUpdateModel.Downloading The new zip is downloading.
+    \value ModUpdateModel.Installing The new zip is moving into the mods folder.
+    \value ModUpdateModel.Done The update finished.
+    \value ModUpdateModel.Failed The update stopped, see \c errorText. A mod that is still unfinished when loading ends gets \c {Update ended without a result}.
+*/
+
+/*!
+    \qmlproperty int ModUpdateModel::count
+    \readonly
+    Number of mods in the batch.
+*/
+
+/*!
+    \qmlproperty int ModUpdateModel::finishedCount
+    \readonly
+    Number of mods in the \c Done or \c Failed state.
+*/
+
+/*!
+    \qmlproperty int ModUpdateModel::failedCount
+    \readonly
+    Number of mods in the \c Failed state.
+*/
+
+/*!
+    \qmlproperty real ModUpdateModel::totalProgress
+    \readonly
+    Progress of the whole batch between \c 0 and \c 1. Finished mods count as
+    complete, downloads with an unknown size count as \c 0.
+*/
+
+/*!
+    \qmlproperty bool ModUpdateModel::active
+    \readonly
+    \c true while at least one mod is not \c Done or \c Failed.
+*/
+
+/*!
+    \qmlmethod void ModUpdateModel::clear()
+    Removes all rows of a finished batch. Does nothing while \l active is
+    \c true.
+*/

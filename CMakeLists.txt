@@ -73,3 +73,8 @@ endif()
 
 set(CMAKE_INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/vsmm")
 add_subdirectory(src bin)
+
+find_package(Qt6 QUIET COMPONENTS ToolsTools)
+if (TARGET Qt6::qdoc)
+    add_subdirectory(docs/qdoc)
+endif ()

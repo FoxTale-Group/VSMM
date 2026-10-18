@@ -1,0 +1,438 @@
+/*!
+    \class vsmm::ModListModel
+    \inmodule VSMM
+    \brief List model with one row per installed mod.
+
+    ModListModel is a flat list model over the mods of an \l vsmm::IModStore.
+    Each row holds only a mod id. data() looks the mod up in the store on
+    every call, so the model never keeps its own copy of mod data.
+
+    The model is a QML singleton. \l vsmm::App passes the
+    \l vsmm::ModStore to setStore() and sets the model as the source model of
+    \l vsmm::ModSortFilterModel. After that the model follows the store
+    signals. A \c modAdded signal appends a row at the end, \c modUpdated
+    emits \c dataChanged() for the row of that mod, \c modRemoved removes the
+    row, and \c modsReloading removes every row.
+
+    QML reads the rows through the role names listed in \l Roles. See the
+    \l [QML] {ModListModel} QML type for the role table seen from QML.
+
+    \sa vsmm::ModSortFilterModel, vsmm::IModStore
+*/
+
+/*!
+    \enum vsmm::ModListModel::Roles
+
+    The data roles of the model. The QML role name of each value is given in
+    parentheses.
+
+    \value NameRole (\c modName) Display name of the mod.
+    \value AuthorRole (\c modAuthor) List of the mod authors.
+    \value VersionRole (\c modVersion) Installed version as a string.
+    \value LatestVersionRole (\c modLatestVersion) Version of the available
+           update as a string. Only meaningful when \c HasUpdateRole is
+           \c true, otherwise \c 0.1.0.
+    \value TagsRole (\c modTags) Tags from the online info.
+    \value UrlRole (\c modUrl) Page of the mod on the mod database.
+    \value SideRole (\c modSide) The \c side field of the online info, for example \c both.
+    \value HasUpdateRole (\c modHasUpdate) \c true when an update is
+           available.
+    \value IconRole (\c modThumbnail) \c image://modicon URL of the mod
+           icon, with the logo URL percent encoded in the \c url query item.
+           Empty while the mod has no logo URL.
+    \value IdRole (\c modId) Mod id.
+    \value FavoriteRole (\c isFavoriteMod) \c true when the mod is a
+           favorite.
+    \value MarkedForUpdateRole (\c isMarkedForUpdate) \c true when the mod
+           is marked for update.
+*/
+
+/*!
+    \fn vsmm::ModListModel::ModListModel(QObject *parent)
+
+    Creates an empty model with the given \a parent. The model has no rows
+    until setStore() is called and the store adds mods.
+*/
+
+/*!
+    \fn int vsmm::ModListModel::rowCount(const QModelIndex &parent) const
+    \reimp
+
+    Returns the number of mods in the model, or \c 0 for a valid parent.
+*/
+
+/*!
+    \fn QVariant vsmm::ModListModel::data(const QModelIndex &index, int role) const
+    \reimp
+
+    Looks up the mod of the row in the store and returns the value for one of
+    the \l Roles. Returns an invalid QVariant when the row or the mod is not
+    found.
+*/
+
+/*!
+    \fn QHash<int, QByteArray> vsmm::ModListModel::roleNames() const
+    \reimp
+
+    Returns the QML role names listed in \l Roles.
+*/
+
+/*!
+    \fn void vsmm::ModListModel::setStore(vsmm::IModStore *store)
+
+    Sets \a store as the source of the mods and connects to its
+    \c modAdded, \c modUpdated, \c modsReloading and \c modRemoved signals.
+
+    The store can be set only once. A second call logs a warning and does
+    nothing. A null \a store is a fatal error. Call this before the model is
+    used, because data() reads from the store.
+*/
+
+/*!
+    \class vsmm::ModSortFilterModel
+    \inmodule VSMM
+    \brief Sorted and filtered proxy over vsmm::ModListModel.
+
+    ModSortFilterModel sorts and filters \l vsmm::ModListModel. It is a QML
+    singleton. \l vsmm::App sets the \l vsmm::ModListModel
+    singleton as its source model.
+
+    Rows are sorted by mod name, ascending and case insensitive. Sorting and
+    filtering are dynamic, so rows are re-sorted, added and removed when the
+    source data changes. The \l filterText property limits the rows to mods whose name
+    contains the text.
+
+    See the \l [QML] {ModSortFilterModel} QML type for the QML side.
+
+    \sa vsmm::ModListModel
+*/
+
+/*!
+    \property vsmm::ModSortFilterModel::filterText
+    \brief The text that the mod name of every accepted row contains.
+
+    The match is case insensitive and checks only the mod name. Author, tags
+    and id are not searched. An empty string accepts every row. The default is
+    an empty string.
+*/
+
+/*!
+    \fn vsmm::ModSortFilterModel::ModSortFilterModel(QObject *parent)
+
+    Creates the proxy with the given \a parent. Enables dynamic sorting and
+    filtering and sorts column \c 0 in ascending order.
+*/
+
+/*!
+    \fn QString vsmm::ModSortFilterModel::getFilterText() const
+
+    Returns the current filter text.
+
+    \sa filterText
+*/
+
+/*!
+    \fn void vsmm::ModSortFilterModel::setFilterText(const QString &filterText)
+
+    Sets the filter text to \a filterText and filters the rows again. Does
+    nothing when the text does not change. Emits filterTextChanged() after a
+    change.
+
+    \sa filterText
+*/
+
+/*!
+    \fn void vsmm::ModSortFilterModel::filterTextChanged()
+
+    Emitted when \l filterText changes. Only QML bindings use this signal.
+*/
+
+/*!
+    \fn bool vsmm::ModSortFilterModel::lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const
+    \reimp
+
+    Compares the \l {vsmm::ModListModel::Roles}{NameRole} values of both rows,
+    case insensitive.
+*/
+
+/*!
+    \fn bool vsmm::ModSortFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
+    \reimp
+
+    Accepts every row when \l filterText is empty. Otherwise accepts a row
+    when its \l {vsmm::ModListModel::Roles}{NameRole} value contains the filter
+    text, case insensitive.
+*/
+
+/*!
+    \class vsmm::ModUpdateModel
+    \inmodule VSMM
+    \brief List model with one row per mod of the current update batch.
+
+    ModUpdateModel holds the progress of a mod update batch. It is a QML
+    singleton. \l vsmm::App passes the \l vsmm::ModStore to
+    setStore(), and the model then follows the update signals of the store.
+
+    A \c modUpdateRequested signal starts a new batch. The model resets and
+    adds one row for each requested mod that the store knows. Ids listed
+    twice get one row. Each row keeps the mod name, the installed version and
+    the version being installed, read from the store when the batch starts.
+    The rows stay in the model after their mods finish, until clear() is
+    called or the next batch starts.
+
+    Each row moves through the \l State values. The progress signals of the
+    store move a row from \c Queued to \c Downloading and update its
+    download progress. \c modUpdateInstalling, \c modUpdateFinished and
+    \c modUpdateFailed move it to \c Installing, \c Done and \c Failed.
+    Signals for mods outside the batch, or for rows already \c Done or
+    \c Failed, are ignored. When the store emits \c modsLoaded, every row
+    that is not \c Done or \c Failed yet becomes \c Failed with the error
+    text "Update ended without a result".
+
+    The properties \l count, \l finishedCount, \l failedCount,
+    \l totalProgress and \l active summarize the batch for QML. See the
+    \l [QML] {ModUpdateModel} QML type for the role table seen from QML.
+
+    \sa vsmm::IModStore
+*/
+
+/*!
+    \enum vsmm::ModUpdateModel::Roles
+
+    The data roles of the model. The QML role name of each value is given in
+    parentheses.
+
+    \value IdRole (\c modId) Mod id.
+    \value NameRole (\c modName) Display name of the mod.
+    \value FromVersionRole (\c fromVersion) Installed version when the batch
+           started.
+    \value ToVersionRole (\c toVersion) Version being installed.
+    \value StateRole (\c updateState) Current \l State of the row.
+    \value ProgressRole (\c progress) Progress of the row between \c 0 and
+           \c 1. It is \c -1 while the row is \c Downloading and the download
+           size is unknown.
+    \value ErrorRole (\c errorText) Failure reason. Empty unless the state is
+           \c Failed.
+*/
+
+/*!
+    \enum vsmm::ModUpdateModel::State
+
+    The state of one mod in the update batch.
+
+    \value Queued No download progress has arrived yet. Progress is \c 0.
+    \value Downloading The new zip is downloading.
+    \value Installing The new zip is being installed. Progress is \c 1.
+    \value Done The update finished. Progress is \c 1.
+    \value Failed The update stopped. The \l {vsmm::ModUpdateModel::Roles}{ErrorRole}
+           value holds the reason.
+*/
+
+/*!
+    \property vsmm::ModUpdateModel::count
+    \brief The number of mods in the batch.
+
+    The value changes when a batch starts and when clear() removes the rows.
+*/
+
+/*!
+    \property vsmm::ModUpdateModel::finishedCount
+    \brief The number of mods in the \c Done or \c Failed state.
+*/
+
+/*!
+    \property vsmm::ModUpdateModel::failedCount
+    \brief The number of mods in the \c Failed state.
+*/
+
+/*!
+    \property vsmm::ModUpdateModel::totalProgress
+    \brief The progress of the whole batch between \c 0 and \c 1.
+
+    Rows in the \c Done or \c Failed state count as complete. A download with
+    an unknown size counts as \c 0. The value is \c 0 when the batch is
+    empty.
+*/
+
+/*!
+    \property vsmm::ModUpdateModel::active
+    \brief Whether at least one mod of the batch is not \c Done or \c Failed.
+
+    The value is \c false when the batch is empty.
+*/
+
+/*!
+    \fn vsmm::ModUpdateModel::ModUpdateModel(QObject *parent)
+
+    Creates an empty model with the given \a parent.
+*/
+
+/*!
+    \fn int vsmm::ModUpdateModel::rowCount(const QModelIndex &parent) const
+    \reimp
+
+    Returns the number of mods in the batch, or \c 0 for a valid parent.
+*/
+
+/*!
+    \fn QVariant vsmm::ModUpdateModel::data(const QModelIndex &index, int role) const
+    \reimp
+
+    Returns the value of the row for one of the \l Roles, or an invalid
+    QVariant for an unknown row or role.
+*/
+
+/*!
+    \fn QHash<int, QByteArray> vsmm::ModUpdateModel::roleNames() const
+    \reimp
+
+    Returns the QML role names listed in \l Roles.
+*/
+
+/*!
+    \fn void vsmm::ModUpdateModel::setStore(vsmm::IModStore *store)
+
+    Sets \a store as the source of the update batches and connects to its
+    \c modUpdateRequested, \c modUpdateProgress, \c modUpdateInstalling,
+    \c modUpdateFinished, \c modUpdateFailed and \c modsLoaded signals.
+
+    The store can be set only once. A second call logs a warning and does
+    nothing. A null \a store is a fatal error.
+*/
+
+/*!
+    \fn int vsmm::ModUpdateModel::count() const
+
+    Returns the number of mods in the batch.
+*/
+
+/*!
+    \fn int vsmm::ModUpdateModel::finishedCount() const
+
+    Returns the number of mods in the \c Done or \c Failed state.
+*/
+
+/*!
+    \fn int vsmm::ModUpdateModel::failedCount() const
+
+    Returns the number of mods in the \c Failed state.
+*/
+
+/*!
+    \fn double vsmm::ModUpdateModel::totalProgress() const
+
+    Returns the progress of the whole batch between \c 0 and \c 1.
+*/
+
+/*!
+    \fn bool vsmm::ModUpdateModel::isActive() const
+
+    Returns \c true while at least one mod of the batch is not \c Done or
+    \c Failed.
+
+    \sa active
+*/
+
+/*!
+    \fn void vsmm::ModUpdateModel::clear()
+
+    Removes all rows of a finished batch and emits countChanged() and
+    progressChanged(). Logs a warning and does nothing while \l active is
+    \c true. Does nothing when the model is empty.
+*/
+
+/*!
+    \fn void vsmm::ModUpdateModel::countChanged()
+
+    Emitted when \l count changes, that is when a batch starts or clear()
+    removes the rows. Only QML bindings use this signal.
+*/
+
+/*!
+    \fn void vsmm::ModUpdateModel::progressChanged()
+
+    Emitted when \l finishedCount, \l failedCount, \l totalProgress or
+    \l active can have changed. This happens when a batch starts, on every
+    download progress step, on every state change and in clear(). Only QML
+    bindings use this signal.
+*/
+
+/*!
+    \class vsmm::ModImageProvider
+    \inmodule VSMM
+    \brief Asynchronous QML image provider for mod icons.
+
+    ModImageProvider serves the mod icons that QML requests. \c App creates it,
+    calls setHttpClient(), and adds it to the QML engine under the name
+    \c modicon. \c App also connects the \c modsReloading and \c modRemoved
+    signals of the \l vsmm::ModStore to onModsReloading() and onModRemoved().
+
+    An image id has the form \c {<modId>?url=<percent encoded logo url>}.
+    The \l {vsmm::ModListModel::Roles}{IconRole} of \l vsmm::ModListModel returns
+    URLs in this form, already percent encoded.
+
+    The provider downloads an icon through the \l vsmm::IHttpClient the
+    first time a mod id is requested. Requests for the same mod id that
+    arrive while the download runs wait for the same download. Images are
+    decoded on a separate thread pool and kept in an in-memory cache of up
+    to 32 MiB, keyed by mod id. When the downloaded data is not a valid
+    image, the provider remembers that the mod has no icon and answers later
+    requests with an error until the mods reload or the mod is removed. A
+    failed download is not remembered, so the next request downloads again.
+*/
+
+/*!
+    \fn vsmm::ModImageProvider::ModImageProvider()
+
+    Creates the provider. Call setHttpClient() before the first image
+    request.
+*/
+
+/*!
+    \fn vsmm::ModImageProvider::~ModImageProvider()
+
+    Destroys the provider after waiting for all running image decodes to
+    finish.
+*/
+
+/*!
+    \fn QQuickImageResponse *vsmm::ModImageProvider::requestImageResponse(const QString &id, const QSize &requestedSize)
+    \reimp
+
+    Returns a response that resolves from the cache, with an error for a mod
+    without an icon, or after the download finishes. With a valid requested
+    size, the image is scaled to it, and the aspect ratio is ignored only
+    when both dimensions are below 100 pixels.
+*/
+
+/*!
+    \fn void vsmm::ModImageProvider::setHttpClient(vsmm::IHttpClient *httpClient)
+
+    Sets \a httpClient as the client used to download icons. The client can
+    be set only once. A second call logs a warning and does nothing. A null
+    \a httpClient is a fatal error.
+*/
+
+/*!
+    \fn void vsmm::ModImageProvider::imageDownloaded(QString id, QImage image, QString error)
+
+    Emitted when the download of the icon of mod \a id ends. On success
+    \a image holds the decoded icon and \a error is empty. On failure
+    \a image is null and \a error holds the reason. The pending responses
+    for that mod resolve from this signal. It can be emitted from a decode
+    thread.
+*/
+
+/*!
+    \fn void vsmm::ModImageProvider::onModsReloading()
+
+    Clears the image cache and the list of mods without an icon, so every
+    icon downloads again on its next request.
+*/
+
+/*!
+    \fn void vsmm::ModImageProvider::onModRemoved(QStringView modId)
+
+    Removes the cached image of mod \a modId and forgets that the mod had no
+    icon.
+*/

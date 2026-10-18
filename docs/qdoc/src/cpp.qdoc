@@ -1,0 +1,16 @@
+/*!
+    \module VSMM
+    \title VSMM C++ Module
+    \brief C++ libraries of the mod manager backend.
+*/
+
+/*!
+    \namespace vsmm
+    \inmodule VSMM
+    \brief Every class of the backend.
+
+    Each library under \c src builds one shared library with its classes in
+    this namespace. The \c I prefixed classes are abstract interfaces. Most
+    libraries use other libraries only through these interfaces, so tests
+    can replace a collaborator with a mock.
+*/
