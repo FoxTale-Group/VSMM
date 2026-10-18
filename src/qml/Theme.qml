@@ -22,6 +22,7 @@ QtObject {
         readonly property string downloadIcon:       _iconsPath + "download"         + ".svg"
         readonly property string downloadAllIcon:    _iconsPath + "download_all"     + ".svg"
         readonly property string downloadOneIcon:    _iconsPath + "download_one"     + ".svg"
+        readonly property string downloadingIcon:    _iconsPath + "downloading"      + ".svg"
         readonly property string dropItemIcon:       _iconsPath + "drop_item"        + ".svg"
         readonly property string exitFullscreenIcon: _iconsPath + "exit_fullscreen"  + ".svg"
         readonly property string extensionIcon:      _iconsPath + "extension"        + ".svg"
@@ -40,6 +41,7 @@ QtObject {
         readonly property string settingsIcon:       _iconsPath + "settings"         + ".svg"
         readonly property string syncIcon:           _iconsPath + "sync"             + ".svg"
         readonly property string upgradeOneIcon:     _iconsPath + "upgrade_one"      + ".svg"
+        readonly property string clearAllIcon:       _iconsPath + "clear_all"        + ".svg"
     }
     readonly property IconSet icons: IconSet {}
 
@@ -84,6 +86,14 @@ QtObject {
     }
 
     property int accentIndex: 0
+
+    component StatusBadgesColors: QtObject {
+        readonly property color queued:      "#333333"
+        readonly property color downloading: '#808822'
+        readonly property color installing:  '#216c6a'
+        readonly property color done:        '#187918'
+        readonly property color failed:      '#5d2525'
+    }
 
     component ColorSet: QtObject
     {
@@ -238,6 +248,8 @@ QtObject {
         readonly property color dropAreaBorder: "#555555"
         readonly property color dropAreaIcon:   "#aaaaaa"
         readonly property color dropAreaDragFg: accent
+
+        readonly property StatusBadgesColors statusBadges: StatusBadgesColors{}
 
     }
     readonly property ColorSet colors: ColorSet {}

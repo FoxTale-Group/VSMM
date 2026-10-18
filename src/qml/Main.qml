@@ -79,6 +79,8 @@ VsmmWindow {
 
         ModList{}
 
+        UpdatesPane {id: updatesPanel}
+
     }
 
     footer: Item {
@@ -88,6 +90,14 @@ VsmmWindow {
             anchors.fill: parent
             anchors.leftMargin: 12; anchors.rightMargin: 12; anchors.bottomMargin: 12
             spacing: 4
+
+            Button {
+                flat: true
+                icon.source: Theme.icons.downloadingIcon
+                icon.width: 16; icon.height: 16
+                tooltipText: qsTr("Show mod update(s) status")
+                onClicked: updatesPanel.open ? updatesPanel.hide() : updatesPanel.show()
+            }
 
             LayoutHorizontalSpacer {}
 
