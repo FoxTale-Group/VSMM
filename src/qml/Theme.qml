@@ -192,9 +192,9 @@ QtObject {
         // Icon and floating label once the field is unfocused and holds text.
         readonly property color searchBarAccent:    themeRoot.shade(accent, 0.25)
 
-        // Mod list colors
-        readonly property color modlistBg:      "#262626"
-        readonly property color modlistBorder:  "#3a3a3a"
+        // Pane colors
+        readonly property color panelBg:      "#262626"
+        readonly property color panelBorder:  "#3a3a3a"
 
         // Mod entry colors
         readonly property color modTagText:         "#888780"
