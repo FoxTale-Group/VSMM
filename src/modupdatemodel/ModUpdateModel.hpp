@@ -30,7 +30,7 @@ namespace vsmm {
 // one row per mod of the current update batch, rows outlive the store entries they started from
 class MODUPDATEMODEL_EXPORT ModUpdateModel : public QAbstractListModel {
     Q_OBJECT
-    QML_ELEMENT
+    QML_NAMED_ELEMENT(ModUpdateModel)
     QML_SINGLETON
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(int finishedCount READ finishedCount NOTIFY progressChanged)
