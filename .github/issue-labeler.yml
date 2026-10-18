@@ -1,0 +1,16 @@
+feature: '/^feat[(!:]/'
+fix: '/^fix[(!:]/'
+refactor: '/^refactor[(!:]/'
+optimization: '/^perf[(!:]/'
+tooling: '/^tooling[(!:]|### Scope\(s\)\s+[^#]*Tooling/'
+
+'os|Linux': '/^\w+\([^)]*linux[^)]*\)!?:|### Operating system\s+Linux/i'
+'os|Windows': '/^\w+\([^)]*windows[^)]*\)!?:|### Operating system\s+Windows/i'
+'os|macOS': '/^\w+\([^)]*macos[^)]*\)!?:|### Operating system\s+macOS/i'
+
+build: '/### Scope\(s\)\s+[^#]*Build/'
+packaging: '/### Scope\(s\)\s+[^#]*Packaging/'
+'tooling|CI/CD workflows': '/### Scope\(s\)\s+[^#]*CI Workflow\(s\)/'
+frontend: '/### Scope\(s\)\s+[^#]*(Frontend|UI\/UX)/'
+backend: '/### Scope\(s\)\s+[^#]*Backend/'
+tests: '/### Scope\(s\)\s+[^#]*Tests/'
