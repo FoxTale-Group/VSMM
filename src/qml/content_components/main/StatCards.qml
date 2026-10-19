@@ -18,6 +18,10 @@ RowLayout
                 value: ModStore.installedModsCount,
                 color: Theme.colors.statCardInstalledBg, textColor: Theme.colors.statCardInstalledText
             }, {
+                label: qsTr("Enabled"),
+                value: ModStore.enabledModsCount,
+                color: Theme.colors.statCardInstalledBg, textColor: Theme.colors.statCardInstalledText
+            }, {
                 label: qsTr("Updates available"),
                 value: ModStore.updatesCount,
                 color: Theme.colors.statCardUpdatesBg, textColor: Theme.colors.statCardUpdatesText
