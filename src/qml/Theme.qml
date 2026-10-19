@@ -150,10 +150,10 @@ QtObject {
         readonly property color buttonIcon:    "#ffffff"
         readonly property color buttonText:    "#ffffff"
 
-        // Default mod entry action button colors
-        readonly property color modEntryButtonDefault: "transparent"
-        readonly property color modEntryButtonHover:   "#444444"
-        readonly property color modEntryButtonPress:   "#333333"
+        // Flat (icon-only) button colors: mod rows, panel actions, footer, title bar
+        readonly property color flatButtonDefault: "transparent"
+        readonly property color flatButtonHover:   "#444444"
+        readonly property color flatButtonPress:   "#333333"
 
         // Radio button (accent swatches). Fixed colours: the ring is drawn against the
         // panel, not against the swatch it surrounds.
@@ -172,7 +172,15 @@ QtObject {
         readonly property color switchTrackOn:  accent
         readonly property color switchThumb:    "#ffffff"
 
-        // Button role colors. One base each; hover and press are derived via Theme.shade().
+        // Progress bar colors.
+        readonly property color progressBarTrack:  "#1e1e1e"
+        readonly property color progressBarBorder: "#4a4a4a"
+        readonly property color progressBarFill:   accent
+
+        // Busy indicator color.
+        readonly property color busyIndicator: accent
+
+        // Button role colors.
         readonly property color highlightButton: accent
         readonly property color buttonLaunch:    accent
         readonly property color buttonUpdate:    "#a6842e"
@@ -192,9 +200,9 @@ QtObject {
         // Icon and floating label once the field is unfocused and holds text.
         readonly property color searchBarAccent:    themeRoot.shade(accent, 0.25)
 
-        // Mod list colors
-        readonly property color modlistBg:      "#262626"
-        readonly property color modlistBorder:  "#3a3a3a"
+        // Pane colors
+        readonly property color panelBg:      "#262626"
+        readonly property color panelBorder:  "#3a3a3a"
 
         // Mod entry colors
         readonly property color modTagText:         "#888780"
