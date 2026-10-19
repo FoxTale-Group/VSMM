@@ -80,13 +80,20 @@ void App::initQmlEngine() {
     mQmlEngine.rootContext()->setContextProperty("IS_MACOS", true);
 #endif
 
-    auto config = mQmlEngine.singletonInstance<Config *>("vsmm", "Config");
-    auto gameMngr = mQmlEngine.singletonInstance<GameMngr *>("vsmm", "GameMngr");
-    auto modLoader = mQmlEngine.singletonInstance<ModLoader *>("vsmm", "ModLoader");
-    auto modSortFilterModel = mQmlEngine.singletonInstance<ModSortFilterModel *>("vsmm", "ModSortFilterModel");
-    auto modStore = mQmlEngine.singletonInstance<ModStore *>("vsmm", "ModStore");
-    auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("vsmm", "ModListModel");
-    auto modUpdateModel = mQmlEngine.singletonInstance<ModUpdateModel *>("vsmm", "ModUpdateModel");
+    auto config = mQmlEngine.singletonInstance<Config *>("VSMM.Config", "Config");
+    auto gameMngr = mQmlEngine.singletonInstance<GameMngr *>("VSMM.GameMngr", "GameMngr");
+    auto modLoader = mQmlEngine.singletonInstance<ModLoader *>("VSMM.ModLoader", "ModLoader");
+    auto modSortFilterModel =
+        mQmlEngine.singletonInstance<ModSortFilterModel *>("VSMM.ModSortFilterModel", "ModSortFilterModel");
+    auto modStore = mQmlEngine.singletonInstance<ModStore *>("VSMM.ModStore", "ModStore");
+    auto modListModel = mQmlEngine.singletonInstance<ModListModel *>("VSMM.ModListModel", "ModListModel");
+    auto modUpdateModel = mQmlEngine.singletonInstance<ModUpdateModel *>("VSMM.ModUpdateModel", "ModUpdateModel");
+
+    // GCOVR_EXCL_START
+    if (!config || !gameMngr || !modLoader || !modSortFilterModel || !modStore || !modListModel || !modUpdateModel) {
+        qCFatal(cApp, "QML singleton lookup failed");
+    }
+    // GCOVR_EXCL_STOP
 
     modListModel->setStore(modStore);
     modUpdateModel->setStore(modStore);

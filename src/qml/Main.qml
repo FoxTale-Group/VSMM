@@ -3,6 +3,9 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import vsmm
+import VSMM.Config
+import VSMM.GameMngr
+import VSMM.ModStore
 import VSMMStyle
 
 VsmmWindow {

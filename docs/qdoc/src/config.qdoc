@@ -1,13 +1,13 @@
 /*!
-    \qmlmodule Config
-    \title Config QML Module
+    \qmlmodule VSMM.Config
+    \title VSMM.Config QML Module
     \brief User settings, saved to \c config.json.
 */
 
 /*!
     \qmltype Config
     \nativetype vsmm::Config
-    \inqmlmodule Config
+    \inqmlmodule VSMM.Config
     \brief User settings, grouped into three value type sections.
 
     The settings are stored in \c config.json inside the application config
@@ -67,7 +67,7 @@
 /*!
     \qmlvaluetype generalSettings
     \nativetype vsmm::GeneralSettings
-    \inqmlmodule Config
+    \inqmlmodule VSMM.Config
     \brief General behavior settings, the type of \l {Config::general}{Config.general}.
 
     Read a member directly, for example \c {Config.general.includeModPrerelease}.
@@ -91,7 +91,7 @@
 /*!
     \qmlvaluetype pathSettings
     \nativetype vsmm::PathSettings
-    \inqmlmodule Config
+    \inqmlmodule VSMM.Config
     \brief Game paths, the type of \l {Config::paths}{Config.paths}.
 
     \l [QML] GameMngr reads both paths. Changing \l gameConfig makes it read the
@@ -112,7 +112,7 @@
 /*!
     \qmlvaluetype appearanceSettings
     \nativetype vsmm::AppearanceSettings
-    \inqmlmodule Config
+    \inqmlmodule VSMM.Config
     \brief Look of the app, the type of \l {Config::appearance}{Config.appearance}.
 
     The backend only stores these values. The QML layer decides what the

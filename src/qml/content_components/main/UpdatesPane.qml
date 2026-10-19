@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import VSMMStyle
 import vsmm
+import VSMM.ModUpdateModel
 
 Pane {
     id: updatesPanelRoot

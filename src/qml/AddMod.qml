@@ -6,6 +6,7 @@ import QtQuick.Controls.impl
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import vsmm
+import VSMM.ModLoader
 
 VsmmWindow {
     id: addModWindow
