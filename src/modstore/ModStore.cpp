@@ -134,6 +134,7 @@ void ModStore::reload() {
     mMods.clear();
     emit workChanged();
     emit modsChanged();
+    emit modSelected();
 }
 
 void ModStore::update(const QString &id) { update(UpdateType::One, id); }
@@ -220,6 +221,7 @@ void ModStore::remove(const QString &id) {
     mMods.erase(it);
     // update count of installed mods
     emit modsChanged();
+    emit modSelected();
 
     qCInfo(cModStore, "Mod %s deleted", qUtf8Printable(id));
 }
@@ -382,6 +384,7 @@ void ModStore::updateMod(ModLocalInfo localModInfo) {
     emit modUpdated(it->getId());
     emit modUpdateFinished(it->getId());
     emit modsChanged();
+    emit modSelected();
 }
 
 void ModStore::toUniqueFileName(QString &name) {

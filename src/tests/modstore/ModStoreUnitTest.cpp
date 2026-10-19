@@ -385,6 +385,9 @@ class ModStoreUnitTest : public QObject {
         setComponents();
         addMod(modsDir(), modId(), u"1.0.0"_s);
         QVERIFY(finishScan());
+        mStore->markForUpdate(modId(), true);
+        QVERIFY(mStore->property("modsSelected").toBool());
+        QSignalSpy selected{mStore.get(), &vsmm::ModStore::modSelected};
         QSignalSpy reloading{mStore.get(), &vsmm::ModStore::modsReloading};
         QSignalSpy work{mStore.get(), &vsmm::ModStore::workChanged};
 
@@ -395,6 +398,8 @@ class ModStoreUnitTest : public QObject {
         QCOMPARE(work.count(), 1);
         QCOMPARE(mStore->modsCount(), 0);
         QVERIFY(mStore->isWorkPending());
+        QCOMPARE(selected.count(), 1);
+        QVERIFY(!mStore->property("modsSelected").toBool());
     }
 
     // the earlier scan's delay must not clear the flag of a reload that is still scanning
@@ -602,6 +607,9 @@ class ModStoreUnitTest : public QObject {
         setComponents();
         const QFileInfo installed = writeStubZip(modsDir(), u"carryon-1.0.0.zip"_s);
         mStore->add(localInfo(modId(), u"1.0.0"_s, installed), vsmm::ModStore::ModLoadType::Init);
+        mStore->markForUpdate(modId(), true);
+        QVERIFY(mStore->property("modsSelected").toBool());
+        QSignalSpy selected{mStore.get(), &vsmm::ModStore::modSelected};
         QStringList added;
         connect(mStore.get(), &vsmm::ModStore::modAdded, this,
                 [&added](QStringView id) { added.append(id.toString()); });
@@ -620,11 +628,16 @@ class ModStoreUnitTest : public QObject {
         QCOMPARE(str(mod->getVersion()), u"1.1.0"_s);
         QCOMPARE(mod->getFileInfo().absoluteFilePath(), modsDir().absoluteFilePath(u"carryon-1.1.0.zip"_s));
         QVERIFY(QFile::exists(installed.absoluteFilePath()));
+        QCOMPARE(selected.count(), 1);
+        QVERIFY(!mStore->property("modsSelected").toBool());
     }
 
     void guiInstallOfAnOlderVersionThanInstalledIsIgnored() {
         setComponents();
         addMod(modsDir(), modId(), u"1.1.0"_s);
+        mStore->markForUpdate(modId(), true);
+        QVERIFY(mStore->property("modsSelected").toBool());
+        QSignalSpy selected{mStore.get(), &vsmm::ModStore::modSelected};
         QTest::ignoreMessage(QtWarningMsg, "Got newer or the same version of mod carryon@1.0.0, ignoring");
 
         addMod(stagingDir(), modId(), u"1.0.0"_s, vsmm::ModStore::ModLoadType::GUI);
@@ -632,6 +645,8 @@ class ModStoreUnitTest : public QObject {
         QCOMPARE(mStore->modsCount(), 1);
         QCOMPARE(str(mStore->find(modId())->getVersion()), u"1.1.0"_s);
         QVERIFY(!modsDir().exists(u"carryon-1.0.0.zip"_s));
+        QCOMPARE(selected.count(), 0);
+        QVERIFY(mStore->property("modsSelected").toBool());
     }
 
     // with the flag on the superseded zip goes to the trash and the update keeps its own name
@@ -700,6 +715,9 @@ class ModStoreUnitTest : public QObject {
     void updateDownloadThatIsNotNewerIsIgnored() {
         setComponents();
         addMod(modsDir(), modId(), u"1.1.0"_s);
+        mStore->markForUpdate(modId(), true);
+        QVERIFY(mStore->property("modsSelected").toBool());
+        QSignalSpy selected{mStore.get(), &vsmm::ModStore::modSelected};
         QStringList events;
         trackUpdateResults(events);
         QTest::ignoreMessage(QtWarningMsg, "Got newer or the same version of mod carryon@1.0.0, ignoring");
@@ -711,11 +729,16 @@ class ModStoreUnitTest : public QObject {
         QVERIFY(!modsDir().exists(u"carryon-1.0.0.zip"_s));
         QCOMPARE(events,
                  (QStringList{u"installing:carryon"_s, u"failed:carryon:Installed version is the same or newer"_s}));
+        QCOMPARE(selected.count(), 0);
+        QVERIFY(mStore->property("modsSelected").toBool());
     }
 
     void updateDownloadThatCannotBeCopiedIsReported() {
         setComponents();
         addMod(modsDir(), modId(), u"1.0.0"_s);
+        mStore->markForUpdate(modId(), true);
+        QVERIFY(mStore->property("modsSelected").toBool());
+        QSignalSpy selected{mStore.get(), &vsmm::ModStore::modSelected};
         QStringList events;
         trackUpdateResults(events);
         // the download is gone before the store copies it
@@ -729,6 +752,8 @@ class ModStoreUnitTest : public QObject {
         QCOMPARE(str(mStore->find(modId())->getVersion()), u"1.0.0"_s);
         QCOMPARE(events, (QStringList{u"installing:carryon"_s,
                                       u"failed:carryon:Failed to copy the update into the mods folder"_s}));
+        QCOMPARE(selected.count(), 0);
+        QVERIFY(mStore->property("modsSelected").toBool());
     }
 
     void updateInstallsTheDownloadBesideTheOldZipAndRepointsTheEntry() {
@@ -739,6 +764,9 @@ class ModStoreUnitTest : public QObject {
         setComponents();
         const QFileInfo installed = writeStubZip(modsDir(), u"carryon-1.0.0.zip"_s);
         mStore->add(localInfo(modId(), u"1.0.0"_s, installed), vsmm::ModStore::ModLoadType::Init);
+        mStore->markForUpdate(modId(), true);
+        QVERIFY(mStore->property("modsSelected").toBool());
+        QSignalSpy selected{mStore.get(), &vsmm::ModStore::modSelected};
         QStringList updated;
         connect(mStore.get(), &vsmm::ModStore::modUpdated, this,
                 [&updated](QStringView id) { updated.append(id.toString()); });
@@ -755,6 +783,8 @@ class ModStoreUnitTest : public QObject {
         // the download lands next to the zip it supersedes, and the entry follows it
         QCOMPARE(mod->getFileInfo().absoluteFilePath(), modsDir().absoluteFilePath(u"carryon-1.1.0.zip"_s));
         QVERIFY(QFile::exists(installed.absoluteFilePath()));
+        QCOMPARE(selected.count(), 1);
+        QVERIFY(!mStore->property("modsSelected").toBool());
     }
 
     // a mod whose zip name carries no version downloads onto its own file name
@@ -786,6 +816,9 @@ class ModStoreUnitTest : public QObject {
         setComponents();
         const QFileInfo zip = writeStubZip(modsDir(), u"carryon-1.0.0.zip"_s);
         mStore->add(localInfo(modId(), u"1.0.0"_s, zip), vsmm::ModStore::ModLoadType::Init);
+        mStore->markForUpdate(modId(), true);
+        QVERIFY(mStore->property("modsSelected").toBool());
+        QSignalSpy selected{mStore.get(), &vsmm::ModStore::modSelected};
         // the list model and the icon cache drop their rows first, so the entry must still be there
         bool presentWhileAnnounced{false};
         connect(mStore.get(), &vsmm::ModStore::modRemoved, this, [this, &presentWhileAnnounced](QStringView id) {
@@ -801,6 +834,8 @@ class ModStoreUnitTest : public QObject {
         QCOMPARE(mStore->modsCount(), 0);
         QCOMPARE(changed.count(), 1);
         QVERIFY(!QFile::exists(zip.absoluteFilePath()));
+        QCOMPARE(selected.count(), 1);
+        QVERIFY(!mStore->property("modsSelected").toBool());
     }
 
     // the row stays rather than pointing at a file the store failed to delete
@@ -809,6 +844,9 @@ class ModStoreUnitTest : public QObject {
         const QFileInfo zip = writeStubZip(modsDir(), u"carryon-1.0.0.zip"_s);
         mStore->add(localInfo(modId(), u"1.0.0"_s, zip), vsmm::ModStore::ModLoadType::Init);
         QVERIFY(QFile::remove(zip.absoluteFilePath()));
+        mStore->markForUpdate(modId(), true);
+        QVERIFY(mStore->property("modsSelected").toBool());
+        QSignalSpy selected{mStore.get(), &vsmm::ModStore::modSelected};
         int announced{0};
         connect(mStore.get(), &vsmm::ModStore::modRemoved, this, [&announced](QStringView) { ++announced; });
 
@@ -818,15 +856,19 @@ class ModStoreUnitTest : public QObject {
         QCOMPARE(announced, 0);
         QVERIFY(mStore->contains(modId()));
         QCOMPARE(mStore->modsCount(), 1);
+        QCOMPARE(selected.count(), 0);
+        QVERIFY(mStore->property("modsSelected").toBool());
     }
 
     void removalOfAnUnknownModIsRefused() {
         setComponents();
+        QSignalSpy selected{mStore.get(), &vsmm::ModStore::modSelected};
         QTest::ignoreMessage(QtWarningMsg, "Removal requested for unknown mod ghost");
 
         mStore->remove(u"ghost"_s);
 
         QCOMPARE(mStore->modsCount(), 0);
+        QCOMPARE(selected.count(), 0);
     }
 };
 
