@@ -8,9 +8,9 @@ import VSMMStyle
 VsmmWindow {
     id: windowMain
     width: 860
-    height: 640
-    minimumWidth: 750
-    minimumHeight: 450
+    height: 600
+    minimumWidth: 800
+    minimumHeight: 600
 
     windowTitle: Qt.application.name + "  v" + Qt.application.version
     windowIcon: Theme.appLogo
@@ -18,18 +18,17 @@ VsmmWindow {
     Settings {id: settingsWindow}
     AddMod {id: addModWindow}
 
-    // Theme holds no reference to Config, so the persisted accent has to be pushed into it.
-    // Done here rather than relying on the settings window's revert(), which only reaches
-    // Theme because that window happens to be constructed eagerly.
-    // Theme clamps the index when resolving the colour, so no range check is needed.
+    // Theme holds no reference to Config
+    // This ensures user-selected accent is loaded from config on startup with main window creation
+    // Settings' revert() also does it, but only because that window is created at startup
     Component.onCompleted: Theme.accentIndex = Config.appearance.accentIndex ?? 0
 
     ColumnLayout
     {
         id: appContent
         anchors.fill: parent;
-        anchors.topMargin: 7; anchors.leftMargin: 20; anchors.rightMargin: 20; anchors.bottomMargin: 20
-        spacing: 16
+        anchors.topMargin: 6; anchors.leftMargin: 12; anchors.rightMargin: 12; anchors.bottomMargin: 4
+        spacing: 8
 
         RowLayout
         {
@@ -79,5 +78,23 @@ VsmmWindow {
         }
 
         ModList{}
+
+    }
+
+    footer: Item {
+        implicitHeight: 30
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 12; anchors.rightMargin: 12; anchors.bottomMargin: 12
+            spacing: 4
+
+            LayoutHorizontalSpacer {}
+
+            BusyIndicator {
+                running: ModStore.workPending
+                Layout.preferredWidth: 16; Layout.preferredHeight: 16
+            }
+        }
     }
 }
