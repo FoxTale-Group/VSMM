@@ -195,7 +195,18 @@
     \property vsmm::ModStore::updatesCount
     \brief The number of installed mods with an update available.
 
-    It shares its change signal with \l installedModsCount.
+    It shares its change signal with \l installedModsCount and
+    \l enabledModsCount.
+*/
+
+/*!
+    \property vsmm::ModStore::enabledModsCount
+    \brief The number of installed mods that are not disabled in the game.
+
+    The mods are checked against \l {vsmm::IGameMngr::getDisabledMods()}{getDisabledMods()}
+    of the game manager. The value changes when mods are added or removed,
+    and when the game manager emits
+    \l {vsmm::IGameMngr::disabledModsChanged()}{disabledModsChanged()}.
 */
 
 /*!
@@ -231,7 +242,8 @@
     \fn void vsmm::ModStore::setGameMngr(vsmm::IGameMngr *gameMngr)
 
     Sets the game manager to \a gameMngr. The store reloads its mods whenever
-    the mods folders of the game manager change. A second call only logs a
+    the mods folders of the game manager change, and emits \l modsChanged()
+    whenever its disabled mods change. A second call only logs a
     warning. A null \a gameMngr is a fatal error.
 */
 
@@ -340,6 +352,13 @@
 */
 
 /*!
+    \fn int vsmm::ModStore::enabledModsCount() const
+
+    Returns the number of installed mods whose id is not in the disabled mods
+    of the game manager.
+*/
+
+/*!
     \fn bool vsmm::ModStore::isWorkPending() const
 
     Returns \c true while a reload or an update runs.
@@ -357,9 +376,9 @@
 /*!
     \fn void vsmm::ModStore::modsChanged()
 
-    This signal is emitted when the number of installed mods or of available
-    updates can change. It is the change signal of \l installedModsCount and
-    \l updatesCount.
+    This signal is emitted when the number of installed mods, of available
+    updates or of enabled mods can change. It is the change signal of
+    \l installedModsCount, \l updatesCount and \l enabledModsCount.
 */
 
 /*!

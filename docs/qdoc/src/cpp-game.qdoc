@@ -116,7 +116,9 @@
 /*!
     \fn void vsmm::IGameMngr::disabledModsChanged()
     This signal is emitted when the set of disabled mod ids changes. It is
-    the NOTIFY signal of the \l disabledMods property.
+    the NOTIFY signal of the \l disabledMods property. \l vsmm::ModStore
+    emits its \c modsChanged() signal on it, so its \c enabledModsCount
+    property updates.
 */
 
 /*!

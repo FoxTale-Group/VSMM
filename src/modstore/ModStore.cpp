@@ -71,6 +71,7 @@ void ModStore::setGameMngr(IGameMngr *gameMngr) {
 
     mGameMngr = gameMngr;
     connect(mGameMngr, &IGameMngr::modsDirsChanged, this, &ModStore::onModsDirChanged);
+    connect(mGameMngr, &IGameMngr::disabledModsChanged, this, &ModStore::modsChanged);
 }
 
 void ModStore::add(ModLocalInfo localModInfo, ModLoadType loadType) {
@@ -239,6 +240,11 @@ int ModStore::modUpdatesCount() const {
     return static_cast<int>(std::ranges::count_if(mMods, [](const auto &mod) { return mod.hasUpdate(); }));
 }
 bool ModStore::isWorkPending() const { return mWorkPending; }
+
+int ModStore::enabledModsCount() const {
+    return static_cast<int>(std::ranges::count_if(
+        mMods, [this](const auto &mod) { return !mGameMngr->getDisabledMods().contains(mod.getId().toString()); }));
+}
 
 void ModStore::onModsReloaded() {
     emit modsLoaded();

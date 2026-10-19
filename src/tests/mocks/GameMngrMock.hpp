@@ -55,7 +55,10 @@ class GameMngrMock final : public IGameMngr {
 
     [[nodiscard]] int launchCount() const { return mLaunchCount; }
 
-    void setDisabledMods(QSet<QString> modIds) { mDisabledMods = std::move(modIds); }
+    void setDisabledMods(QSet<QString> modIds) {
+        mDisabledMods = std::move(modIds);
+        emit disabledModsChanged();
+    }
     // id@version, in call order
     [[nodiscard]] const QStringList &addedDisabledMods() const { return mAddedDisabledMods; }
 
