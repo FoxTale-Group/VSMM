@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import vsmm
+import VSMM.Config
 
 TabPanel {
     id: settingsTabGeneral

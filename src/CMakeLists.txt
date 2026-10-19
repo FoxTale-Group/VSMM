@@ -86,13 +86,13 @@ qt_add_qml_module(${PROJECT_NAME}
         # `import VSMMStyle` -- the style lives here as a plain directory, not a QML module.
         IMPORT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/qml/styles
         IMPORTS
-            Config
-            ModStore
-            ModListModel
-            ModLoader
-            ModSortFilterModel
-            ModUpdateModel
-            GameMngr)
+            VSMM.Config
+            VSMM.ModStore
+            VSMM.ModListModel
+            VSMM.ModLoader
+            VSMM.ModSortFilterModel
+            VSMM.ModUpdateModel
+            VSMM.GameMngr)
 
 # Bytecode only, no AOT: AOT output links Qt_6_PRIVATE_API, which distros do not advertise,
 # so rpm generates a dependency nothing can satisfy.

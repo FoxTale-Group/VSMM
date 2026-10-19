@@ -1,13 +1,13 @@
 /*!
-    \qmlmodule ModListModel
-    \title ModListModel QML Module
+    \qmlmodule VSMM.ModListModel
+    \title VSMM.ModListModel QML Module
     \brief Source list model of the installed mods.
 */
 
 /*!
     \qmltype ModListModel
     \nativetype vsmm::ModListModel
-    \inqmlmodule ModListModel
+    \inqmlmodule VSMM.ModListModel
     \brief List model with one row per installed mod.
 
     \l [QML] {ModSortFilterModel} sorts and filters this model. ModListModel
@@ -42,15 +42,15 @@
 */
 
 /*!
-    \qmlmodule ModSortFilterModel
-    \title ModSortFilterModel QML Module
+    \qmlmodule VSMM.ModSortFilterModel
+    \title VSMM.ModSortFilterModel QML Module
     \brief Sorted and filtered model of the installed mods.
 */
 
 /*!
     \qmltype ModSortFilterModel
     \nativetype vsmm::ModSortFilterModel
-    \inqmlmodule ModSortFilterModel
+    \inqmlmodule VSMM.ModSortFilterModel
     \brief Sorted and filtered proxy over \l [QML] {ModListModel}.
 
     It has the same roles as \l [QML] {ModListModel}. Rows are sorted by
@@ -77,15 +77,15 @@
 */
 
 /*!
-    \qmlmodule ModUpdateModel
-    \title ModUpdateModel QML Module
+    \qmlmodule VSMM.ModUpdateModel
+    \title VSMM.ModUpdateModel QML Module
     \brief Progress of the current mod update batch.
 */
 
 /*!
     \qmltype ModUpdateModel
     \nativetype vsmm::ModUpdateModel
-    \inqmlmodule ModUpdateModel
+    \inqmlmodule VSMM.ModUpdateModel
     \brief List model with one row per mod of the current update batch.
 
     A batch starts when \l [QML] {ModStore} begins an update.

@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import QtQuick.Controls.impl
 import QtQuick.Effects
 import vsmm
+import VSMM.ModStore
 import VSMMStyle
 
 RowLayout {

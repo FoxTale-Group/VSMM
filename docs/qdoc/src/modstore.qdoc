@@ -1,13 +1,13 @@
 /*!
-    \qmlmodule ModStore
-    \title ModStore QML Module
+    \qmlmodule VSMM.ModStore
+    \title VSMM.ModStore QML Module
     \brief The installed mods and every change to them except adding one.
 */
 
 /*!
     \qmltype ModStore
     \nativetype vsmm::ModStore
-    \inqmlmodule ModStore
+    \inqmlmodule VSMM.ModStore
     \brief Installed mods, their selection, updates and removal.
 
     Adding a mod goes through \l {ModLoader::load()}{ModLoader.load()}

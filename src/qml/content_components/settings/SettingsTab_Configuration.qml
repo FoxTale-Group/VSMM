@@ -5,6 +5,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import vsmm
+import VSMM.Config
 import VSMMStyle
 
 TabPanel {

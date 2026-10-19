@@ -1,13 +1,13 @@
 /*!
-    \qmlmodule GameMngr
-    \title GameMngr QML Module
+    \qmlmodule VSMM.GameMngr
+    \title VSMM.GameMngr QML Module
     \brief The installed game: launching it, its version and disabled mods.
 */
 
 /*!
     \qmltype GameMngr
     \nativetype vsmm::GameMngr
-    \inqmlmodule GameMngr
+    \inqmlmodule VSMM.GameMngr
     \brief Launches the game and reads its version and disabled mods.
 
     GameMngr reads the game's \c clientsettings.json from
@@ -69,15 +69,15 @@
 */
 
 /*!
-    \qmlmodule ModLoader
-    \title ModLoader QML Module
+    \qmlmodule VSMM.ModLoader
+    \title VSMM.ModLoader QML Module
     \brief Reads mod zips into the store.
 */
 
 /*!
     \qmltype ModLoader
     \nativetype vsmm::ModLoader
-    \inqmlmodule ModLoader
+    \inqmlmodule VSMM.ModLoader
     \brief Reads mod zips and adds them to the store.
 
     ModLoader runs the startup scan and installs downloaded updates on its
@@ -118,7 +118,7 @@
 /*!
     \qmlvaluetype localModInfo
     \nativetype vsmm::ModLocalInfo
-    \inqmlmodule ModLoader
+    \inqmlmodule VSMM.ModLoader
     \brief Contents of a mod zip's \c modinfo.json, returned by \l {ModLoader::readLocalInfo()}{ModLoader.readLocalInfo()}.
 
     Check \l error first. When it is not empty, the zip could not be read and
