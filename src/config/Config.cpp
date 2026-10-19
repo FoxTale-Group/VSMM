@@ -19,62 +19,28 @@
 #include "Config.hpp"
 
 #include <QDir>
-#include <QJsonArray>
 #include <QLoggingCategory>
-#include <QSaveFile>
-#include <QStandardPaths>
+#include <QMetaEnum>
 
 Q_STATIC_LOGGING_CATEGORY(cConfig, "config");
 
 namespace vsmm {
 Config::Config() {
-    if (!QDir().mkpath(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation))) {
-        qCWarning(cConfig, "Could not create config directory");
-    }
-    mConfigFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + QDir::separator() +
-                            CONFIG_FILE_NAME.toString());
+    qCDebug(cConfig, "Using %s for settings", qUtf8Printable(mSettings.fileName()));
+    mGeneral = GeneralSettings::load(mSettings);
+    mPaths = PathSettings::load(mSettings);
+    mAppearance = AppearanceSettings::load(mSettings);
 
-    if (!mConfigFile.open(QIODevice::ReadWrite | QIODevice::ExistingOnly | QIODevice::Text)) {
-        qCWarning(cConfig, "Could not open config file");
-        return;
-    }
-
-    QJsonParseError jsonError;
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(mConfigFile.readAll(), &jsonError);
-
-    if (jsonError.error != QJsonParseError::NoError) {
-        qCFatal(cConfig, "Config file is not valid JSON: %s", qUtf8Printable(jsonError.errorString()));
-        return;
-    }
-
-    mConfigFile.close();
-    if (!jsonDoc.isObject()) {
-        qCWarning(cConfig, "Config file is not a valid JSON object");
-        return;
-    }
-
-    auto config = jsonDoc.object().toVariantHash();
-    if (!config[GeneralSettings::KEY_NAME].isNull() && config[GeneralSettings::KEY_NAME].isValid()) {
-        mGeneral = GeneralSettings::fromHash(config[GeneralSettings::KEY_NAME].toHash());
-    }
-    if (!config[PathSettings::KEY_NAME].isNull() && config[PathSettings::KEY_NAME].isValid()) {
-        mPaths = PathSettings::fromHash(config[PathSettings::KEY_NAME].toHash());
-    }
-    if (!config[AppearanceSettings::KEY_NAME].isNull() && config[AppearanceSettings::KEY_NAME].isValid()) {
-        mAppearance = AppearanceSettings::fromHash(config[AppearanceSettings::KEY_NAME].toHash());
-    }
-    if (!config[FAVORITES_KEY_NAME].isNull() && config[FAVORITES_KEY_NAME].isValid()) {
-        mFavorites = config[FAVORITES_KEY_NAME].toStringList();
-    }
+    mFavorites = mSettings.value(FAVORITES_KEY_NAME).toStringList();
 
     qCInfo(cConfig, "Config loaded");
 }
 
-Config::~Config() { saveToFile(); }
+Config::~Config() { save(); }
 
 void Config::setFavorites(QStringList favorites) {
     mFavorites = std::move(favorites);
-    saveToFile();
+    save();
     qCDebug(cConfig, "Favorites set to %s", qUtf8Printable(mFavorites.join(QStringLiteral(", "))));
 }
 
@@ -119,28 +85,28 @@ void Config::setAppearance(const AppearanceSettings &data) {
     qCInfo(cConfig, "Appearance settings changed");
 }
 
-void Config::saveToFile() const {
-    QSaveFile newConfigFile{mConfigFile.fileName()};
-    if (!newConfigFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qCWarning(cConfig, "Failed to open config file for writing");
+void Config::save() {
+    mGeneral.save(mSettings);
+    mPaths.save(mSettings);
+    mAppearance.save(mSettings);
+    if (mFavorites.isEmpty()) {
+        mSettings.remove(FAVORITES_KEY_NAME);
+    } else {
+        mSettings.setValue(FAVORITES_KEY_NAME, mFavorites);
+    }
+
+    mSettings.sync();
+
+    if (const auto status = mSettings.status(); status != QSettings::NoError) {
+        const QMetaEnum statusEnum = QMetaEnum::fromType<QSettings::Status>();
+        qCWarning(cConfig, "Failed to write config file: %s", statusEnum.valueToKey(status));
         return;
     }
-    QVariantHash configHash;
-    configHash[GeneralSettings::KEY_NAME] = mGeneral.toHash();
-    configHash[PathSettings::KEY_NAME] = mPaths.toHash();
-    configHash[AppearanceSettings::KEY_NAME] = mAppearance.toHash();
-    configHash[FAVORITES_KEY_NAME] = mFavorites;
-    newConfigFile.write(QJsonDocument(QJsonObject::fromVariantHash(configHash)).toJson());
-    if (!newConfigFile.commit()) {
-        qCWarning(cConfig, "Failed to write config file");
-        return;
-    }
+
     qCInfo(cConfig, "Config saved to file");
 }
 
 void Config::validate() {
-    using namespace Qt::StringLiterals;
-
     const auto &configGamePath = mPaths.gameConfig;
     if (const QDir configGameDir{configGamePath}; configGamePath.isEmpty() || !configGameDir.exists()) {
         qCCritical(cConfig, "Config game path does not exist");

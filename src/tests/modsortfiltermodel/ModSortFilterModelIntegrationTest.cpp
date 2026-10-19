@@ -23,6 +23,7 @@
 
 #include <QAbstractItemModelTester>
 #include <QLoggingCategory>
+#include <QSettings>
 #include <QStandardPaths>
 #include <QTest>
 
@@ -67,8 +68,9 @@ class ModSortFilterModelIntegrationTest : public QObject {
     void initTestCase() {
         // the store needs a game version, which comes from a fake game exe, a POSIX shell script
         SKIP_WITHOUT_POSIX_SHELL();
+        QCoreApplication::setOrganizationName(RealComponents::TEST_ORG_NAME);
         QStandardPaths::setTestModeEnabled(true);
-        QVERIFY2(RealComponents::configDir().contains("qttest"_L1), qPrintable(RealComponents::configDir()));
+        QVERIFY2(QSettings{}.fileName().contains("qttest"_L1), qPrintable(QSettings{}.fileName()));
     }
 
     void cleanupTestCase() { QStandardPaths::setTestModeEnabled(false); }

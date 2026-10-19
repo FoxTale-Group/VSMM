@@ -121,7 +121,7 @@ VsmmWindow {
 
             Config.appearance.accentIndex = appearanceTab.accentIndex;
 
-            Config.saveToFile();
+            Config.save();
         }
     }
 }

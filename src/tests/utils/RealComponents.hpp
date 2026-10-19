@@ -25,10 +25,8 @@
 
 #include <QDir>
 #include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
+#include <QSettings>
 #include <QSignalSpy>
-#include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -42,7 +40,7 @@ class RealComponents {
   public:
     struct Options {
         // old zips are kept by default, so nothing reaches the real trash
-        QJsonObject mGeneral{{GeneralSettings::DELETE_OLD_MOD_VERSION_KEY, false}};
+        GeneralSettings mGeneral{.deleteOldModVersion = false};
         QStringList mFavorites;
         QString mGameVersionOutput{u"1.22.5"_s};
         // dir names under the temp dir, listed in clientsettings after mods
@@ -51,19 +49,15 @@ class RealComponents {
         QStringList mDisabledMods;
     };
 
-    [[nodiscard]] static QString configDir() {
-        return QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
-    }
-    [[nodiscard]] static QString configFilePath() {
-        return configDir() + QDir::separator() + IConfig::CONFIG_FILE_NAME;
-    }
+    // QSettings needs an org name, set it first as it also moves the cache dir
+    static constexpr QLatin1StringView TEST_ORG_NAME{"vsmm-tests"};
 
     RealComponents() = default;
     RealComponents(const RealComponents &) = delete;
     RealComponents &operator=(const RealComponents &) = delete;
     ~RealComponents() {
         stop();
-        QFile::remove(configFilePath());
+        QSettings{}.clear();
     }
 
     [[nodiscard]] bool start() { return start(Options{}); }
@@ -89,7 +83,7 @@ class RealComponents {
         }
         const QString exe = writeFakeGameExe(root(), options.mGameVersionOutput);
         if (!check(!exe.isEmpty(), "fake game exe written") ||
-            !check(writeConfig(options, exe), "config.json written")) {
+            !check(writeConfig(options, exe), "settings written")) {
             return false;
         }
         return launch();
@@ -120,17 +114,15 @@ class RealComponents {
         return QTest::qVerify(ok, step, "RealComponents setup", __FILE__, __LINE__);
     }
 
-    // config.json as the app would find it on disk
+    // settings as the app would find them on start
     [[nodiscard]] bool writeConfig(const Options &options, const QString &gameExe) const {
-        if (!QDir().mkpath(configDir())) {
-            return false;
-        }
-        const QJsonObject paths{{PathSettings::GAME_CONFIG_KEY, gameDir().absolutePath()},
-                                {PathSettings::GAME_EXE_KEY, gameExe}};
-        const QJsonObject config{{GeneralSettings::KEY_NAME, options.mGeneral},
-                                 {PathSettings::KEY_NAME, paths},
-                                 {IConfig::FAVORITES_KEY_NAME, QJsonArray::fromStringList(options.mFavorites)}};
-        return writeFile(configFilePath(), QJsonDocument{config}.toJson());
+        QSettings settings;
+        settings.clear();
+        options.mGeneral.save(settings);
+        PathSettings{.gameConfig = gameDir().absolutePath(), .gameExe = gameExe}.save(settings);
+        settings.setValue(IConfig::FAVORITES_KEY_NAME, options.mFavorites);
+        settings.sync();
+        return settings.status() == QSettings::NoError;
     }
 
     [[nodiscard]] bool launch() {

@@ -23,6 +23,7 @@
 #include <QLoggingCategory>
 #include <QRegularExpression>
 #include <QScopeGuard>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTest>
@@ -53,10 +54,9 @@ class ModStoreIntegrationTest : public QObject {
         return zip.absoluteFilePath();
     }
 
-    // what Config last wrote to disk, not what it holds in memory
+    // what Config last saved, not what it holds in memory
     [[nodiscard]] static QStringList savedFavorites() {
-        const QJsonDocument saved = QJsonDocument::fromJson(readFile(RealComponents::configFilePath()));
-        return saved[vsmm::IConfig::FAVORITES_KEY_NAME].toVariant().toStringList();
+        return QSettings{}.value(vsmm::IConfig::FAVORITES_KEY_NAME).toStringList();
     }
 
     [[nodiscard]] bool hasUpdate(const QString &id) const {
@@ -68,8 +68,9 @@ class ModStoreIntegrationTest : public QObject {
     void initTestCase() {
         // the version comes from a fake game exe, a POSIX shell script
         SKIP_WITHOUT_POSIX_SHELL();
+        QCoreApplication::setOrganizationName(RealComponents::TEST_ORG_NAME);
         QStandardPaths::setTestModeEnabled(true);
-        QVERIFY2(RealComponents::configDir().contains("qttest"_L1), qPrintable(RealComponents::configDir()));
+        QVERIFY2(QSettings{}.fileName().contains("qttest"_L1), qPrintable(QSettings{}.fileName()));
     }
 
     void cleanupTestCase() { QStandardPaths::setTestModeEnabled(false); }
@@ -117,7 +118,7 @@ class ModStoreIntegrationTest : public QObject {
     void oldZipHandlingFollowsTheConfigFile() {
         QFETCH(const bool, deleteOldModVersion);
         RealComponents::Options options;
-        options.mGeneral[vsmm::GeneralSettings::DELETE_OLD_MOD_VERSION_KEY] = deleteOldModVersion;
+        options.mGeneral.deleteOldModVersion = deleteOldModVersion;
         QVERIFY(mApp->start(options));
         const QString oldZip = addMod(mApp->modsDir(), u"carryon"_s, u"1.0.0"_s);
         const auto restoreTestMode = qScopeGuard([] { QStandardPaths::setTestModeEnabled(true); });
@@ -148,7 +149,7 @@ class ModStoreIntegrationTest : public QObject {
     void prereleaseUpdatesFollowTheConfigFile() {
         QFETCH(const bool, includeModPrerelease);
         RealComponents::Options options;
-        options.mGeneral[vsmm::GeneralSettings::INCLUDE_MOD_PRERELEASE_KEY] = includeModPrerelease;
+        options.mGeneral.includeModPrerelease = includeModPrerelease;
         QVERIFY(mApp->start(options));
         addMod(mApp->modsDir(), u"carryon"_s, u"1.0.0"_s);
 

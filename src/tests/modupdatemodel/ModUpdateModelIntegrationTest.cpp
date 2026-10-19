@@ -125,6 +125,7 @@ class ModUpdateModelIntegrationTest : public QObject {
     void initTestCase() {
         // the store needs a game version, which comes from a fake game exe, a POSIX shell script
         SKIP_WITHOUT_POSIX_SHELL();
+        QCoreApplication::setOrganizationName(RealComponents::TEST_ORG_NAME);
         QStandardPaths::setTestModeEnabled(true);
         QVERIFY2(cacheDir().contains("qttest"_L1), qPrintable(cacheDir()));
         QVERIFY(QDir{cacheDir()}.removeRecursively());
