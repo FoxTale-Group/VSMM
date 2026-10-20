@@ -22,6 +22,7 @@
 #include <GameMngr.hpp>
 
 #include <QLoggingCategory>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTemporaryDir>
@@ -33,25 +34,13 @@ using namespace vsmm::test;
 class GameMngrIntegrationTest : public QObject {
     Q_OBJECT
 
-    [[nodiscard]] static QString configDir() {
-        return QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
-    }
-    [[nodiscard]] static QString configFilePath() { return configDir() + QDir::separator() + "config.json"_L1; }
-
-    // config.json as the app would find it on disk, gameExe is optional
+    // settings as the app would find them on start, gameExe is optional
     [[nodiscard]] static bool writeConfig(const QString &gameConfigDir, const QString &gameExe = {}) {
-        if (!QDir().mkpath(configDir())) {
-            return false;
-        }
-        QJsonObject paths{{vsmm::PathSettings::GAME_CONFIG_KEY, gameConfigDir}};
-        if (!gameExe.isEmpty()) {
-            paths[vsmm::PathSettings::GAME_EXE_KEY] = gameExe;
-        }
-        return writeFile(configFilePath(),
-                         QJsonDocument{QJsonObject{{vsmm::GeneralSettings::KEY_NAME, QJsonObject{}},
-                                                   {vsmm::AppearanceSettings::KEY_NAME, QJsonObject{}},
-                                                   {vsmm::PathSettings::KEY_NAME, paths}}}
-                             .toJson());
+        QSettings settings;
+        settings.clear();
+        vsmm::PathSettings{.gameConfig = gameConfigDir, .gameExe = gameExe}.save(settings);
+        settings.sync();
+        return settings.status() == QSettings::NoError;
     }
 
     static void ignoreEmptyGameExe() { QTest::ignoreMessage(QtCriticalMsg, "config paths.gameExe value is empty"); }
@@ -59,12 +48,14 @@ class GameMngrIntegrationTest : public QObject {
   private slots:
     void initTestCase() {
         QLoggingCategory::setFilterRules(u"*=false\ngamemngr=true\ngamemngr.debug=false"_s);
+        // QSettings needs an org name, a test one keeps the real app settings untouched
+        QCoreApplication::setOrganizationName(u"vsmm-tests"_s);
         QStandardPaths::setTestModeEnabled(true);
-        QVERIFY2(configDir().contains("qttest"_L1), qPrintable(configDir()));
+        QVERIFY2(QSettings{}.fileName().contains("vsmm-tests"_L1), qPrintable(QSettings{}.fileName()));
     }
 
     void cleanupTestCase() {
-        QFile::remove(configFilePath());
+        QSettings{}.clear();
         QStandardPaths::setTestModeEnabled(false);
     }
 
@@ -109,9 +100,8 @@ class GameMngrIntegrationTest : public QObject {
 
         const QString exe = writeFakeGameExe(dir, u"1.22.5"_s);
         QVERIFY(!exe.isEmpty());
-        QVERIFY(config.setProperty("paths", QVariant::fromValue(vsmm::PathSettings::fromHash(
-                                                QVariantHash{{vsmm::PathSettings::GAME_CONFIG_KEY, gameDir.path()},
-                                                             {vsmm::PathSettings::GAME_EXE_KEY, exe}}))));
+        QVERIFY(config.setProperty(
+            "paths", QVariant::fromValue(vsmm::PathSettings{.gameConfig = gameDir.path(), .gameExe = exe})));
 
         QTRY_VERIFY(gameMngr.getGameVersion());
         QCOMPARE(QString::fromStdString(gameMngr.getGameVersion()->to_string()), u"1.22.5"_s);
@@ -146,9 +136,8 @@ class GameMngrIntegrationTest : public QObject {
         const QString exe = writeFakeGameExe(second, u"1.22.5"_s);
         QVERIFY(!exe.isEmpty());
         // one Settings save changing both paths at once
-        QVERIFY(config.setProperty("paths", QVariant::fromValue(vsmm::PathSettings::fromHash(QVariantHash{
-                                                {vsmm::PathSettings::GAME_CONFIG_KEY, secondGameDir.path()},
-                                                {vsmm::PathSettings::GAME_EXE_KEY, exe}}))));
+        QVERIFY(config.setProperty(
+            "paths", QVariant::fromValue(vsmm::PathSettings{.gameConfig = secondGameDir.path(), .gameExe = exe})));
 
         // version read still in flight, so no scan announced yet
         QCOMPARE(scanSpy.count(), 0);

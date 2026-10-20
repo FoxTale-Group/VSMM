@@ -32,7 +32,6 @@ class INTERFACES_EXPORT IConfig : public QObject {
     Q_PROPERTY(vsmm::AppearanceSettings appearance READ appearance WRITE setAppearance NOTIFY appearanceChanged)
 
   public:
-    static constexpr QLatin1StringView CONFIG_FILE_NAME{"config.json"};
     static constexpr QLatin1StringView FAVORITES_KEY_NAME{"favorites"};
 
     ~IConfig() override;

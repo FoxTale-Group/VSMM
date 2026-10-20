@@ -40,6 +40,8 @@ App::App(int &argc, char *argv[]) : QGuiApplication{argc, argv} {
     setApplicationDisplayName(APP_DISPLAY_NAME);
     setApplicationName(APP_DISPLAY_NAME);
     setApplicationVersion(APP_VERSION);
+    setOrganizationName(APP_ORG_NAME);
+    setOrganizationDomain(APP_ORG_DOMAIN_NAME);
     setWindowIcon(QIcon(":/qt/qml/vsmm/assets/logo/VSMM.png"));
 
     QCommandLineParser parser;

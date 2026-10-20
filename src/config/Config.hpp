@@ -21,9 +21,7 @@
 #include "ConfigValueTypes.hpp"
 #include <ConfigExport.hpp>
 #include <IConfig.hpp>
-#include <QDir>
-#include <QFile>
-#include <QJsonObject>
+#include <QSettings>
 #include <qqmlintegration.h>
 
 namespace vsmm {
@@ -43,9 +41,9 @@ class CONFIG_EXPORT Config : public IConfig {
     void setPaths(const PathSettings &data) override;
     void setAppearance(const AppearanceSettings &data) override;
 
-    Q_INVOKABLE void saveToFile() const;
+    Q_INVOKABLE void save();
 
   private:
-    QFile mConfigFile;
+    QSettings mSettings{this};
 };
 } // namespace vsmm

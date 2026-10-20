@@ -22,8 +22,8 @@
 
 #include <QMetaEnum>
 #include <QObject>
+#include <QSettings>
 #include <QString>
-#include <QVariantHash>
 
 namespace vsmm {
 
@@ -54,7 +54,7 @@ struct INTERFACES_EXPORT GeneralSettings {
     Q_PROPERTY(bool includeModPrerelease MEMBER includeModPrerelease)
 
   public:
-    static constexpr QLatin1StringView KEY_NAME{"general"};
+    // no key name, for QSettings default key name is "General"
 
     static constexpr bool DEFAULT_VALUE_DELETE_OLD_MOD_VERSION = true;
     static constexpr QLatin1StringView DELETE_OLD_MOD_VERSION_KEY{"deleteOldModVersion"};
@@ -67,19 +67,17 @@ struct INTERFACES_EXPORT GeneralSettings {
 
     bool operator==(const GeneralSettings &) const = default;
 
-    [[nodiscard]] static GeneralSettings fromHash(const QVariantHash &hash) {
-        GeneralSettings settings;
-        settings.deleteOldModVersion =
-            hash.value(DELETE_OLD_MOD_VERSION_KEY, DEFAULT_VALUE_DELETE_OLD_MOD_VERSION).toBool();
-        settings.includeModPrerelease =
-            hash.value(INCLUDE_MOD_PRERELEASE_KEY, DEFAULT_VALUE_INCLUDE_MOD_PRERELEASE).toBool();
-        return settings;
+    [[nodiscard]] static GeneralSettings load(const QSettings &settings) {
+        GeneralSettings result;
+        result.deleteOldModVersion =
+            settings.value(DELETE_OLD_MOD_VERSION_KEY, DEFAULT_VALUE_DELETE_OLD_MOD_VERSION).toBool();
+        result.includeModPrerelease =
+            settings.value(INCLUDE_MOD_PRERELEASE_KEY, DEFAULT_VALUE_INCLUDE_MOD_PRERELEASE).toBool();
+        return result;
     }
-    [[nodiscard]] QVariantHash toHash() const {
-        QVariantHash hash;
-        hash.insert(DELETE_OLD_MOD_VERSION_KEY, deleteOldModVersion);
-        hash.insert(INCLUDE_MOD_PRERELEASE_KEY, includeModPrerelease);
-        return hash;
+    void save(QSettings &settings) const {
+        settings.setValue(DELETE_OLD_MOD_VERSION_KEY, deleteOldModVersion);
+        settings.setValue(INCLUDE_MOD_PRERELEASE_KEY, includeModPrerelease);
     }
 };
 
@@ -89,7 +87,7 @@ struct INTERFACES_EXPORT PathSettings {
     Q_PROPERTY(QString gameExe MEMBER gameExe)
 
   public:
-    static constexpr QLatin1StringView KEY_NAME{"paths"};
+    static constexpr QLatin1StringView KEY_NAME{"Paths"};
 
     static constexpr QLatin1StringView GAME_CONFIG_KEY{"gameConfig"};
     static constexpr QLatin1StringView GAME_EXE_KEY{"gameExe"};
@@ -99,17 +97,20 @@ struct INTERFACES_EXPORT PathSettings {
 
     bool operator==(const PathSettings &) const = default;
 
-    [[nodiscard]] static PathSettings fromHash(const QVariantHash &hash) {
-        PathSettings settings;
-        settings.gameConfig = hash.value(GAME_CONFIG_KEY).toString();
-        settings.gameExe = hash.value(GAME_EXE_KEY).toString();
-        return settings;
+    [[nodiscard]] static PathSettings load(QSettings &settings) {
+        PathSettings result;
+        settings.beginGroup(KEY_NAME);
+        result.gameConfig = settings.value(GAME_CONFIG_KEY).toString();
+        result.gameExe = settings.value(GAME_EXE_KEY).toString();
+        settings.endGroup();
+        return result;
     }
-    [[nodiscard]] QVariantHash toHash() const {
-        QVariantHash hash;
-        hash.insert(GAME_CONFIG_KEY, gameConfig);
-        hash.insert(GAME_EXE_KEY, gameExe);
-        return hash;
+
+    void save(QSettings &settings) const {
+        settings.beginGroup(KEY_NAME);
+        settings.setValue(GAME_CONFIG_KEY, gameConfig);
+        settings.setValue(GAME_EXE_KEY, gameExe);
+        settings.endGroup();
     }
 };
 
@@ -119,7 +120,7 @@ struct INTERFACES_EXPORT AppearanceSettings {
     Q_PROPERTY(int accentIndex MEMBER accentIndex)
 
   public:
-    static constexpr QLatin1StringView KEY_NAME{"appearance"};
+    static constexpr QLatin1StringView KEY_NAME{"Appearance"};
 
     static constexpr auto DEFAULT_VALUE_THEME = appearance::Theme::Dark;
     static constexpr QLatin1StringView THEME_KEY{"theme"};
@@ -132,17 +133,20 @@ struct INTERFACES_EXPORT AppearanceSettings {
 
     bool operator==(const AppearanceSettings &) const = default;
 
-    [[nodiscard]] static AppearanceSettings fromHash(const QVariantHash &hash) {
-        AppearanceSettings settings;
-        settings.theme = themeFromString(hash.value(THEME_KEY).toString());
-        settings.accentIndex = hash.value(ACCENT_IDX_KEY, DEFAULT_VALUE_ACCENT_IDX).toInt();
-        return settings;
+    [[nodiscard]] static AppearanceSettings load(QSettings &settings) {
+        AppearanceSettings result;
+        settings.beginGroup(KEY_NAME);
+        result.accentIndex = settings.value(ACCENT_IDX_KEY, DEFAULT_VALUE_ACCENT_IDX).toInt();
+        result.theme = themeFromString(settings.value(THEME_KEY, themeToString(DEFAULT_VALUE_THEME)).toString());
+        settings.endGroup();
+        return result;
     }
-    [[nodiscard]] QVariantHash toHash() const {
-        QVariantHash hash;
-        hash.insert(THEME_KEY, themeToString(theme));
-        hash.insert(ACCENT_IDX_KEY, accentIndex);
-        return hash;
+
+    void save(QSettings &settings) const {
+        settings.beginGroup(KEY_NAME);
+        settings.setValue(ACCENT_IDX_KEY, accentIndex);
+        settings.setValue(THEME_KEY, themeToString(theme));
+        settings.endGroup();
     }
 };
 
