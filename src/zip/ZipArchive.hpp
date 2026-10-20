@@ -23,25 +23,29 @@
 #include <expected>
 #include <zip.h>
 
+#include <memory>
+
 namespace vsmm {
 class ZIPARCHIVE_EXPORT ZipArchive {
   public:
     using FileIndex = zip_int64_t;
-    using FileContentSize = zip_int64_t;
 
     explicit ZipArchive(QString file);
+    ~ZipArchive() = default;
     Q_DISABLE_COPY(ZipArchive)
 
-    ZipArchive(ZipArchive &&other) noexcept;
-    ZipArchive &operator=(ZipArchive &&other) noexcept;
+    ZipArchive(ZipArchive &&other) noexcept = default;
+    ZipArchive &operator=(ZipArchive &&other) noexcept = default;
 
     [[nodiscard]] std::expected<void, QString> open();
     [[nodiscard]] std::expected<FileIndex, QString> getFileIndex(QUtf8StringView fileName) const;
     [[nodiscard]] std::expected<QByteArray, QString> getFileContent(FileIndex fileIndex) const;
-    ~ZipArchive();
 
   private:
+    struct ZipCloser {
+        void operator()(zip_t *fp) const { zip_close(fp); }
+    };
     QString mFile;
-    zip_t *mZipFile{nullptr};
+    std::unique_ptr<zip_t, ZipCloser> mZipFile{nullptr};
 };
 } // namespace vsmm

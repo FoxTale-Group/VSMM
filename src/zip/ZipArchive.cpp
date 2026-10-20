@@ -17,12 +17,15 @@
  */
 
 #include "ZipArchive.hpp"
-#include <QtSwap>
 #include <utility>
 
 using namespace Qt::StringLiterals;
 
 namespace {
+struct ZipFileCloser {
+    void operator()(zip_file_t *fp) const { zip_fclose(fp); }
+};
+
 QString errorText(zip_error_t *error) {
     return u"%1 (%2)"_s.arg(QString::fromUtf8(zip_error_strerror(error))).arg(zip_error_code_zip(error));
 }
@@ -37,7 +40,7 @@ QString errorTextForCode(int errorCode) {
 } // namespace
 
 namespace vsmm {
-ZipArchive::ZipArchive(QString file) : mFile(std::move(file)) {}
+ZipArchive::ZipArchive(QString file) : mFile{std::move(file)} {}
 
 std::expected<void, QString> ZipArchive::open() {
     if (mZipFile) {
@@ -45,21 +48,12 @@ std::expected<void, QString> ZipArchive::open() {
     }
 
     int errorCode{ZIP_ER_OK};
-    mZipFile = zip_open(mFile.toStdString().c_str(), ZIP_RDONLY, &errorCode);
+    mZipFile.reset(zip_open(mFile.toStdString().c_str(), ZIP_RDONLY, &errorCode));
     if (!mZipFile) {
         return std::unexpected(u"Failed to open archive %1: %2"_s.arg(mFile, errorTextForCode(errorCode)));
     }
 
     return {};
-}
-
-ZipArchive::ZipArchive(ZipArchive &&other) noexcept
-    : mFile(std::move(other.mFile)), mZipFile(std::exchange(other.mZipFile, nullptr)) {}
-
-ZipArchive &ZipArchive::operator=(ZipArchive &&other) noexcept {
-    qSwap(mFile, other.mFile);
-    qSwap(mZipFile, other.mZipFile);
-    return *this;
 }
 
 std::expected<ZipArchive::FileIndex, QString> ZipArchive::getFileIndex(QUtf8StringView fileName) const {
@@ -68,10 +62,10 @@ std::expected<ZipArchive::FileIndex, QString> ZipArchive::getFileIndex(QUtf8Stri
     }
 
     const QByteArray name{fileName.data(), fileName.size()};
-    const FileIndex index = zip_name_locate(mZipFile, name.constData(), ZIP_FL_ENC_UTF_8);
+    const FileIndex index = zip_name_locate(mZipFile.get(), name.constData(), ZIP_FL_ENC_UTF_8);
     if (index == -1) {
         return std::unexpected(u"Failed to locate entry %1 in archive %2: %3"_s.arg(
-            QString::fromUtf8(name), mFile, errorText(zip_get_error(mZipFile))));
+            QString::fromUtf8(name), mFile, errorText(zip_get_error(mZipFile.get()))));
     }
 
     return index;
@@ -83,40 +77,32 @@ std::expected<QByteArray, QString> ZipArchive::getFileContent(FileIndex fileInde
     }
 
     zip_stat_t fileStats;
-    if (zip_stat_index(mZipFile, fileIndex, ZIP_FL_ENC_UTF_8, &fileStats) == -1) {
+    if (zip_stat_index(mZipFile.get(), fileIndex, ZIP_FL_ENC_UTF_8, &fileStats) == -1) {
         return std::unexpected(u"Failed to stat entry %1 in archive %2: %3"_s.arg(fileIndex).arg(
-            mFile, errorText(zip_get_error(mZipFile))));
+            mFile, errorText(zip_get_error(mZipFile.get()))));
     }
 
     if ((fileStats.valid & ZIP_STAT_SIZE) == 0) {
         return std::unexpected(u"Entry %1 in archive %2 has no known size"_s.arg(fileIndex).arg(mFile));
     }
 
-    zip_file_t *entry = zip_fopen_index(mZipFile, fileIndex, ZIP_FL_ENC_UTF_8);
+    const auto entry =
+        std::unique_ptr<zip_file_t, ZipFileCloser>(zip_fopen_index(mZipFile.get(), fileIndex, ZIP_FL_ENC_UTF_8));
     if (!entry) {
         return std::unexpected(u"Failed to open entry %1 in archive %2: %3"_s.arg(fileIndex).arg(
-            mFile, errorText(zip_get_error(mZipFile))));
+            mFile, errorText(zip_get_error(mZipFile.get()))));
     }
 
     QByteArray buffer{static_cast<qsizetype>(fileStats.size), Qt::Uninitialized};
-    if (const zip_int64_t bytesRead = zip_fread(entry, buffer.data(), fileStats.size);
+    if (const zip_int64_t bytesRead = zip_fread(entry.get(), buffer.data(), fileStats.size);
         bytesRead != static_cast<zip_int64_t>(fileStats.size)) {
         QString error = u"Short read of entry %1 in archive %2: %3 of %4 bytes: %5"_s.arg(fileIndex)
                             .arg(mFile)
                             .arg(bytesRead)
                             .arg(fileStats.size)
-                            .arg(errorText(zip_file_get_error(entry)));
-        zip_fclose(entry);
+                            .arg(errorText(zip_file_get_error(entry.get())));
         return std::unexpected(std::move(error));
     }
-
-    zip_fclose(entry);
     return buffer;
-}
-
-ZipArchive::~ZipArchive() {
-    if (mZipFile) {
-        zip_close(mZipFile);
-    }
 }
 } // namespace vsmm
