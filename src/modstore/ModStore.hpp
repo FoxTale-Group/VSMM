@@ -32,7 +32,7 @@
 namespace vsmm {
 class MODSTORE_EXPORT ModStore : public IModStore {
     Q_OBJECT
-    QML_ELEMENT
+    QML_NAMED_ELEMENT(ModStore)
     QML_SINGLETON
     Q_PROPERTY(int installedModsCount READ modsCount NOTIFY modsChanged)
     Q_PROPERTY(int updatesCount READ modUpdatesCount NOTIFY modsChanged)

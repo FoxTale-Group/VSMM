@@ -25,7 +25,7 @@
 namespace vsmm {
 class MODSORTFILTERMODEL_EXPORT ModSortFilterModel : public QSortFilterProxyModel {
     Q_OBJECT
-    QML_ELEMENT
+    QML_NAMED_ELEMENT(ModSortFilterModel)
     QML_SINGLETON
     Q_PROPERTY(QString filterText READ getFilterText WRITE setFilterText NOTIFY filterTextChanged)
 
