@@ -241,8 +241,8 @@ QJsonObject GameMngr::readClientCfg(const QString &clientSettingsPath) const {
     }
 
     auto clientSettings = clientSettingsDoc.object();
-    if (const auto &[valid, reason] = checkClientSettingsVer(clientSettings); !valid) {
-        qCCritical(cGameMngr, "Detected unsupported clientsettings: %s", qUtf8Printable(reason));
+    if (auto result = checkClientSettingsVer(clientSettings); !result) {
+        qCCritical(cGameMngr, "Detected unsupported clientsettings: %s", qUtf8Printable(std::move(result).error()));
         return {};
     }
 
@@ -438,17 +438,17 @@ QSet<QString> GameMngr::readDisabledMods(const QJsonObject &stringListSettings) 
     return disabledMods;
 }
 
-QPair<bool, QString> GameMngr::checkClientSettingsVer(const QJsonObject &clientSettings) const {
+std::expected<void, QString> GameMngr::checkClientSettingsVer(const QJsonObject &clientSettings) const {
     if (!clientSettings["stringSettings"_L1].isObject()) {
-        return {false, u"Invalid stringSettings"_s};
+        return std::unexpected{u"Invalid stringSettings"_s};
     }
 
     auto stringSettings = clientSettings["stringSettings"_L1].toObject();
     if (auto clSettingsVersion = stringSettings["settingsVersion"_L1].toStringView();
         !CLIENT_SETTINGS_VER_SUPPORT.contains(clSettingsVersion)) {
-        return {false, u"Unsupported clientsettings version %1"_s.arg(clSettingsVersion)};
+        return std::unexpected{u"Unsupported clientsettings version %1"_s.arg(clSettingsVersion)};
     }
 
-    return {true, {}};
+    return {};
 }
 } // namespace vsmm

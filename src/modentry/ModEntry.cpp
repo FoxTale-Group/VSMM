@@ -19,6 +19,7 @@
 #include "ModEntry.hpp"
 #include <QJsonArray>
 #include <QLoggingCategory>
+#include <algorithm>
 #include <optional>
 #include <utility>
 
@@ -104,13 +105,13 @@ void ModEntry::initLatestRelease(const QJsonObject &json, const semver::version<
     }
 
     auto latestRelease = getLatestVersion(std::move(jsonReleaseArr), gameVersion, cfgIncludePrerelease);
-    if (latestRelease.first.empty()) {
+    if (!latestRelease) {
         return;
     }
 
-    mOnlineInfo.mLatestVersion.mVersion = std::move(latestRelease.second);
-    mOnlineInfo.mLatestVersion.mFileName = latestRelease.first["filename"_L1].toString();
-    mOnlineInfo.mLatestVersion.mUrl = latestRelease.first["mainfile"_L1].toString();
+    mOnlineInfo.mLatestVersion.mVersion = std::move(latestRelease->second);
+    mOnlineInfo.mLatestVersion.mFileName = latestRelease->first["filename"_L1].toString();
+    mOnlineInfo.mLatestVersion.mUrl = latestRelease->first["mainfile"_L1].toString();
     mOnlineInfo.mLatestVersion.mHasUpdate = true;
 }
 
@@ -170,7 +171,7 @@ void ModEntry::initLogoUrl(const QJsonObject &json) {
     mOnlineInfo.mLogoUrl = json[ONLINE_LOGOFILE_JSON_KEY].toString();
 }
 
-QPair<QJsonObject, semver::version<>>
+std::optional<QPair<QJsonObject, semver::version<>>>
 ModEntry::getLatestVersion(QJsonArray releases, const semver::version<> &gameVersion, bool cfgIncludePrerelease) const {
     const auto tryParse = [this](const QString &version) -> std::optional<semver::version<>> {
         semver::version<> returnVersion;
@@ -182,18 +183,11 @@ ModEntry::getLatestVersion(QJsonArray releases, const semver::version<> &gameVer
         return returnVersion;
     };
     const auto supportsGameVersion = [&gameVersion, &tryParse](const QJsonArray &tags) {
-        for (const auto &tag : tags) {
+        return std::ranges::any_of(tags, [tryParse, &gameVersion](const auto &tag) {
             const auto supported = tryParse(tag.toString());
-            if (!supported) {
-                continue;
-            }
-
             // treat patch numbers as compatible
-            if (supported->major() == gameVersion.major() && supported->minor() == gameVersion.minor()) {
-                return true;
-            }
-        }
-        return false;
+            return supported && supported->major() == gameVersion.major() && supported->minor() == gameVersion.minor();
+        });
     };
 
     const bool includePrerelease = !mVersion.prerelease_tag().empty() || cfgIncludePrerelease;
@@ -225,6 +219,9 @@ ModEntry::getLatestVersion(QJsonArray releases, const semver::version<> &gameVer
         }
 
         latest = {release.toObject(), *releaseVersion};
+    }
+    if (latest.first.isEmpty()) {
+        return std::nullopt;
     }
     return latest;
 }

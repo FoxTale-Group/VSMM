@@ -27,6 +27,7 @@
 #include <QObject>
 #include <QProcess>
 #include <QTimer>
+#include <expected>
 #include <qqmlintegration.h>
 
 #include <semver.hpp>
@@ -66,7 +67,7 @@ class GAMEMNGR_EXPORT GameMngr : public IGameMngr {
     [[nodiscard]] static QJsonObject readStringListSettings(const QJsonObject &settings);
     static QList<QDir> readModsPaths(const QJsonObject &stringListSettings);
     static QSet<QString> readDisabledMods(const QJsonObject &stringListSettings);
-    [[nodiscard]] QPair<bool, QString> checkClientSettingsVer(const QJsonObject &clientSettings) const;
+    [[nodiscard]] std::expected<void, QString> checkClientSettingsVer(const QJsonObject &clientSettings) const;
 
     IConfig *mConfig{nullptr};
     QList<QDir> mModsDirs;
