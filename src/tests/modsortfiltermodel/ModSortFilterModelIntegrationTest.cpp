@@ -152,7 +152,6 @@ class ModSortFilterModelIntegrationTest : public QObject {
 
         QVERIFY(names().isEmpty());
         addMods({u"moreruins"_s, u"carryon"_s, u"betterruins"_s});
-        QCOMPARE(mProxy->getFilterText(), u"ruins"_s);
         QCOMPARE(names(), QStringList({u"betterruins (local)"_s, u"moreruins (local)"_s}));
     }
 };

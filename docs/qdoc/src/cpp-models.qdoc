@@ -99,8 +99,9 @@
 
     Rows are sorted by mod name, ascending and case insensitive. Sorting and
     filtering are dynamic, so rows are re-sorted, added and removed when the
-    source data changes. The \l filterText property limits the rows to mods whose name
-    contains the text.
+    source data changes. setFilterText() limits the rows to mods whose name
+    contains the text. Both use the sort and filter roles of
+    QSortFilterProxyModel, set to \l {vsmm::ModListModel::Roles}{NameRole}.
 
     See the \l [QML] {ModSortFilterModel} QML type for the QML side.
 
@@ -108,60 +109,23 @@
 */
 
 /*!
-    \property vsmm::ModSortFilterModel::filterText
-    \brief The text that the mod name of every accepted row contains.
-
-    The match is case insensitive and checks only the mod name. Author, tags
-    and id are not searched. An empty string accepts every row. The default is
-    an empty string.
-*/
-
-/*!
     \fn vsmm::ModSortFilterModel::ModSortFilterModel(QObject *parent)
 
     Creates the proxy with the given \a parent. Enables dynamic sorting and
-    filtering and sorts column \c 0 in ascending order.
-*/
-
-/*!
-    \fn QString vsmm::ModSortFilterModel::getFilterText() const
-
-    Returns the current filter text.
-
-    \sa filterText
+    filtering, sorts column \c 0 in ascending order, and sets the sort and
+    filter role to \l {vsmm::ModListModel::Roles}{NameRole}, both case
+    insensitive.
 */
 
 /*!
     \fn void vsmm::ModSortFilterModel::setFilterText(const QString &filterText)
 
-    Sets the filter text to \a filterText and filters the rows again. Does
-    nothing when the text does not change. Emits filterTextChanged() after a
-    change.
+    Keeps only the rows whose mod name contains \a filterText, case
+    insensitive. Author, tags and id are not searched. The text is matched
+    literally, so regular expression characters such as \c . and \c ( have no
+    special meaning. An empty string accepts every row.
 
-    \sa filterText
-*/
-
-/*!
-    \fn void vsmm::ModSortFilterModel::filterTextChanged()
-
-    Emitted when \l filterText changes. Only QML bindings use this signal.
-*/
-
-/*!
-    \fn bool vsmm::ModSortFilterModel::lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const
-    \reimp
-
-    Compares the \l {vsmm::ModListModel::Roles}{NameRole} values of both rows,
-    case insensitive.
-*/
-
-/*!
-    \fn bool vsmm::ModSortFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
-    \reimp
-
-    Accepts every row when \l filterText is empty. Otherwise accepts a row
-    when its \l {vsmm::ModListModel::Roles}{NameRole} value contains the filter
-    text, case insensitive.
+    The filter also applies to a source model set afterwards.
 */
 
 /*!

@@ -21,7 +21,6 @@
 #include <ModSortFilterModel.hpp>
 
 #include <QLoggingCategory>
-#include <QSignalSpy>
 #include <QTest>
 
 using namespace Qt::StringLiterals;
@@ -51,7 +50,7 @@ class ModSortFilterModelUnitTest : public QObject {
     void freshProxyIsEmptyAndUnfiltered() {
         const vsmm::ModSortFilterModel proxy;
 
-        QVERIFY(proxy.getFilterText().isEmpty());
+        QVERIFY(proxy.filterRegularExpression().pattern().isEmpty());
         QCOMPARE(proxy.rowCount(QModelIndex{}), 0);
     }
 
@@ -64,7 +63,6 @@ class ModSortFilterModelUnitTest : public QObject {
 
         proxy.setFilterText(u"carry"_s);
 
-        QCOMPARE(proxy.getFilterText(), u"carry"_s);
         QCOMPARE(proxy.rowCount(QModelIndex{}), 0);
 
         // and it applies to the model attached afterwards
@@ -149,6 +147,10 @@ class ModSortFilterModelUnitTest : public QObject {
         QTest::newRow("several-matches") << u"a"_s << QStringList({u"animal Cages"_s, u"Carry On"_s, u"zebra Utils"_s});
         QTest::newRow("space") << u"l C"_s << QStringList({u"animal Cages"_s});
         QTest::newRow("no-match") << u"nothing"_s << QStringList{};
+        // a regex dot would match every name
+        QTest::newRow("dot-is-literal") << u"."_s << QStringList{};
+        // an unescaped bracket would be an invalid pattern
+        QTest::newRow("bracket-is-literal") << u"("_s << QStringList{};
     }
 
     void filterMatchesNameSubstringCaseInsensitively() {
@@ -205,34 +207,14 @@ class ModSortFilterModelUnitTest : public QObject {
         QCOMPARE(visibleNames(proxy), QStringList({u"Carry On Ruins"_s, u"Plain Ruins"_s}));
     }
 
-    void filterTextChangedIsEmittedOnlyOnAChange() {
-        SourceModelStub source{unsortedNames()};
-        vsmm::ModSortFilterModel proxy;
-        proxy.setSourceModel(&source);
-        const QSignalSpy spy{&proxy, &vsmm::ModSortFilterModel::filterTextChanged};
-
-        proxy.setFilterText(u"carry"_s);
-        QCOMPARE(spy.count(), 1);
-
-        proxy.setFilterText(u"carry"_s); // same text, nothing to tell QML about
-        QCOMPARE(spy.count(), 1);
-
-        proxy.setFilterText(u"Carry"_s); // case differs, so the stored text differs
-        QCOMPARE(spy.count(), 2);
-
-        proxy.setFilterText(QString{});
-        QCOMPARE(spy.count(), 3);
-    }
-
-    // the search field binds to this property by name, so the metaobject wiring is part of the contract
-    void filterTextIsReachableAsAProperty() {
+    // the search field calls this by name, so the metaobject entry is part of the contract
+    void setFilterTextIsInvokable() {
         SourceModelStub source{unsortedNames()};
         vsmm::ModSortFilterModel proxy;
         proxy.setSourceModel(&source);
 
-        QVERIFY(proxy.setProperty("filterText", u"carry"_s));
+        QVERIFY(QMetaObject::invokeMethod(&proxy, "setFilterText", Q_ARG(QString, u"carry"_s)));
 
-        QCOMPARE(proxy.property("filterText").toString(), u"carry"_s);
         QCOMPARE(visibleNames(proxy), QStringList({u"Carry On"_s}));
     }
 

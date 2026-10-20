@@ -64,16 +64,17 @@
 
     \qml
     TextField {
-        onTextChanged: ModSortFilterModel.filterText = text
+        onTextChanged: ModSortFilterModel.setFilterText(text)
     }
     \endqml
 */
 
 /*!
-    \qmlproperty string ModSortFilterModel::filterText
-    Keeps only the rows whose \c modName contains this text, case
-    insensitive. Author, tags and id are not searched. An empty string accepts
-    every row.
+    \qmlmethod void ModSortFilterModel::setFilterText(string text)
+    Keeps only the rows whose \c modName contains \a text, case insensitive.
+    Author, tags and id are not searched. The text is matched literally, so
+    regular expression characters have no special meaning. An empty string
+    accepts every row.
 */
 
 /*!
