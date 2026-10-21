@@ -27,22 +27,9 @@ class MODSORTFILTERMODEL_EXPORT ModSortFilterModel : public QSortFilterProxyMode
     Q_OBJECT
     QML_NAMED_ELEMENT(ModSortFilterModel)
     QML_SINGLETON
-    Q_PROPERTY(QString filterText READ getFilterText WRITE setFilterText NOTIFY filterTextChanged)
 
   public:
     explicit ModSortFilterModel(QObject *parent = nullptr);
-
-    [[nodiscard]] QString getFilterText() const;
-    void setFilterText(const QString &filterText);
-
-  signals:
-    void filterTextChanged(); // NOTIFY filterText — QML bindings only
-
-  protected:
-    [[nodiscard]] bool lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const override;
-    [[nodiscard]] bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
-
-  private:
-    QString mFilterText;
+    Q_INVOKABLE void setFilterText(const QString &filterText);
 };
 } // namespace vsmm

@@ -15,5 +15,5 @@ TextField {
     iconSource: Theme.icons.searchIcon
     placeholderText: qsTr("Search installed mods...")
 
-    onTextChanged: ModSortFilterModel.filterText = searchInput.text
+    onTextChanged: ModSortFilterModel.setFilterText(searchInput.text)
 }

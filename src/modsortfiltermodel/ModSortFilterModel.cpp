@@ -26,37 +26,16 @@ namespace vsmm {
 ModSortFilterModel::ModSortFilterModel(QObject *parent) : QSortFilterProxyModel{parent} {
     setDynamicSortFilter(true);
     QSortFilterProxyModel::sort(0);
+    setSortRole(ModListModel::NameRole);
+    setSortCaseSensitivity(Qt::CaseInsensitive);
+    setFilterRole(ModListModel::NameRole);
+    setFilterCaseSensitivity(Qt::CaseInsensitive);
 }
-
-bool ModSortFilterModel::lessThan(const QModelIndex &sourceLeft, const QModelIndex &sourceRight) const {
-    QString leftName = sourceModel()->data(sourceLeft, ModListModel::NameRole).toString();
-    QString rightName = sourceModel()->data(sourceRight, ModListModel::NameRole).toString();
-
-    return leftName.compare(rightName, Qt::CaseInsensitive) < 0;
-}
-
-bool ModSortFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const {
-    if (mFilterText.isEmpty()) {
-        return true;
-    }
-
-    const QModelIndex idx = sourceModel()->index(sourceRow, 0, sourceParent);
-    QString name = sourceModel()->data(idx, ModListModel::NameRole).toString();
-    return name.contains(mFilterText, Qt::CaseInsensitive);
-}
-
-QString ModSortFilterModel::getFilterText() const { return mFilterText; }
 
 void ModSortFilterModel::setFilterText(const QString &filterText) {
-    if (mFilterText == filterText) {
-        return;
-    }
+    setFilterFixedString(filterText);
 
-    beginFilterChange();
-    mFilterText = filterText;
-    endFilterChange();
-    qCDebug(cModSortFilterModel, "Filter set to '%s', %d of %d rows visible", qUtf8Printable(mFilterText), rowCount(),
+    qCDebug(cModSortFilterModel, "Filter set to '%s', %d of %d rows visible", qUtf8Printable(filterText), rowCount(),
             sourceModel() ? sourceModel()->rowCount() : 0);
-    emit filterTextChanged();
 }
 } // namespace vsmm
