@@ -437,7 +437,7 @@ class ZipArchiveIntegrationTest : public QObject {
         QCOMPARE(contentOf(target, MOD_INFO), MOD_INFO_CONTENT);
     }
 
-    void moveAssignmentSwapsTheTwoArchives() {
+    void moveAssignmentReplacesAnOpenArchive() {
         const QString replaced = filePath("replaced.zip"_L1);
         QVERIFY(writeArchive(replaced, {{.mName = MOD_INFO, .mContent = REPLACED_CONTENT}}));
         vsmm::ZipArchive target{replaced};
@@ -448,8 +448,9 @@ class ZipArchiveIntegrationTest : public QObject {
         target = std::move(source);
 
         QCOMPARE(contentOf(target, MOD_INFO), MOD_INFO_CONTENT);
-        // NOLINTBEGIN(bugprone-use-after-move) the target's old archive lives on in the source until it dies
-        QCOMPARE(contentOf(source, MOD_INFO), REPLACED_CONTENT);
+        // NOLINTBEGIN(bugprone-use-after-move) no swap, the source must not get the target's old archive
+        const QString lookup = failureOf(source.getFileIndex(MOD_INFO));
+        QVERIFY2(lookup.endsWith(u" is not open"_s), qPrintable(lookup));
         // NOLINTEND(bugprone-use-after-move)
     }
 
