@@ -39,7 +39,7 @@ struct LocalInfoForeign {
 
 class MODLOADER_EXPORT ModLoader : public QObject {
     Q_OBJECT
-    QML_ELEMENT
+    QML_NAMED_ELEMENT(ModLoader)
     QML_SINGLETON
 
     static constexpr QLatin1StringView DEFAULT_API_URL{"https://mods.vintagestory.at/api/mod/"};

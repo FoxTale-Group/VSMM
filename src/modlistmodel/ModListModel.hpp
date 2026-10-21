@@ -30,7 +30,7 @@
 namespace vsmm {
 class MODLISTMODEL_EXPORT ModListModel : public QAbstractListModel {
     Q_OBJECT
-    QML_ELEMENT
+    QML_NAMED_ELEMENT(ModListModel)
     QML_SINGLETON
 
   public:
