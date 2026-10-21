@@ -29,6 +29,8 @@
 #include <QThreadPool>
 #include <qqmlintegration.h>
 
+#include <expected>
+
 namespace vsmm {
 
 struct LocalInfoForeign {
@@ -82,8 +84,9 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     void incrementModsLoadingInProgress(qint64 count = 1);
     void decrementModsLoadingInProgress(bool notify = true);
 
-    [[nodiscard]] static QVariant getLocalInfoFromZip(QFileInfo fileInfo);
-    [[nodiscard]] static QVariant parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo);
+    [[nodiscard]] static std::expected<ModLocalInfo, QString> getLocalInfoFromZip(QFileInfo fileInfo);
+    [[nodiscard]] static std::expected<ModLocalInfo, QString> parseLocalJson(const QByteArray &jsonByteArray,
+                                                                             QFileInfo &&fileInfo);
     [[nodiscard]] static QJsonObject createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId);
 
     IGameMngr *mGameMngr{nullptr};

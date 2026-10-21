@@ -149,11 +149,11 @@ void ModLoader::load(const QUrl &filePath) {
 
 ModLocalInfo ModLoader::readLocalInfo(const QUrl &filePath) {
     auto localInfo = getLocalInfoFromZip(QFileInfo{filePath.toLocalFile()});
-    if (!localInfo.canConvert<ModLocalInfo>()) {
-        qCWarning(cModLoader, "%s", qUtf8Printable(localInfo.value<QString>()));
-        return {.mError = std::move(localInfo).value<QString>()};
+    if (!localInfo) {
+        qCWarning(cModLoader, "%s", qUtf8Printable(localInfo.error()));
+        return {.mError = std::move(localInfo).error()};
     }
-    return std::move(localInfo).value<ModLocalInfo>();
+    return std::move(localInfo).value();
 }
 
 void ModLoader::onModUpdateRequested(QStringList modIds) {
@@ -249,10 +249,10 @@ void ModLoader::load_(QFileInfo fileInfo, IModStore::ModLoadType modLoadType, QS
     mThreadPoolExtractZips.start([this, fileInfo, modLoadType, updatedModId = std::move(updatedModId)] mutable {
         auto localInfo = getLocalInfoFromZip(fileInfo);
 
-        if (localInfo.canConvert<ModLocalInfo>()) {
+        if (localInfo) {
             QMetaObject::invokeMethod(
                 this,
-                [this, modInfo_ = std::move(localInfo).value<ModLocalInfo>(), modLoadType, updatedModId] mutable {
+                [this, modInfo_ = std::move(localInfo).value(), modLoadType, updatedModId] mutable {
                     // Copy id for info retrieval
                     QString modId = modInfo_.mId;
 
@@ -287,7 +287,7 @@ void ModLoader::load_(QFileInfo fileInfo, IModStore::ModLoadType modLoadType, QS
                 Qt::QueuedConnection);
             return;
         }
-        qCWarning(cModLoader, "%s", qUtf8Printable(std::move(localInfo).value<QString>()));
+        qCWarning(cModLoader, "%s", qUtf8Printable(std::move(localInfo).error()));
         if (modLoadType == IModStore::ModLoadType::Update) {
             reportUpdateFailed(std::move(updatedModId), u"Downloaded update is not a valid mod"_s);
             return;
@@ -296,42 +296,44 @@ void ModLoader::load_(QFileInfo fileInfo, IModStore::ModLoadType modLoadType, QS
     });
 }
 
-QVariant ModLoader::getLocalInfoFromZip(QFileInfo fileInfo) {
+std::expected<ModLocalInfo, QString> ModLoader::getLocalInfoFromZip(QFileInfo fileInfo) {
     const QString absoluteFilePath = fileInfo.absoluteFilePath();
     ZipArchive zipArchive(absoluteFilePath);
 
     if (const auto opened = zipArchive.open(); !opened) {
-        return opened.error();
+        return std::unexpected{opened.error()};
     }
 
     const auto zipFileId = zipArchive.getFileIndex("modinfo.json");
     if (!zipFileId) {
-        return zipFileId.error();
+        return std::unexpected{zipFileId.error()};
     }
 
     const auto fileBuffer = zipArchive.getFileContent(*zipFileId);
     if (!fileBuffer) {
-        return fileBuffer.error();
+        return std::unexpected{fileBuffer.error()};
     }
     return parseLocalJson(*fileBuffer, std::move(fileInfo));
 }
 
-QVariant ModLoader::parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo) {
+std::expected<ModLocalInfo, QString> ModLoader::parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&fileInfo) {
     ModLocalInfo info;
     info.mFileInfo = std::move(fileInfo);
 
     QJsonParseError errorCode{.error = QJsonParseError::NoError};
     QJsonObject json = QJsonDocument::fromJson(jsonByteArray, &errorCode).object();
     if (errorCode.error != QJsonParseError::NoError) {
-        return u"Failed to parse modinfo.json from zip file: %1 Reason: %2"_s.arg(info.mFileInfo.absoluteFilePath())
-            .arg(errorCode.errorString());
+        return std::unexpected{
+            u"Failed to parse modinfo.json from zip file: %1 Reason: %2"_s.arg(info.mFileInfo.absoluteFilePath())
+                .arg(errorCode.errorString())};
     }
     for (const auto &[key, value] : json.asKeyValueRange()) {
         auto lowercaseKey = key.toString().toLower();
 
         if (lowercaseKey == LOCAL_JSON_VERSION_KEY) {
             if (const auto result = semver::parse(value.toString().toStdString(), info.mVersion); !result) {
-                return u"Failed to parse modinfo.json from zip file: %1"_s.arg(info.mFileInfo.absoluteFilePath());
+                return std::unexpected{
+                    u"Failed to parse modinfo.json from zip file: %1"_s.arg(info.mFileInfo.absoluteFilePath())};
             }
         } else if (lowercaseKey == LOCAL_JSON_MODID_KEY && value.isString()) {
             info.mId = value.toString();
@@ -364,10 +366,11 @@ QVariant ModLoader::parseLocalJson(const QByteArray &jsonByteArray, QFileInfo &&
     }
 
     if (info.mId.isEmpty() || info.mName.isEmpty()) {
-        return u"Failed to parse modinfo.json from zip file: %1"_s.arg(info.mFileInfo.absoluteFilePath());
+        return std::unexpected{
+            u"Failed to parse modinfo.json from zip file: %1"_s.arg(info.mFileInfo.absoluteFilePath())};
     }
 
-    return QVariant::fromValue(std::move(info));
+    return info;
 }
 
 QJsonObject ModLoader::createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId) {

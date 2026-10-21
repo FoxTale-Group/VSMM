@@ -107,7 +107,7 @@ class MODENTRY_EXPORT ModEntry {
     void initSide(const QJsonObject &json);
     void initLogoUrl(const QJsonObject &json);
 
-    [[nodiscard]] QPair<QJsonObject, semver::version<>>
+    [[nodiscard]] std::optional<QPair<QJsonObject, semver::version<>>>
     getLatestVersion(QJsonArray releases, const semver::version<> &gameVersion, bool cfgIncludePrerelease) const;
 
     QString mName;
