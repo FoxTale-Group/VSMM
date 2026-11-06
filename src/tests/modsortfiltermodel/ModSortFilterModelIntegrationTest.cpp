@@ -111,7 +111,7 @@ class ModSortFilterModelIntegrationTest : public QObject {
         addMods({u"ddd"_s, u"eee"_s, u"zzz"_s});
         QCOMPARE(names().last(), u"zzz (local)"_s);
 
-        store().updateOnline(u"zzz"_s, modJson());
+        store().updateOnline(u"zzz"_s, onlineInfo());
 
         QCOMPARE(names(), QStringList({u"Carry On"_s, u"ddd (local)"_s, u"eee (local)"_s}));
     }
@@ -121,7 +121,7 @@ class ModSortFilterModelIntegrationTest : public QObject {
         mProxy->setFilterText(u"carry"_s);
         QVERIFY(names().isEmpty());
 
-        store().updateOnline(u"zzz"_s, modJson());
+        store().updateOnline(u"zzz"_s, onlineInfo());
 
         QCOMPARE(names(), QStringList{u"Carry On"_s});
     }

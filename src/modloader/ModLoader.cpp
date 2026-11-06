@@ -169,11 +169,18 @@ void ModLoader::onModUpdateRequested(QStringList modIds) {
             continue;
         }
 
+        const auto latestRelease = mod->getLatestVersion();
+        if (!latestRelease) {
+            qCCritical(cModLoader, "Mod %s has no update", qUtf8Printable(id));
+            decrementModsLoadingInProgress(false);
+            continue;
+        }
+
         // copied, the entry is replaced once the update is installed
-        ModEntry::LatestVersion latestVersion = mod->getLatestVersion();
-        const QUrl url = latestVersion.mUrl;
-        qCDebug(cModLoader, "Downloading %s %s from %s", qUtf8Printable(id), latestVersion.mVersion.to_string().c_str(),
-                qUtf8Printable(url.toString()));
+        ModRelease latestVersion = *latestRelease;
+        const QUrl url = latestVersion.mMainFile;
+        qCDebug(cModLoader, "Downloading %s %s from %s", qUtf8Printable(id),
+                latestVersion.mModVersion.to_string().c_str(), qUtf8Printable(url.toString()));
         mHttpClient->sendGet(
             url, this, DOWNLOAD_CONTENT_TYPE,
             [this, id = id, latestVersion = std::move(latestVersion)](QByteArray data) mutable {
@@ -195,7 +202,7 @@ void ModLoader::onModUpdateRequested(QStringList modIds) {
     }
 }
 
-void ModLoader::onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion, QString modId) {
+void ModLoader::onModUpdateRetrieved(QByteArray data, ModRelease latestVersion, QString modId) {
     mThreadPoolProcessUpdate.start([this, latestVersion = std::move(latestVersion), data = std::move(data),
                                     modId = std::move(modId)] mutable {
         QFile modUpdateFile{QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QDir::separator() +
@@ -272,8 +279,8 @@ void ModLoader::load_(QFileInfo fileInfo, IModStore::ModLoadType modLoadType, QS
                     mHttpClient->sendGet(
                         GetModUrlApi(mApiUrl, modId), this, ONLINE_CONTENT_TYPE,
                         [this, modId](QByteArray data) mutable {
-                            if (QJsonObject modObj = createOnlineModEntry(data, modId); !modObj.isEmpty()) {
-                                mStore->updateOnline(modId, std::move(modObj));
+                            if (auto onlineInfo = createOnlineModEntry(data, modId); onlineInfo) {
+                                mStore->updateOnline(modId, std::move(*onlineInfo));
                             }
                             decrementModsLoadingInProgress();
                         },
@@ -373,7 +380,7 @@ std::expected<ModLocalInfo, QString> ModLoader::parseLocalJson(const QByteArray 
     return info;
 }
 
-QJsonObject ModLoader::createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId) {
+std::optional<ModOnlineInfo> ModLoader::createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId) {
     QJsonParseError parseError{.error = QJsonParseError::NoError};
     auto responseJsonObj = QJsonDocument::fromJson(jsonByteArray, &parseError);
     if (parseError.error != QJsonParseError::NoError) {
@@ -401,6 +408,6 @@ QJsonObject ModLoader::createOnlineModEntry(const QByteArray &jsonByteArray, QAn
         return {};
     }
 
-    return responseObj[ONLINE_JSON_ROOT_KEY].toObject();
+    return ModOnlineInfo::fromJson(responseObj[ONLINE_JSON_ROOT_KEY].toObject());
 }
 } // namespace vsmm

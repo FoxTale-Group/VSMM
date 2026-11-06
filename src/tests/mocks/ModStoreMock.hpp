@@ -36,7 +36,7 @@ class ModStoreMock final : public IModStore {
     };
     struct OnlineCall {
         QString mId;
-        QJsonObject mOnlineInfo;
+        ModOnlineInfo mOnlineInfo;
     };
     struct ProgressCall {
         QString mId;
@@ -54,7 +54,7 @@ class ModStoreMock final : public IModStore {
     void add(ModLocalInfo localModInfo, ModLoadType loadType) override {
         mAddCalls.append({std::move(localModInfo), loadType});
     }
-    void updateOnline(QStringView id, QJsonObject onlineInfo) override {
+    void updateOnline(QStringView id, ModOnlineInfo onlineInfo) override {
         mOnlineCalls.append({id.toString(), std::move(onlineInfo)});
     }
     void onModsReloaded() override { ++mReloadedCount; }
