@@ -47,7 +47,7 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     void setGameMngr(IGameMngr *gameMngr);
 
     void add(ModLocalInfo localModInfo, ModLoadType loadType) override;
-    void updateOnline(QStringView id, QJsonObject onlineInfo) override;
+    void updateOnline(QStringView id, ModOnlineInfo onlineInfo) override;
     Q_INVOKABLE void reload();
     Q_INVOKABLE void update(const QString &id);
     Q_INVOKABLE void updateAll();
