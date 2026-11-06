@@ -153,7 +153,7 @@ class ModStoreIntegrationTest : public QObject {
         QVERIFY(mApp->start(options));
         addMod(mApp->modsDir(), u"carryon"_s, u"1.0.0"_s);
 
-        store().updateOnline(u"carryon"_s, modJson({release(u"1.1.0-rc.1"_s, {u"1.22.0"_s})}));
+        store().updateOnline(u"carryon"_s, onlineInfo({release(u"1.1.0-rc.1"_s, {u"1.22.0"_s})}));
 
         QCOMPARE(hasUpdate(u"carryon"_s), includeModPrerelease);
         QCOMPARE(store().modUpdatesCount(), includeModPrerelease ? 1 : 0);
@@ -176,7 +176,7 @@ class ModStoreIntegrationTest : public QObject {
         QCOMPARE(str(*mApp->gameMngr().getGameVersion()), u"1.22.5"_s);
         addMod(mApp->modsDir(), u"carryon"_s, u"1.0.0"_s);
 
-        store().updateOnline(u"carryon"_s, modJson({release(u"1.1.0"_s, {supportedGameVersion})}));
+        store().updateOnline(u"carryon"_s, onlineInfo({release(u"1.1.0"_s, {supportedGameVersion})}));
 
         QCOMPARE(hasUpdate(u"carryon"_s), expectUpdate);
     }
@@ -189,7 +189,7 @@ class ModStoreIntegrationTest : public QObject {
         QVERIFY(!mApp->gameMngr().getGameVersion());
         addMod(mApp->modsDir(), u"carryon"_s, u"1.0.0"_s);
 
-        store().updateOnline(u"carryon"_s, modJson({release(u"1.1.0"_s, {u"1.22.0"_s})}));
+        store().updateOnline(u"carryon"_s, onlineInfo({release(u"1.1.0"_s, {u"1.22.0"_s})}));
 
         QVERIFY(!hasUpdate(u"carryon"_s));
     }
@@ -244,7 +244,7 @@ class ModStoreIntegrationTest : public QObject {
         QCOMPARE(store().modsCount(), 0);
 
         addMod(mApp->modsDir(), u"carryon"_s, u"1.0.0"_s);
-        store().updateOnline(u"carryon"_s, modJson({release(u"1.1.0"_s, {u"1.23.0"_s})}));
+        store().updateOnline(u"carryon"_s, onlineInfo({release(u"1.1.0"_s, {u"1.23.0"_s})}));
         QVERIFY(hasUpdate(u"carryon"_s));
     }
 };

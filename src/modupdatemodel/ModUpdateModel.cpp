@@ -147,11 +147,18 @@ void ModUpdateModel::onModUpdateRequested(QStringList modIds) {
             qCDebug(cModUpdateModel, "Skipping %s, unknown or listed twice", qUtf8Printable(id));
             continue;
         }
+
+        const ModRelease *latest = mod->getLatestVersion();
+        if (!latest) {
+            qCDebug(cModUpdateModel, "Skipping %s, no latest version", qUtf8Printable(id));
+            continue;
+        }
+
         mIdToRow.insert(id, static_cast<int>(mRows.size()));
         mRows.append({.mId = std::move(id),
                       .mName = mod->getName().toString(),
                       .mFromVersion = QString::fromStdString(mod->getVersion().to_string()),
-                      .mToVersion = QString::fromStdString(mod->getLatestVersion().mVersion.to_string())});
+                      .mToVersion = QString::fromStdString(latest->mModVersion.to_string())});
     }
     endResetModel();
     qCDebug(cModUpdateModel, "Update batch of %lld mods", static_cast<long long>(mRows.size()));

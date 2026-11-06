@@ -33,6 +33,105 @@ QUrl GetModUrlByAssetId(qint64 assetId) { return u"https://mods.vintagestory.at/
 
 namespace vsmm {
 
+std::optional<ModRelease> ModRelease::fromJson(const QJsonObject &release) {
+    const QString modVersion = release["modversion"_L1].toString();
+    auto parsedVersion = semver::try_parse(modVersion.toStdString());
+    if (!parsedVersion) {
+        qCWarning(cModEntry, "%s: Cannot parse version '%s'", qUtf8Printable(release["modidstr"_L1].toString()),
+                  qUtf8Printable(modVersion));
+        return std::nullopt;
+    }
+
+    ModRelease result;
+    result.mModVersion = std::move(parsedVersion).value();
+
+    result.mReleaseId = release["releaseid"_L1].toInteger();
+    result.mFileId = release["fileid"_L1].toInteger();
+    result.mDownloads = release["downloads"_L1].toInteger();
+
+    result.mModIdStr = release["modidstr"_L1].toString();
+    result.mFileName = release["filename"_L1].toString();
+    result.mChangelog = release["changelog"_L1].toString();
+
+    // append 'Z' to the end of the string to treat it as UTC
+    result.mCreated = QDateTime::fromString(release["created"_L1].toString() + u'Z', Qt::ISODate);
+
+    result.mMainFile = QUrl{release["mainfile"_L1].toString()};
+
+    for (const auto &tag : release["tags"_L1].toArray()) {
+        const QString gameVersion = tag.toString();
+        if (auto gameVersionParsed = semver::try_parse(gameVersion.toStdString()); gameVersionParsed) {
+            result.mGameVersions.append(std::move(gameVersionParsed).value());
+        } else {
+            qCWarning(cModEntry, "%s: Cannot parse game version '%s'", qUtf8Printable(result.mModIdStr),
+                      qUtf8Printable(gameVersion));
+        }
+    }
+
+    return result;
+}
+
+ModScreenshot ModScreenshot::fromJson(const QJsonObject &screenshot) {
+    ModScreenshot result;
+    result.mFileId = screenshot["fileid"_L1].toInteger();
+
+    result.mMainFile = QUrl{screenshot["mainfile"_L1].toString()};
+    result.mThumbnail = QUrl{screenshot["thumbnailfilename"_L1].toString()};
+
+    result.mFileName = screenshot["filename"_L1].toString();
+
+    result.mCreated = QDateTime::fromString(screenshot["created"_L1].toString() + u'Z', Qt::ISODate);
+    return result;
+}
+
+ModOnlineInfo ModOnlineInfo::fromJson(const QJsonObject &mod) {
+    ModOnlineInfo info;
+    info.mModId = mod["modid"_L1].toInteger();
+    info.mAssetId = mod["assetid"_L1].toInteger();
+    info.mDownloads = mod["downloads"_L1].toInteger();
+    info.mFollows = mod["follows"_L1].toInteger();
+    info.mComments = mod["comments"_L1].toInteger();
+    info.mTrendingPoints = mod["trendingpoints"_L1].toInteger();
+
+    info.mName = mod["name"_L1].toString().trimmed();
+    info.mAuthor = mod["author"_L1].toString().trimmed();
+    info.mUrlAlias = mod["urlalias"_L1].toString().trimmed();
+    info.mSide = mod["side"_L1].toString();
+    info.mType = mod["type"_L1].toString();
+    info.mText = mod["text"_L1].toString().trimmed();
+
+    // append 'Z' to the end of the string to treat it as UTC
+    info.mCreated = QDateTime::fromString(mod["created"_L1].toString() + u'Z', Qt::ISODate);
+    info.mLastModified = QDateTime::fromString(mod["lastmodified"_L1].toString() + u'Z', Qt::ISODate);
+    info.mLastReleased = QDateTime::fromString(mod["lastreleased"_L1].toString() + u'Z', Qt::ISODate);
+
+    info.mLogo = QUrl{mod["logofile"_L1].toString()};
+    info.mHomepage = QUrl{mod["homepageurl"_L1].toString()};
+    info.mSourceCode = QUrl{mod["sourcecodeurl"_L1].toString()};
+    info.mIssueTracker = QUrl{mod["issuetrackerurl"_L1].toString()};
+    info.mWiki = QUrl{mod["wikiurl"_L1].toString()};
+    info.mTrailerVideo = QUrl{mod["trailervideourl"_L1].toString()};
+
+    for (const auto &tag : mod["tags"_L1].toArray()) {
+        if (!tag.isString()) {
+            continue;
+        }
+        info.mTags.append(tag.toString());
+    }
+
+    std::ranges::for_each(mod["releases"_L1].toArray(), [&info](const auto &release) {
+        if (auto releaseResult = ModRelease::fromJson(release.toObject()); releaseResult) {
+            info.mReleases.append(std::move(*releaseResult));
+        }
+    });
+
+    std::ranges::for_each(mod["screenshots"_L1].toArray(), [&info](const auto &screenshot) {
+        info.mScreenshots.append(ModScreenshot::fromJson(screenshot.toObject()));
+    });
+
+    return info;
+}
+
 ModEntry::ModEntry(ModLocalInfo info)
     : mName{std::move(info.mName)}, mVersion{std::move(info.mVersion)}, mAuthors{std::move(info.mAuthors)},
       mModId{std::move(info.mId)} {
@@ -61,167 +160,53 @@ const semver::version<> &ModEntry::getVersion() const { return mVersion; }
 const QFileInfo &ModEntry::getFileInfo() const { return mFileInfo; }
 bool ModEntry::isMarkedForUpdate() const { return mMarkedForUpdate; }
 bool ModEntry::isFavorite() const { return mFavorite; }
+bool ModEntry::hasUpdate() const { return mLatestVersion.has_value(); }
 void ModEntry::setMarkedForUpdate(bool marked) { mMarkedForUpdate = marked; }
 void ModEntry::setFavorite(bool favorite) { mFavorite = favorite; }
 
-void ModEntry::initOnlineInfo(QJsonObject json, const semver::version<> &gameVersion, bool cfgIncludePrerelease) {
-    initName(json);
-    initModUrl(json);
-    initAuthors(json);
-    initTags(json);
-    initLatestRelease(json, gameVersion, cfgIncludePrerelease);
-    initSide(json);
-    initLogoUrl(json);
+void ModEntry::initOnlineInfo(ModOnlineInfo onlineInfo, const semver::version<> &gameVersion,
+                              bool cfgIncludePrerelease) {
+    mOnlineInfo = std::move(onlineInfo);
+    mUrl = !mOnlineInfo.mUrlAlias.isEmpty() ? GetModUrlByAlias(mOnlineInfo.mUrlAlias)
+                                            : GetModUrlByAssetId(mOnlineInfo.mAssetId);
+
+    mLatestVersion = findLatestRelease(gameVersion, cfgIncludePrerelease);
 
     qCDebug(cModEntry, "Retrieved mod info for %s", qUtf8Printable(mOnlineInfo.mName));
 }
 
-const QUrl &ModEntry::getUrl() const { return mOnlineInfo.mUrl; }
-const ModEntry::LatestVersion &ModEntry::getLatestVersion() const { return mOnlineInfo.mLatestVersion; }
+const QUrl &ModEntry::getUrl() const { return mUrl; }
+const ModRelease *ModEntry::getLatestVersion() const { return mLatestVersion ? &*mLatestVersion : nullptr; }
 const QStringList &ModEntry::getTags() const { return mOnlineInfo.mTags; }
 QStringView ModEntry::getSide() const { return mOnlineInfo.mSide; }
-bool ModEntry::hasUpdate() const { return mOnlineInfo.mLatestVersion.mHasUpdate; }
-const QUrl &ModEntry::getLogoUrl() const { return mOnlineInfo.mLogoUrl; }
+const QUrl &ModEntry::getLogoUrl() const { return mOnlineInfo.mLogo; }
 
-void ModEntry::initName(const QJsonObject &json) {
-    if (!json["name"_L1].isString()) {
-        qCWarning(cModEntry, "%s: Invalid JSON format: name is not a string", qUtf8Printable(mName));
-        return;
-    }
-    mOnlineInfo.mName = json["name"].toString().trimmed();
-}
-
-void ModEntry::initLatestRelease(const QJsonObject &json, const semver::version<> &gameVersion,
-                                 bool cfgIncludePrerelease) {
-    if (!json["releases"_L1].isArray()) {
-        qCWarning(cModEntry, "%s: Invalid JSON format: releases is not an array", qUtf8Printable(mOnlineInfo.mName));
-        return;
-    }
-
-    auto jsonReleaseArr = json["releases"_L1].toArray();
-    if (jsonReleaseArr.isEmpty()) {
-        qCWarning(cModEntry, "%s: Invalid JSON format: releases array is empty", qUtf8Printable(mOnlineInfo.mName));
-        return;
-    }
-
-    auto latestRelease = getLatestVersion(std::move(jsonReleaseArr), gameVersion, cfgIncludePrerelease);
-    if (!latestRelease) {
-        return;
-    }
-
-    mOnlineInfo.mLatestVersion.mVersion = std::move(latestRelease->second);
-    mOnlineInfo.mLatestVersion.mFileName = latestRelease->first["filename"_L1].toString();
-    mOnlineInfo.mLatestVersion.mUrl = latestRelease->first["mainfile"_L1].toString();
-    mOnlineInfo.mLatestVersion.mHasUpdate = true;
-}
-
-void ModEntry::initAuthors(const QJsonObject &json) {
-    if (!json["author"_L1].isString()) {
-        qCWarning(cModEntry, "%s: Invalid JSON format: author is not a string", qUtf8Printable(mOnlineInfo.mName));
-        return;
-    }
-
-    mOnlineInfo.mAuthor = json["author"_L1].toString();
-}
-
-void ModEntry::initTags(const QJsonObject &json) {
-    if (!json["tags"_L1].isArray()) {
-        qCWarning(cModEntry, "%s: Invalid JSON format: tags is not a list", qUtf8Printable(mOnlineInfo.mName));
-        return;
-    }
-
-    for (const auto &tag : json["tags"_L1].toArray()) {
-        if (tag.isNull()) {
-            continue;
-        }
-        mOnlineInfo.mTags.append(tag.toString());
-    }
-}
-
-void ModEntry::initModUrl(const QJsonObject &json) {
-    if (!json["urlalias"_L1].isNull() && json["urlalias"_L1].isString()) {
-        mOnlineInfo.mUrl = GetModUrlByAlias(json["urlalias"_L1].toString());
-        return;
-    }
-
-    if (!json["assetid"_L1].isDouble()) {
-        qCWarning(cModEntry, "%s: Invalid JSON format: assetid is not a number", qUtf8Printable(mOnlineInfo.mName));
-        return;
-    }
-
-    mOnlineInfo.mUrl = GetModUrlByAssetId(json["assetid"_L1].toInteger());
-}
-
-void ModEntry::initSide(const QJsonObject &json) {
-    if (!json["side"_L1].isString()) {
-        qCWarning(cModEntry, "%s: Invalid JSON format: side is not a string", qUtf8Printable(mOnlineInfo.mName));
-        return;
-    }
-
-    mOnlineInfo.mSide = json["side"_L1].toString();
-}
-
-void ModEntry::initLogoUrl(const QJsonObject &json) {
-    if (!json[ONLINE_LOGOFILE_JSON_KEY].isString()) {
-        qCDebug(cModEntry, "%s: no %s in the online info", qUtf8Printable(mOnlineInfo.mName),
-                qUtf8Printable(ONLINE_LOGOFILE_JSON_KEY));
-        return;
-    }
-
-    mOnlineInfo.mLogoUrl = json[ONLINE_LOGOFILE_JSON_KEY].toString();
-}
-
-std::optional<QPair<QJsonObject, semver::version<>>>
-ModEntry::getLatestVersion(QJsonArray releases, const semver::version<> &gameVersion, bool cfgIncludePrerelease) const {
-    const auto tryParse = [this](const QString &version) -> std::optional<semver::version<>> {
-        semver::version<> returnVersion;
-        if (const auto result = semver::parse(version.toStdString(), returnVersion); !result) {
-            qCCritical(cModEntry, "%s: Cannot parse version '%s'", qUtf8Printable(mOnlineInfo.mName),
-                       qUtf8Printable(version));
-            return std::nullopt;
-        }
-        return returnVersion;
-    };
-    const auto supportsGameVersion = [&gameVersion, &tryParse](const QJsonArray &tags) {
-        return std::ranges::any_of(tags, [tryParse, &gameVersion](const auto &tag) {
-            const auto supported = tryParse(tag.toString());
+std::optional<ModRelease> ModEntry::findLatestRelease(const semver::version<> &gameVersion,
+                                                      bool cfgIncludePrerelease) const {
+    const auto supportsGameVersion = [&gameVersion](const QList<semver::version<>> &supportedVersions) {
+        return std::ranges::any_of(supportedVersions, [&gameVersion](const auto &supportedVersion) {
             // treat patch numbers as compatible
-            return supported && supported->major() == gameVersion.major() && supported->minor() == gameVersion.minor();
+            return supportedVersion.major() == gameVersion.major() && supportedVersion.minor() == gameVersion.minor();
         });
     };
 
     const bool includePrerelease = !mVersion.prerelease_tag().empty() || cfgIncludePrerelease;
-    QPair<QJsonObject, semver::version<>> latest;
-    for (const auto &release : releases) {
-        if (!release["modversion"_L1].isString()) {
-            qCCritical(cModEntry, "%s: Invalid JSON format: no modversion", qUtf8Printable(mOnlineInfo.mName));
+    std::optional<ModRelease> latest;
+    for (const auto &release : mOnlineInfo.mReleases) {
+        if (release.mModVersion <= mVersion) {
             continue;
         }
 
-        const auto releaseVersion = tryParse(release["modversion"_L1].toString());
-
-        // the API orders releases by release date
-        if (!releaseVersion || *releaseVersion <= mVersion ||
-            // only include prerelease if mod is already a prerelease, or it is set in app cfg explicitly
-            (!releaseVersion->prerelease_tag().empty() && !includePrerelease)) {
+        // only include prerelease if mod is already a prerelease, or it is set in app cfg explicitly
+        if (!release.mModVersion.prerelease_tag().empty() && !includePrerelease) {
             continue;
         }
 
-        if (!release["tags"_L1].isArray()) {
-            qCCritical(cModEntry, "%s: Invalid JSON format: release tags is not an array",
-                       qUtf8Printable(mOnlineInfo.mName));
+        if (!supportsGameVersion(release.mGameVersions) || (latest && release.mModVersion <= latest->mModVersion)) {
             continue;
         }
 
-        if (!supportsGameVersion(release["tags"_L1].toArray()) ||
-            (!latest.first.isEmpty() && *releaseVersion <= latest.second)) {
-            continue;
-        }
-
-        latest = {release.toObject(), *releaseVersion};
-    }
-    if (latest.first.isEmpty()) {
-        return std::nullopt;
+        latest = release;
     }
     return latest;
 }

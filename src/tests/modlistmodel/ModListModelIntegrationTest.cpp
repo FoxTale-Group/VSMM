@@ -219,7 +219,7 @@ class ModListModelIntegrationTest : public QObject {
         addThree();
         const QSignalSpy changed{mModel.get(), &QAbstractItemModel::dataChanged};
 
-        store().updateOnline(u"carryon"_s, modJson({release(u"1.1.0"_s, {u"1.22.0"_s})}));
+        store().updateOnline(u"carryon"_s, onlineInfo({release(u"1.1.0"_s, {u"1.22.0"_s})}));
 
         QCOMPARE(changed.count(), 1);
         QCOMPARE(changedRows(changed.at(0)), qMakePair(0, 0));

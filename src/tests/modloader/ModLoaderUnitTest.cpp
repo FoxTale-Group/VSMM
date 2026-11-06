@@ -87,7 +87,7 @@ enum class BrokenZip : std::uint8_t { NotAZip, Missing, NoModInfo, Encrypted };
     QJsonObject newer = release(u"1.1.0"_s, {u"1.22.0"_s});
     newer["filename"_L1] = fileName;
     vsmm::ModEntry mod{localInfo(id, u"1.0.0"_s, QFileInfo{})};
-    mod.initOnlineInfo(modJson({newer}), ver(QString::fromLatin1(GAME_VERSION)), false);
+    mod.initOnlineInfo(onlineInfo({newer}), ver(QString::fromLatin1(GAME_VERSION)), false);
     return mod;
 }
 } // namespace
@@ -605,7 +605,7 @@ class ModLoaderUnitTest : public QObject {
 
         QCOMPARE(mStore->onlineCalls().size(), 1);
         QCOMPARE(mStore->onlineCalls().at(0).mId, QString::fromLatin1(MOD_ID));
-        QCOMPARE(mStore->onlineCalls().at(0).mOnlineInfo, modJson());
+        QCOMPARE(mStore->onlineCalls().at(0).mOnlineInfo, onlineInfo());
         QTRY_COMPARE(mFinished->count(), 1);
     }
 
@@ -682,8 +682,8 @@ class ModLoaderUnitTest : public QObject {
         mStore->requestUpdate({QString::fromLatin1(MOD_ID), u"betterruins"_s});
 
         QCOMPARE(mHttp->callCount(), 2);
-        QCOMPARE(mHttp->call(0).mUrl, first.getLatestVersion().mUrl);
-        QCOMPARE(mHttp->call(1).mUrl, second.getLatestVersion().mUrl);
+        QCOMPARE(mHttp->call(0).mUrl, first.getLatestVersion()->mMainFile);
+        QCOMPARE(mHttp->call(1).mUrl, second.getLatestVersion()->mMainFile);
         for (qsizetype i = 0; i < mHttp->callCount(); ++i) {
             QCOMPARE(mHttp->call(i).mContentType, u"application/zip"_s);
             QCOMPARE(mHttp->call(i).mContext, mLoader.get());

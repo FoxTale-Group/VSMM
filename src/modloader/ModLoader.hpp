@@ -30,6 +30,7 @@
 #include <qqmlintegration.h>
 
 #include <expected>
+#include <optional>
 
 namespace vsmm {
 
@@ -79,7 +80,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
   private:
     // updatedModId names the requested mod for an Update load, so a broken download can be reported
     void load_(QFileInfo fileInfo, IModStore::ModLoadType modLoadType, QString updatedModId = {});
-    void onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion, QString modId);
+    void onModUpdateRetrieved(QByteArray data, ModRelease latestVersion, QString modId);
     void reportUpdateFailed(QString modId, QString reason);
     void incrementModsLoadingInProgress(qint64 count = 1);
     void decrementModsLoadingInProgress(bool notify = true);
@@ -87,7 +88,8 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     [[nodiscard]] static std::expected<ModLocalInfo, QString> getLocalInfoFromZip(QFileInfo fileInfo);
     [[nodiscard]] static std::expected<ModLocalInfo, QString> parseLocalJson(const QByteArray &jsonByteArray,
                                                                              QFileInfo &&fileInfo);
-    [[nodiscard]] static QJsonObject createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId);
+    [[nodiscard]] static std::optional<ModOnlineInfo> createOnlineModEntry(const QByteArray &jsonByteArray,
+                                                                           QAnyStringView modId);
 
     IGameMngr *mGameMngr{nullptr};
     IModStore *mStore{nullptr};

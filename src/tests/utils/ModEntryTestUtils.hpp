@@ -70,12 +70,13 @@ using namespace Qt::StringLiterals;
         tags.append(gameVersion);
     }
     return {{"modversion"_L1, modVersion},
+            {"modidstr"_L1, "carryon"_L1},
             {"tags"_L1, tags},
             {"filename"_L1, u"CarryOn_v%1.zip"_s.arg(modVersion)},
             {"mainfile"_L1, u"https://mods.vintagestory.at/download?fileid=%1"_s.arg(modVersion)}};
 }
 
-// older than the installed version, so the outcome stays "no update" without the empty-releases warning
+// older than the installed version, so the mod reads as current
 [[nodiscard]] inline QJsonArray defaultReleases() { return {release(u"0.9.0"_s, {u"1.22.0"_s})}; }
 
 // the mod object of an API response, trimmed down to what ModEntry reads
@@ -84,5 +85,10 @@ using namespace Qt::StringLiterals;
             {"side"_L1, "both"_L1},     {"urlalias"_L1, "carryon"_L1},
             {"assetid"_L1, 4405},       {"tags"_L1, QJsonArray{"Storage"_L1, "QoL"_L1}},
             {"releases"_L1, releases}};
+}
+
+// modJson the way the store gets it from the loader
+[[nodiscard]] inline ModOnlineInfo onlineInfo(const QJsonArray &releases = defaultReleases()) {
+    return ModOnlineInfo::fromJson(modJson(releases));
 }
 } // namespace vsmm::test

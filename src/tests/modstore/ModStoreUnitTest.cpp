@@ -69,9 +69,13 @@ class ModStoreUnitTest : public QObject {
     }
 
     // the online answer the API would give for a mod that has a newer release for this game version
-    [[nodiscard]] static QJsonObject withNewerRelease() { return modJson({release(u"1.1.0"_s, {u"1.22.0"_s})}); }
-    // a release older than what is installed, so the mod reads as current without an empty-releases warning
-    [[nodiscard]] static QJsonObject withoutNewerRelease() { return modJson({release(u"0.9.0"_s, {u"1.22.0"_s})}); }
+    [[nodiscard]] static vsmm::ModOnlineInfo withNewerRelease() {
+        return onlineInfo({release(u"1.1.0"_s, {u"1.22.0"_s})});
+    }
+    // a release older than what is installed, so the mod reads as current
+    [[nodiscard]] static vsmm::ModOnlineInfo withoutNewerRelease() {
+        return onlineInfo({release(u"0.9.0"_s, {u"1.22.0"_s})});
+    }
 
     // per-mod update results in emit order, as the update model sees them
     void trackUpdateResults(QStringList &events) {
@@ -336,7 +340,7 @@ class ModStoreUnitTest : public QObject {
 
         const vsmm::ModEntry *mod = mStore->find(modId());
         QVERIFY(mod->hasUpdate());
-        QCOMPARE(str(mod->getLatestVersion().mVersion), u"1.1.0"_s);
+        QCOMPARE(str(mod->getLatestVersion()->mModVersion), u"1.1.0"_s);
         // the online name replaces the one read out of the zip
         QCOMPARE(mod->getName(), u"Carry On"_s);
         QCOMPARE(mStore->modUpdatesCount(), 1);
@@ -375,7 +379,7 @@ class ModStoreUnitTest : public QObject {
         setComponents();
         addMod(modsDir(), modId(), u"1.0.0"_s);
 
-        mStore->updateOnline(modId(), modJson({release(u"1.1.0-rc.1"_s, {u"1.22.0"_s})}));
+        mStore->updateOnline(modId(), onlineInfo({release(u"1.1.0-rc.1"_s, {u"1.22.0"_s})}));
 
         QCOMPARE(mStore->find(modId())->hasUpdate(), expectedUpdate);
     }

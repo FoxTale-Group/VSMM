@@ -15,4 +15,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 if (WIN32)
 set_tests_properties(${PROJECT_NAME} PROPERTIES
         ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:ModEntry>")
+else ()
+# a zone with dst, so parsing api dates as local time would shift the dst-gap row
+set_tests_properties(${PROJECT_NAME} PROPERTIES ENVIRONMENT "TZ=Europe/Warsaw")
 endif ()
