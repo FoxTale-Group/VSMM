@@ -21,6 +21,8 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
+#include <memory>
+
 #include <HttpClient.hpp>
 #include <ModImageProvider.hpp>
 
@@ -34,7 +36,7 @@ class App final : public QGuiApplication {
     void initQmlEngine();
 
   private:
-    HttpClient mHttpClient{this};
+    std::unique_ptr<HttpClient> mHttpClient;
     ModImageProvider *mModImageProvider{nullptr}; // ownership passed to QML engine
     QQmlApplicationEngine mQmlEngine{this};
 };
