@@ -51,6 +51,8 @@ App::App(int &argc, char *argv[]) : QGuiApplication{argc, argv} {
 
     qCInfo(cApp, "%s %s starting", qUtf8Printable(APP_DISPLAY_NAME), qUtf8Printable(APP_VERSION));
 
+    mModInfoCache = std::make_unique<ModInfoCache>();
+
     connect(&mQmlEngine, &QQmlApplicationEngine::objectCreationFailed,
             [](const QUrl &url) { qCFatal(cApp, "QML object creation failed: %s", qUtf8Printable(url.toString())); });
 

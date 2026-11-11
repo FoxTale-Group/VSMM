@@ -23,6 +23,7 @@
 
 #include <HttpClient.hpp>
 #include <ModImageProvider.hpp>
+#include <ModInfoCache.hpp>
 
 namespace vsmm {
 class App final : public QGuiApplication {
@@ -35,6 +36,7 @@ class App final : public QGuiApplication {
 
   private:
     HttpClient mHttpClient{this};
+    std::unique_ptr<ModInfoCache> mModInfoCache{};
     ModImageProvider *mModImageProvider{nullptr}; // ownership passed to QML engine
     QQmlApplicationEngine mQmlEngine{this};
 };

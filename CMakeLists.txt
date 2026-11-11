@@ -12,7 +12,7 @@ if (MSVC)
 endif ()
 
 find_package(libzip CONFIG REQUIRED)
-find_package(Qt6 REQUIRED COMPONENTS Core Quick Qml Network QuickControls2)
+find_package(Qt6 REQUIRED COMPONENTS Core Quick Qml Network QuickControls2 Sql)
 
 # Emit .qmlls.ini next to the QML sources, pointing the QML Language Server at this build
 # directory. Without it qmlls cannot find the generated qmldir/.qmltypes and silently
