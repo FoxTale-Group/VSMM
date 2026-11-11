@@ -34,11 +34,11 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     Q_OBJECT
     QML_NAMED_ELEMENT(ModStore)
     QML_SINGLETON
-    Q_PROPERTY(int installedModsCount READ modsCount NOTIFY modsChanged)
-    Q_PROPERTY(int updatesCount READ modUpdatesCount NOTIFY modsChanged)
+    Q_PROPERTY(int installedModsCount READ modsCount NOTIFY installedModsCountChanged)
+    Q_PROPERTY(int updatesCount READ modUpdatesCount NOTIFY updatesCountChanged)
     Q_PROPERTY(bool workPending READ isWorkPending NOTIFY workChanged)
     Q_PROPERTY(bool modsSelected READ modsSelected NOTIFY modSelected)
-    Q_PROPERTY(int enabledModsCount READ enabledModsCount NOTIFY modsChanged)
+    Q_PROPERTY(int enabledModsCount READ enabledModsCount NOTIFY enabledModsCountChanged)
 
   public:
     explicit ModStore(QObject *parent = nullptr);
@@ -64,9 +64,11 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     [[nodiscard]] int enabledModsCount() const;
 
   signals:
-    void modSelected(); // NOTIFY modsSelected - QML bindings only
-    void modsChanged(); // NOTIFY installedModsCount/updatesCount/enabledModsCount - QML bindings only
-    void workChanged(); // NOTIFY workPending - QML bindings only
+    void modSelected();               // NOTIFY modsSelected - QML bindings only
+    void installedModsCountChanged(); // NOTIFY installedModsCount - QML bindings only
+    void updatesCountChanged();       // NOTIFY updatesCount - QML bindings only
+    void enabledModsCountChanged();   // NOTIFY enabledModsCount - QML bindings only
+    void workChanged();               // NOTIFY workPending - QML bindings only
 
   public slots:
     void onModsReloaded() override;

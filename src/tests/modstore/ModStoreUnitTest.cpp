@@ -157,7 +157,7 @@ class ModStoreUnitTest : public QObject {
         QStringList added;
         connect(mStore.get(), &vsmm::ModStore::modAdded, this,
                 [&added](QStringView id) { added.append(id.toString()); });
-        QSignalSpy changed{mStore.get(), &vsmm::ModStore::modsChanged};
+        QSignalSpy changed{mStore.get(), &vsmm::ModStore::installedModsCountChanged};
 
         const QFileInfo zip = writeStubZip(stagingDir(), u"carryon-1.0.0.zip"_s);
         QVERIFY(zip.exists());
@@ -330,7 +330,7 @@ class ModStoreUnitTest : public QObject {
         QStringList updated;
         connect(mStore.get(), &vsmm::ModStore::modUpdated, this,
                 [&updated](QStringView id) { updated.append(id.toString()); });
-        QSignalSpy changed{mStore.get(), &vsmm::ModStore::modsChanged};
+        QSignalSpy changed{mStore.get(), &vsmm::ModStore::updatesCountChanged};
 
         mStore->updateOnline(modId(), withNewerRelease());
 
@@ -824,7 +824,7 @@ class ModStoreUnitTest : public QObject {
         connect(mStore.get(), &vsmm::ModStore::modRemoved, this, [this, &presentWhileAnnounced](QStringView id) {
             presentWhileAnnounced = mStore->contains(id.toString());
         });
-        QSignalSpy changed{mStore.get(), &vsmm::ModStore::modsChanged};
+        QSignalSpy changed{mStore.get(), &vsmm::ModStore::installedModsCountChanged};
 
         QTest::ignoreMessage(QtInfoMsg, "Mod carryon deleted");
         mStore->remove(modId());
@@ -874,7 +874,7 @@ class ModStoreUnitTest : public QObject {
     void enabledCountLeavesOutModsDisabledInTheGame() {
         setComponents();
         mGameMngr->setDisabledMods({modId()});
-        QSignalSpy changed{mStore.get(), &vsmm::ModStore::modsChanged};
+        QSignalSpy changed{mStore.get(), &vsmm::ModStore::enabledModsCountChanged};
 
         addMod(modsDir(), modId(), u"1.0.0"_s);
         addMod(modsDir(), u"bees"_s, u"1.0.0"_s);
@@ -889,7 +889,7 @@ class ModStoreUnitTest : public QObject {
         setComponents();
         addMod(modsDir(), modId(), u"1.0.0"_s);
         QCOMPARE(mStore->property("enabledModsCount").toInt(), 1);
-        QSignalSpy changed{mStore.get(), &vsmm::ModStore::modsChanged};
+        QSignalSpy changed{mStore.get(), &vsmm::ModStore::enabledModsCountChanged};
 
         mGameMngr->setDisabledMods({modId()});
 

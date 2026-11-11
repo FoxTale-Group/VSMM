@@ -187,7 +187,7 @@ class ModUpdateModelUnitTest : public QObject {
     void progressChangesOnlyThatRow() {
         requestTwo();
         QSignalSpy changed{mModel.get(), &QAbstractItemModel::dataChanged};
-        QSignalSpy progressChanged{mModel.get(), &vsmm::ModUpdateModel::progressChanged};
+        QSignalSpy progressChanged{mModel.get(), &vsmm::ModUpdateModel::totalProgressChanged};
 
         mStore->reportProgress(u"betterruins"_s, 25, 100);
 

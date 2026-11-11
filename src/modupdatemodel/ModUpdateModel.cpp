@@ -133,7 +133,9 @@ void ModUpdateModel::clear() {
     mIdToRow.clear();
     endResetModel();
     emit countChanged();
-    emit progressChanged();
+    emit finishedCountChanged();
+    emit failedCountChanged();
+    emit totalProgressChanged();
 }
 
 void ModUpdateModel::onModUpdateRequested(QStringList modIds) {
@@ -156,7 +158,10 @@ void ModUpdateModel::onModUpdateRequested(QStringList modIds) {
     endResetModel();
     qCDebug(cModUpdateModel, "Update batch of %lld mods", static_cast<long long>(mRows.size()));
     emit countChanged();
-    emit progressChanged();
+    emit finishedCountChanged();
+    emit failedCountChanged();
+    emit totalProgressChanged();
+    emit activeChanged();
 }
 
 void ModUpdateModel::onModUpdateProgress(QStringView modId, qint64 received, qint64 total) {
@@ -178,7 +183,7 @@ void ModUpdateModel::onModUpdateProgress(QStringView modId, qint64 received, qin
     } else {
         emit dataChanged(idx, idx, {ProgressRole});
     }
-    emit progressChanged();
+    emit totalProgressChanged();
 }
 
 void ModUpdateModel::onModUpdateInstalling(QStringView modId) {
@@ -252,6 +257,17 @@ void ModUpdateModel::setState(int row, State state, QString error) {
     entry.mError = std::move(error);
     const QModelIndex idx = index(row);
     emit dataChanged(idx, idx, {StateRole, ProgressRole, ErrorRole});
-    emit progressChanged();
+    emit totalProgressChanged();
+    if (!isDone(state)) {
+        return;
+    }
+    emit finishedCountChanged();
+    if (state == Failed) {
+        emit failedCountChanged();
+    }
+    // the row was running, so the batch was active before
+    if (!isActive()) {
+        emit activeChanged();
+    }
 }
 } // namespace vsmm
