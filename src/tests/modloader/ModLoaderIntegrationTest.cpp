@@ -94,7 +94,7 @@ class ModLoaderIntegrationTest : public QObject {
     // same order as App
     void connectLoader() {
         mLoader = std::make_unique<vsmm::ModLoader>();
-        mLoader->setApiUrl(mServer->url("api/mod/"_L1));
+        mLoader->setApiUrl(mServer->url("api/"_L1));
         mLoader->setHttpClient(mHttp.get());
         mLoader->setStore(&mApp->store());
         mLoader->setGameMngr(&mApp->gameMngr());
