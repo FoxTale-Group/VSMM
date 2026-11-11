@@ -36,7 +36,7 @@ Q_STATIC_LOGGING_CATEGORY(cModLoader, "modloader");
 
 namespace {
 using namespace Qt::StringLiterals;
-QUrl GetModUrlApi(const QUrl &apiUrl, QAnyStringView modId) { return u"%1%2"_s.arg(apiUrl.toString(), modId); }
+QUrl GetModUrlApi(const QUrl &apiUrl, QAnyStringView modId) { return u"%1mod/%2"_s.arg(apiUrl.toString(), modId); }
 } // namespace
 
 namespace vsmm {

@@ -45,7 +45,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     QML_NAMED_ELEMENT(ModLoader)
     QML_SINGLETON
 
-    static constexpr QLatin1StringView DEFAULT_API_URL{"https://mods.vintagestory.at/api/mod/"};
+    static constexpr QLatin1StringView DEFAULT_API_URL{"https://mods.vintagestory.at/api/"};
     static constexpr QLatin1StringView DOWNLOAD_CONTENT_TYPE{"application/zip"};
     static constexpr QLatin1StringView ONLINE_CONTENT_TYPE{"application/json"};
     static constexpr QLatin1StringView ONLINE_JSON_ROOT_KEY{"mod"};
@@ -64,7 +64,6 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     void setHttpClient(IHttpClient *httpClient);
     void setGameMngr(IGameMngr *gameMngr);
     void setStore(IModStore *store);
-    // mod id is appended to it
     void setApiUrl(QUrl apiUrl);
     void load(QFileInfo &&fileInfo);
     Q_INVOKABLE void load(const QUrl &filePath);

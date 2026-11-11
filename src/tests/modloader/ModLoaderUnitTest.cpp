@@ -333,7 +333,7 @@ class ModLoaderUnitTest : public QObject {
     }
 
     void infoIsRequestedFromTheConfiguredApiUrl() {
-        mLoader->setApiUrl(QUrl{u"http://127.0.0.1:1/api/mod/"_s});
+        mLoader->setApiUrl(QUrl{u"http://127.0.0.1:1/api/"_s});
         QVERIFY(!writeMod().isEmpty());
 
         mLoader->load(QFileInfo{modsPath(u"carryon.zip"_s)});
