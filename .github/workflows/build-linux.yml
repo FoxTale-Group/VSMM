@@ -62,7 +62,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y libzip-dev qt6-{base,declarative}-dev
+          sudo apt install -y libzip-dev qt6-{base,declarative}-dev libqt6sql6-sqlite
       - name: Install gcovr
         run: pipx install gcovr
       - name: Fetch repository
