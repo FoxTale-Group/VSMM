@@ -51,6 +51,8 @@ App::App(int &argc, char *argv[]) : QGuiApplication{argc, argv} {
 
     qCInfo(cApp, "%s %s starting", qUtf8Printable(APP_DISPLAY_NAME), qUtf8Printable(APP_VERSION));
 
+    mHttpClient = std::make_unique<HttpClient>();
+
     connect(&mQmlEngine, &QQmlApplicationEngine::objectCreationFailed,
             [](const QUrl &url) { qCFatal(cApp, "QML object creation failed: %s", qUtf8Printable(url.toString())); });
 
@@ -64,7 +66,7 @@ void App::initQmlEngine() {
     QQuickStyle::setFallbackStyle("Basic");
 
     mModImageProvider = new ModImageProvider();
-    mModImageProvider->setHttpClient(&mHttpClient);
+    mModImageProvider->setHttpClient(mHttpClient.get());
     mQmlEngine.addImageProvider("modicon", mModImageProvider);
     mQmlEngine.loadFromModule("vsmm", "Main");
 
@@ -110,7 +112,7 @@ void App::initQmlEngine() {
     modStore->setConfig(config);
     modStore->setGameMngr(gameMngr);
 
-    modLoader->setHttpClient(&mHttpClient);
+    modLoader->setHttpClient(mHttpClient.get());
     modLoader->setStore(modStore);
     modLoader->setGameMngr(gameMngr);
 
