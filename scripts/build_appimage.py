@@ -308,6 +308,11 @@ def main() -> int:
 
     prune_orphaned_libs(appdir)
 
+    # Checks if driver was properly included
+    sqlite_driver = appdir / "usr" / "plugins" / "sqldrivers" / "libqsqlite.so"
+    if not sqlite_driver.is_file():
+        fail(f"linuxdeploy-plugin-qt did not deploy {sqlite_driver.relative_to(appdir)}")
+
     run(
         ["linuxdeploy", "--appdir", "AppDir", "--output", "appimage", *excludes],
         cwd=build_dir,

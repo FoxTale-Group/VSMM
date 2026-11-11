@@ -193,6 +193,7 @@ if (UNIX AND NOT APPLE)
             qml6-module-qtquick-effects,
             qml6-module-qtquick-window,
             libqt6network6,
+            libqt6sql6-sqlite,
             qt6-qpa-plugins,
             libzip5"
     )
