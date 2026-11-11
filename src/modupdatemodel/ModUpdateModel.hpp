@@ -33,10 +33,10 @@ class MODUPDATEMODEL_EXPORT ModUpdateModel : public QAbstractListModel {
     QML_NAMED_ELEMENT(ModUpdateModel)
     QML_SINGLETON
     Q_PROPERTY(int count READ count NOTIFY countChanged)
-    Q_PROPERTY(int finishedCount READ finishedCount NOTIFY progressChanged)
-    Q_PROPERTY(int failedCount READ failedCount NOTIFY progressChanged)
-    Q_PROPERTY(double totalProgress READ totalProgress NOTIFY progressChanged)
-    Q_PROPERTY(bool active READ isActive NOTIFY progressChanged)
+    Q_PROPERTY(int finishedCount READ finishedCount NOTIFY finishedCountChanged)
+    Q_PROPERTY(int failedCount READ failedCount NOTIFY failedCountChanged)
+    Q_PROPERTY(double totalProgress READ totalProgress NOTIFY totalProgressChanged)
+    Q_PROPERTY(bool active READ isActive NOTIFY activeChanged)
 
   public:
     enum Roles {
@@ -70,8 +70,11 @@ class MODUPDATEMODEL_EXPORT ModUpdateModel : public QAbstractListModel {
     Q_INVOKABLE void clear();
 
   signals:
-    void countChanged();    // NOTIFY count - QML bindings only
-    void progressChanged(); // NOTIFY finishedCount/failedCount/totalProgress/active - QML bindings only
+    void countChanged();         // NOTIFY count - QML bindings only
+    void finishedCountChanged(); // NOTIFY finishedCount - QML bindings only
+    void failedCountChanged();   // NOTIFY failedCount - QML bindings only
+    void totalProgressChanged(); // NOTIFY totalProgress - QML bindings only
+    void activeChanged();        // NOTIFY active - QML bindings only
 
   private slots:
     void onModUpdateRequested(QStringList modIds);

@@ -71,7 +71,7 @@ void ModStore::setGameMngr(IGameMngr *gameMngr) {
 
     mGameMngr = gameMngr;
     connect(mGameMngr, &IGameMngr::modsDirsChanged, this, &ModStore::onModsDirChanged);
-    connect(mGameMngr, &IGameMngr::disabledModsChanged, this, &ModStore::modsChanged);
+    connect(mGameMngr, &IGameMngr::disabledModsChanged, this, &ModStore::enabledModsCountChanged);
 }
 
 void ModStore::add(ModLocalInfo localModInfo, ModLoadType loadType) {
@@ -120,7 +120,7 @@ void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
                        mGameMngr->getGameVersion() ? *mGameMngr->getGameVersion() : semver::version{},
                        includePrerelease);
     emit modUpdated(it->getId());
-    emit modsChanged();
+    emit updatesCountChanged();
 }
 
 void ModStore::reload() {
@@ -134,7 +134,9 @@ void ModStore::reload() {
     emit modsReloading();
     mMods.clear();
     emit workChanged();
-    emit modsChanged();
+    emit installedModsCountChanged();
+    emit updatesCountChanged();
+    emit enabledModsCountChanged();
     emit modSelected();
 }
 
@@ -220,8 +222,9 @@ void ModStore::remove(const QString &id) {
     emit modRemoved(it->getId());
 
     mMods.erase(it);
-    // update count of installed mods
-    emit modsChanged();
+    emit installedModsCountChanged();
+    emit updatesCountChanged();
+    emit enabledModsCountChanged();
     emit modSelected();
 
     qCInfo(cModStore, "Mod %s deleted", qUtf8Printable(id));
@@ -280,7 +283,8 @@ void ModStore::addOnInit(ModLocalInfo localModInfo) {
 
         qCDebug(cModStore, "Mod %s replaced", qUtf8Printable(it->toString()));
         emit modUpdated(it->getId());
-        emit modsChanged();
+        // the new entry has no online info yet
+        emit updatesCountChanged();
     } else {
         QString id = localModInfo.mId;
         it = mMods.emplace(std::move(id), std::move(localModInfo));
@@ -288,7 +292,8 @@ void ModStore::addOnInit(ModLocalInfo localModInfo) {
 
         qCDebug(cModStore, "Mod %s added", qUtf8Printable(it->toString()));
         emit modAdded(it->getId());
-        emit modsChanged();
+        emit installedModsCountChanged();
+        emit enabledModsCountChanged();
     }
 }
 
@@ -320,7 +325,8 @@ void ModStore::addFromGUI(ModLocalInfo localModInfo) {
 
     qCDebug(cModStore, "Mod %s added", qUtf8Printable(it->toString()));
     emit modAdded(it->getId());
-    emit modsChanged();
+    emit installedModsCountChanged();
+    emit enabledModsCountChanged();
 }
 
 void ModStore::updateMod(ModLocalInfo localModInfo) {
@@ -389,7 +395,7 @@ void ModStore::updateMod(ModLocalInfo localModInfo) {
     qCDebug(cModStore, "Mod %s replaced", qUtf8Printable(it->toString()));
     emit modUpdated(it->getId());
     emit modUpdateFinished(it->getId());
-    emit modsChanged();
+    emit updatesCountChanged();
     emit modSelected();
 }
 
