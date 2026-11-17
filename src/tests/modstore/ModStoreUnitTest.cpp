@@ -26,7 +26,6 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
-#include <QTimer>
 
 #include <cstdint>
 #include <memory>
@@ -87,13 +86,13 @@ class ModStoreUnitTest : public QObject {
                 [&events](QStringView id, const QString &reason) { events.append(u"failed:%1:%2"_s.arg(id, reason)); });
     }
 
-    // the loader is done with the scan, true once the delayed work clear ran
+    // the loader is done with the scan, true when no work is left
     [[nodiscard]] bool finishScan() {
         QTest::ignoreMessage(QtInfoMsg, qPrintable(u"Mods reloaded: %1 installed, %2 with updates"_s
                                                        .arg(mStore->modsCount())
                                                        .arg(mStore->modUpdatesCount())));
         mStore->onModsReloaded();
-        return QTest::qWaitFor([this] { return !mStore->isWorkPending(); });
+        return !mStore->isWorkPending();
     }
 
     // the reload a mods dir change starts, it lists the known zips and arms the watch
@@ -433,35 +432,20 @@ class ModStoreUnitTest : public QObject {
         QVERIFY(!mStore->property("modsSelected").toBool());
     }
 
-    // the earlier scan's delay must not clear the flag of a reload that is still scanning
-    void reloadInsideTheDelayKeepsWorkPending() {
-        setComponents();
-        QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 0 installed, 0 with updates");
-        mStore->onModsReloaded();
-        QTest::ignoreMessage(QtInfoMsg, "Reloading mods");
-        emit mGameMngr->modsDirsChanged();
-
-        bool pastTheDelay{false};
-        QTimer::singleShot(600, this, [&pastTheDelay] { pastTheDelay = true; });
-        QTRY_VERIFY(pastTheDelay);
-        QVERIFY(mStore->isWorkPending());
-    }
-
-    void everyScanClearsWorkOnceShortlyAfterItEnds() {
+    void everyScanClearsWorkOnceItEnds() {
         setComponents();
         QSignalSpy work{mStore.get(), &vsmm::ModStore::workChanged};
 
         for (int scan = 0; scan < 3; ++scan) {
             QTest::ignoreMessage(QtInfoMsg, "Reloading mods");
             emit mGameMngr->modsDirsChanged();
+            QVERIFY(mStore->isWorkPending());
             QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 0 installed, 0 with updates");
             mStore->onModsReloaded();
-            // a delayed timer clears the flag, not the call itself
-            QVERIFY(mStore->isWorkPending());
-            QTRY_VERIFY(!mStore->isWorkPending());
+            QVERIFY(!mStore->isWorkPending());
         }
 
-        // one from reload and one from the delay per scan
+        // one from reload and one from the clear per scan
         QCOMPARE(work.count(), 6);
     }
 

@@ -29,7 +29,6 @@
 #include <QSet>
 #include <QString>
 #include <QStringList>
-#include <QTimer>
 #include <qqmlintegration.h>
 
 #include <memory>
@@ -110,7 +109,6 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     IConfig *mConfig{nullptr};
     IGameMngr *mGameMngr{nullptr};
     QSet<QString> mFavoriteMods;
-    QTimer mWorkPendingTimer{this};
 
     std::unique_ptr<modstore::ModFilesTracker> mFilesTracker;
 };

@@ -111,7 +111,7 @@ class ModLoaderIntegrationTest : public QObject {
     [[nodiscard]] vsmm::ModStore &store() const { return mApp->store(); }
     [[nodiscard]] const vsmm::ModEntry *mod(const QString &id) const { return store().find(id); }
 
-    // the store clears it half a second after the loader reports back
+    // the store clears it when the loader reports back
     [[nodiscard]] bool settled() const { return !store().isWorkPending(); }
 
     [[nodiscard]] bool hasOnlineInfo(const QString &id) const { return mod(id) && !mod(id)->getTags().isEmpty(); }

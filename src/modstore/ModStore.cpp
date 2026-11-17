@@ -27,21 +27,11 @@
 #include <QUuid>
 
 #include <algorithm>
-#include <chrono>
 
 Q_STATIC_LOGGING_CATEGORY(cModStore, "modstore");
 
 namespace vsmm {
 ModStore::ModStore(QObject *parent) : IModStore{parent}, mFilesTracker{std::make_unique<modstore::ModFilesTracker>()} {
-    using namespace std::chrono_literals;
-    mWorkPendingTimer.setSingleShot(true);
-    mWorkPendingTimer.setInterval(500ms);
-    mWorkPendingTimer.callOnTimeout(this, [this] {
-        mWorkPending = false;
-        qCDebug(cModStore, "Work pending cleared");
-        emit workChanged();
-    });
-
     connect(mFilesTracker.get(), &modstore::ModFilesTracker::filesChanged, this, &ModStore::onModFilesChanged);
 }
 
@@ -237,7 +227,6 @@ void ModStore::removeEntry(QHash<QString, ModEntry>::iterator it) {
         emit modFileFound(duplicate);
     }
     if (!duplicates.isEmpty()) {
-        mWorkPendingTimer.stop();
         mWorkPending = true;
         emit workChanged();
     }
@@ -269,8 +258,9 @@ int ModStore::enabledModsCount() const {
 }
 
 void ModStore::onModsReloaded() {
+    mWorkPending = false;
+    emit workChanged();
     emit modsLoaded();
-    mWorkPendingTimer.start();
     qCInfo(cModStore, "Mods reloaded: %d installed, %d with updates", modsCount(), modUpdatesCount());
 }
 
@@ -284,10 +274,6 @@ void ModStore::onModUpdateFailed(QString modId, QString reason) {
 }
 
 void ModStore::onModsDirChanged() {
-    if (mWorkPendingTimer.isActive()) {
-        qCDebug(cModStore, "Reload stopped the pending work clear");
-    }
-    mWorkPendingTimer.stop();
     qCInfo(cModStore, "Reloading mods");
     mWorkPending = true;
 
@@ -316,7 +302,6 @@ void ModStore::onModFilesChanged(const QStringList &found, const QStringList &re
 
     // the loads end in onModsReloaded, which clears it again
     if (!found.isEmpty()) {
-        mWorkPendingTimer.stop();
         mWorkPending = true;
         emit workChanged();
     }
