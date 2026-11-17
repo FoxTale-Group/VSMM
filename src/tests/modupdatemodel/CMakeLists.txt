@@ -9,9 +9,9 @@ target_link_libraries(ModUpdateModelUnitTest PUBLIC Qt6::Test ModUpdateModel Tes
 qt_add_executable(ModUpdateModelIntegrationTest ModUpdateModelIntegrationTest.cpp)
 add_test(NAME ModUpdateModelIntegrationTest COMMAND ModUpdateModelIntegrationTest
         -o -,txt -o ${CMAKE_CURRENT_BINARY_DIR}/ModUpdateModelIntegrationTest.junit.xml,junitxml)
-add_dependencies(ModUpdateModelIntegrationTest ModUpdateModel ModLoader HttpClient ModStore Config GameMngr TestUtils)
+add_dependencies(ModUpdateModelIntegrationTest ModUpdateModel ModLoader HttpClient ModInfoCache ModStore Config GameMngr TestUtils)
 target_link_libraries(ModUpdateModelIntegrationTest PUBLIC
-        Qt6::Test Qt6::Network ModUpdateModel ModLoader HttpClient ModStore Config GameMngr TestUtils)
+        Qt6::Test Qt6::Network Qt6::Sql ModUpdateModel ModLoader HttpClient ModInfoCache ModStore Config GameMngr TestUtils)
 
 set_target_properties(ModUpdateModelUnitTest ModUpdateModelIntegrationTest PROPERTIES
         CXX_VISIBILITY_PRESET hidden
@@ -27,7 +27,7 @@ if (WIN32)
     set_tests_properties(ModUpdateModelUnitTest PROPERTIES
             ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:ModUpdateModel>;PATH=path_list_prepend:$<TARGET_FILE_DIR:ModEntry>;PATH=path_list_prepend:$<TARGET_FILE_DIR:Interfaces>")
     set_tests_properties(ModUpdateModelIntegrationTest PROPERTIES
-            ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:ModUpdateModel>;PATH=path_list_prepend:$<TARGET_FILE_DIR:ModLoader>;PATH=path_list_prepend:$<TARGET_FILE_DIR:ZipArchive>;PATH=path_list_prepend:$<TARGET_FILE_DIR:HttpClient>;PATH=path_list_prepend:$<TARGET_FILE_DIR:ModStore>;PATH=path_list_prepend:$<TARGET_FILE_DIR:Config>;PATH=path_list_prepend:$<TARGET_FILE_DIR:GameMngr>;PATH=path_list_prepend:$<TARGET_FILE_DIR:ModEntry>;PATH=path_list_prepend:$<TARGET_FILE_DIR:Interfaces>")
+            ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:ModUpdateModel>;PATH=path_list_prepend:$<TARGET_FILE_DIR:ModLoader>;PATH=path_list_prepend:$<TARGET_FILE_DIR:ZipArchive>;PATH=path_list_prepend:$<TARGET_FILE_DIR:HttpClient>;PATH=path_list_prepend:$<TARGET_FILE_DIR:ModInfoCache>;PATH=path_list_prepend:$<TARGET_FILE_DIR:ModStore>;PATH=path_list_prepend:$<TARGET_FILE_DIR:Config>;PATH=path_list_prepend:$<TARGET_FILE_DIR:GameMngr>;PATH=path_list_prepend:$<TARGET_FILE_DIR:ModEntry>;PATH=path_list_prepend:$<TARGET_FILE_DIR:Interfaces>")
 endif ()
 
 # Response is filled with designated initializers that leave the rest at their defaults

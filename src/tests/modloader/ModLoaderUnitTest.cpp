@@ -19,6 +19,7 @@
 #include <GameMngrMock.hpp>
 #include <HttpClientMock.hpp>
 #include <ModEntryTestUtils.hpp>
+#include <ModInfoCacheMock.hpp>
 #include <ModLoader.hpp>
 #include <ModStoreMock.hpp>
 #include <ZipTestUtils.hpp>
@@ -99,6 +100,7 @@ class ModLoaderUnitTest : public QObject {
     std::unique_ptr<vsmm::GameMngrMock> mGameMngr;
     std::unique_ptr<vsmm::HttpClientMock> mHttp;
     std::unique_ptr<vsmm::ModStoreMock> mStore;
+    std::unique_ptr<vsmm::ModInfoCacheMock> mCache;
     std::unique_ptr<vsmm::ModLoader> mLoader;
     std::unique_ptr<QSignalSpy> mFinished;
     QString mUpdateFileName;
@@ -118,6 +120,20 @@ class ModLoaderUnitTest : public QObject {
 
     [[nodiscard]] QString writeMod(const QString &fileName = u"carryon.zip"_s) const {
         return writeMod(fileName, toJson(modInfo()));
+    }
+
+    // rebuilds the loader, setInfoCache downloads the list unless listStoredAt is younger than 30 min
+    void setCache(QDateTime listStoredAt = {}) {
+        mFinished.reset();
+        mLoader.reset();
+        mCache = std::make_unique<vsmm::ModInfoCacheMock>();
+        mCache->setListStoredAt(std::move(listStoredAt));
+        mLoader = std::make_unique<vsmm::ModLoader>();
+        mLoader->setHttpClient(mHttp.get());
+        mLoader->setGameMngr(mGameMngr.get());
+        mLoader->setStore(mStore.get());
+        mLoader->setInfoCache(mCache.get());
+        mFinished = std::make_unique<QSignalSpy>(mLoader.get(), &vsmm::ModLoader::allModsReloaded);
     }
 
     // carryon with an update in the store and requested, true once its download started
@@ -147,18 +163,15 @@ class ModLoaderUnitTest : public QObject {
         mGameMngr->setModsDirs({QDir{mDir->path()}});
         mHttp = std::make_unique<vsmm::HttpClientMock>();
         mStore = std::make_unique<vsmm::ModStoreMock>();
-
-        mLoader = std::make_unique<vsmm::ModLoader>();
-        mLoader->setHttpClient(mHttp.get());
-        mLoader->setGameMngr(mGameMngr.get());
-        mLoader->setStore(mStore.get());
-        mFinished = std::make_unique<QSignalSpy>(mLoader.get(), &vsmm::ModLoader::allModsReloaded);
+        // a fresh stored list, no download, every mod misses the cache
+        setCache(QDateTime::currentDateTimeUtc());
     }
 
     void cleanup() {
         mFinished.reset();
         // waits for the worker pools
         mLoader.reset();
+        mCache.reset();
         mStore.reset();
         mHttp.reset();
         mGameMngr.reset();

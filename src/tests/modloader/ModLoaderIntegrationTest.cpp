@@ -18,6 +18,7 @@
 
 #include <HttpClientTestUtils.hpp>
 #include <ModEntryTestUtils.hpp>
+#include <ModInfoCache.hpp>
 #include <ModLoader.hpp>
 #include <RealComponents.hpp>
 #include <ZipTestUtils.hpp>
@@ -35,6 +36,8 @@ using namespace Qt::StringLiterals;
 using namespace vsmm::test;
 
 namespace {
+constexpr auto RELEASED = "2026-10-14 14:48:50"_L1;
+
 [[nodiscard]] QByteArray modInfo(const QString &id, const QString &version) {
     const QJsonObject info{{"modid"_L1, id},
                            {"name"_L1, u"%1 (local)"_s.arg(id)},
@@ -44,14 +47,33 @@ namespace {
 }
 
 // the status lives in the body, the transport status is 200 either way
-[[nodiscard]] Response info(const QJsonObject &mod) {
+[[nodiscard]] Response info(QJsonObject mod) {
+    // the same release as the list, so the stored details stay fresh
+    mod["lastreleased"_L1] = RELEASED;
     const QJsonObject body{{"statuscode"_L1, "200"_L1}, {"mod"_L1, mod}};
+    return {.mBody = QJsonDocument{body}.toJson(QJsonDocument::Compact)};
+}
+
+// /api/mods with every mod the tests install
+[[nodiscard]] Response modList(const QString &released = RELEASED) {
+    QJsonArray mods;
+    for (const auto &[modId, id] : {std::pair{1, "carryon"_L1}, std::pair{2, "betterruins"_L1}}) {
+        mods.append(QJsonObject{{"modid"_L1, modId}, {"modidstrs"_L1, QJsonArray{id}}, {"lastreleased"_L1, released}});
+    }
+    const QJsonObject body{{"statuscode"_L1, "200"_L1}, {"mods"_L1, mods}};
     return {.mBody = QJsonDocument{body}.toJson(QJsonDocument::Compact)};
 }
 
 [[nodiscard]] Response download(QByteArray zip) { return {.mContentType = "application/zip", .mBody = std::move(zip)}; }
 
 [[nodiscard]] QString cacheDir() { return QStandardPaths::writableLocation(QStandardPaths::CacheLocation); }
+
+// every test starts without stored details
+void removeDatabaseFiles() {
+    for (const auto suffix : {""_L1, "-wal"_L1, "-shm"_L1}) {
+        QFile::remove(cacheDir() + "/modinfocache.db"_L1 + suffix);
+    }
+}
 
 [[nodiscard]] QString tempPath(const QString &fileName) {
     return QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QDir::separator() + fileName;
@@ -79,6 +101,7 @@ class ModLoaderIntegrationTest : public QObject {
 
     std::unique_ptr<FakeHttpServer> mServer;
     std::unique_ptr<vsmm::HttpClient> mHttp;
+    std::unique_ptr<vsmm::ModInfoCache> mCache;
     std::unique_ptr<RealComponents> mApp;
     std::unique_ptr<vsmm::ModLoader> mLoader;
     QString mUpdateFileName;
@@ -96,6 +119,7 @@ class ModLoaderIntegrationTest : public QObject {
         mLoader = std::make_unique<vsmm::ModLoader>();
         mLoader->setApiUrl(mServer->url("api/"_L1));
         mLoader->setHttpClient(mHttp.get());
+        mLoader->setInfoCache(mCache.get());
         mLoader->setStore(&mApp->store());
         mLoader->setGameMngr(&mApp->gameMngr());
     }
@@ -139,7 +163,10 @@ class ModLoaderIntegrationTest : public QObject {
         mUpdateFileName = u"vsmm-modloader-%1.zip"_s.arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
         mServer = std::make_unique<FakeHttpServer>();
         QVERIFY(mServer->start());
+        mServer->route("/api/mods", modList());
         mHttp = std::make_unique<vsmm::HttpClient>();
+        removeDatabaseFiles();
+        mCache = std::make_unique<vsmm::ModInfoCache>();
         mApp = std::make_unique<RealComponents>();
         mApp->beforeValidate([this] { connectLoader(); });
     }
@@ -148,6 +175,8 @@ class ModLoaderIntegrationTest : public QObject {
         // waits for the worker pools, and goes before the store it points at
         mLoader.reset();
         mApp.reset();
+        mCache.reset();
+        removeDatabaseFiles();
         mHttp.reset();
         mServer.reset();
         QFile::remove(tempPath(mUpdateFileName));
@@ -162,7 +191,7 @@ class ModLoaderIntegrationTest : public QObject {
         QTRY_VERIFY(settled());
         QVERIFY(hasOnlineInfo(u"carryon"_s));
         QCOMPARE(mod(u"carryon"_s)->getVersion(), ver(u"1.0.0"_s));
-        QCOMPARE(requestedPaths(), QStringList{u"/api/mod/carryon"_s});
+        QCOMPARE(requestedPaths(), (QStringList{u"/api/mod/carryon"_s, u"/api/mods"_s}));
     }
 
     void startupScanCoversEveryModsDir() {
@@ -177,7 +206,7 @@ class ModLoaderIntegrationTest : public QObject {
         QTRY_VERIFY(settled());
         QVERIFY(hasOnlineInfo(u"carryon"_s));
         QVERIFY(hasOnlineInfo(u"betterruins"_s));
-        QCOMPARE(requestedPaths(), (QStringList{u"/api/mod/betterruins"_s, u"/api/mod/carryon"_s}));
+        QCOMPARE(requestedPaths(), (QStringList{u"/api/mod/betterruins"_s, u"/api/mod/carryon"_s, u"/api/mods"_s}));
     }
 
     void modUnknownToTheApiKeepsItsLocalInfo() {
@@ -205,7 +234,7 @@ class ModLoaderIntegrationTest : public QObject {
         QVERIFY(mod(u"carryon"_s));
         QVERIFY(!hasOnlineInfo(u"carryon"_s));
         // a 404 is not retried
-        QCOMPARE(mServer->requestCount(), 1);
+        QCOMPARE(requestedPaths(), (QStringList{u"/api/mod/carryon"_s, u"/api/mods"_s}));
     }
 
     void reloadRescansTheModsDir() {
@@ -221,7 +250,8 @@ class ModLoaderIntegrationTest : public QObject {
         QTRY_VERIFY(settled());
         QVERIFY(hasOnlineInfo(u"carryon"_s));
         QVERIFY(hasOnlineInfo(u"betterruins"_s));
-        QCOMPARE(mServer->requestCount(), 3);
+        // carryon is stored by then, and the loader downloads the list once per session
+        QCOMPARE(requestedPaths(), (QStringList{u"/api/mod/betterruins"_s, u"/api/mod/carryon"_s, u"/api/mods"_s}));
     }
 
     void modPickedInTheGuiIsCopiedIntoTheModsDir() {
@@ -263,7 +293,8 @@ class ModLoaderIntegrationTest : public QObject {
         QCOMPARE(readFile(updated), zip);
         // RealComponents keeps old versions
         QVERIFY(QFile::exists(installed));
-        QCOMPARE(requestedPaths(), (QStringList{u"/api/mod/carryon"_s, u"/api/mod/carryon"_s, '/' + downloadPath()}));
+        // the updated zip uses the info stored by the scan
+        QCOMPARE(requestedPaths(), (QStringList{u"/api/mod/carryon"_s, u"/api/mods"_s, '/' + downloadPath()}));
     }
 
     // a rewrite here would mean an entry added on every scan
@@ -278,7 +309,7 @@ class ModLoaderIntegrationTest : public QObject {
         QTRY_VERIFY(settled());
         QVERIFY(mApp->gameMngr().getDisabledMods().contains(u"carryon"_s));
         QCOMPARE(disabledModsOnDisk(mApp->gameDir()), QJsonArray{u"carryon@1.0.0"_s});
-        QCOMPARE(mServer->requestCount(), 1);
+        QCOMPARE(requestedPaths(), (QStringList{u"/api/mod/carryon"_s, u"/api/mods"_s}));
     }
 
     void updateOfADisabledModKeepsItDisabled() {

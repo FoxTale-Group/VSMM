@@ -114,6 +114,7 @@ void App::initQmlEngine() {
     modStore->setGameMngr(gameMngr);
 
     modLoader->setHttpClient(mHttpClient.get());
+    modLoader->setInfoCache(mModInfoCache.get());
     modLoader->setStore(modStore);
     modLoader->setGameMngr(gameMngr);
 
