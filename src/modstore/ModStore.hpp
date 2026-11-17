@@ -26,10 +26,19 @@
 
 #include <QHash>
 #include <QObject>
+#include <QSet>
+#include <QString>
+#include <QStringList>
 #include <QTimer>
 #include <qqmlintegration.h>
 
+#include <memory>
+
 namespace vsmm {
+namespace modstore {
+class ModFilesTracker;
+}
+
 class MODSTORE_EXPORT ModStore : public IModStore {
     Q_OBJECT
     QML_NAMED_ELEMENT(ModStore)
@@ -42,13 +51,13 @@ class MODSTORE_EXPORT ModStore : public IModStore {
 
   public:
     explicit ModStore(QObject *parent = nullptr);
+    ~ModStore() override;
 
     void setConfig(IConfig *config);
     void setGameMngr(IGameMngr *gameMngr);
 
     void add(ModLocalInfo localModInfo, ModLoadType loadType) override;
     void updateOnline(QStringView id, ModOnlineInfo onlineInfo) override;
-    Q_INVOKABLE void reload();
     Q_INVOKABLE void update(const QString &id);
     Q_INVOKABLE void updateAll();
     Q_INVOKABLE void updateSelected();
@@ -77,6 +86,7 @@ class MODSTORE_EXPORT ModStore : public IModStore {
 
   private slots:
     void onModsDirChanged();
+    void onModFilesChanged(const QStringList &found, const QStringList &removed);
 
   private:
     enum class UpdateType : quint8 { One = 0, Selected, All };
@@ -87,6 +97,10 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     void addFromGUI(ModLocalInfo localModInfo);
     void updateMod(ModLocalInfo localModInfo);
     static void toUniqueFileName(QString &name);
+    // entry whose zip is at that path
+    [[nodiscard]] QHash<QString, ModEntry>::iterator findByFile(const QString &absoluteFilePath);
+    // also reloads its duplicates if any
+    void removeEntry(QHash<QString, ModEntry>::iterator it);
 
     QHash<QString, ModEntry> mMods;
 
@@ -97,5 +111,7 @@ class MODSTORE_EXPORT ModStore : public IModStore {
     IGameMngr *mGameMngr{nullptr};
     QSet<QString> mFavoriteMods;
     QTimer mWorkPendingTimer{this};
+
+    std::unique_ptr<modstore::ModFilesTracker> mFilesTracker;
 };
 } // namespace vsmm

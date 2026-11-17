@@ -247,7 +247,7 @@ class ModLoaderIntegrationTest : public QObject {
         QTRY_VERIFY(settled());
 
         QVERIFY(!writeMod(mApp->modsDir(), u"betterruins"_s, u"1.0.0"_s).isEmpty());
-        store().reload();
+        emit mApp->gameMngr().modsDirsChanged();
         QVERIFY(store().isWorkPending());
 
         QTRY_VERIFY(settled());

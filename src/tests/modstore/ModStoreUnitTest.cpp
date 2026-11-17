@@ -412,7 +412,7 @@ class ModStoreUnitTest : public QObject {
         QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 0 installed, 0 with updates");
         mStore->onModsReloaded();
         QTest::ignoreMessage(QtInfoMsg, "Reloading mods");
-        mStore->reload();
+        emit mGameMngr->modsDirsChanged();
 
         bool pastTheDelay{false};
         QTimer::singleShot(600, this, [&pastTheDelay] { pastTheDelay = true; });
@@ -426,7 +426,7 @@ class ModStoreUnitTest : public QObject {
 
         for (int scan = 0; scan < 3; ++scan) {
             QTest::ignoreMessage(QtInfoMsg, "Reloading mods");
-            mStore->reload();
+            emit mGameMngr->modsDirsChanged();
             QTest::ignoreMessage(QtInfoMsg, "Mods reloaded: 0 installed, 0 with updates");
             mStore->onModsReloaded();
             // a delayed timer clears the flag, not the call itself

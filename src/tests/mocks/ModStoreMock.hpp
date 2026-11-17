@@ -97,7 +97,7 @@ class ModStoreMock final : public IModStore {
         }
     }
 
-    // store empty first, same as ModStore::reload
+    // store empty first, same as ModStore::onModsDirChanged
     void reload() {
         mMods.clear();
         emit modsReloading();

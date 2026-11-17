@@ -328,7 +328,7 @@ class ModListModelIntegrationTest : public QObject {
                     }
                 });
 
-        store().reload();
+        emit mApp->gameMngr().modsDirsChanged();
 
         QCOMPARE(readWhileRemoving, QStringList({u"carryon"_s, u"betterruins"_s, u"animalcages"_s}));
         QCOMPARE(mModel->rowCount(QModelIndex{}), 0);

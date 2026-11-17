@@ -148,7 +148,7 @@ class ModSortFilterModelIntegrationTest : public QObject {
         mProxy->setFilterText(u"ruins"_s);
         addMods({u"moreruins"_s, u"carryon"_s, u"betterruins"_s});
 
-        store().reload();
+        emit mApp->gameMngr().modsDirsChanged();
 
         QVERIFY(names().isEmpty());
         addMods({u"moreruins"_s, u"carryon"_s, u"betterruins"_s});

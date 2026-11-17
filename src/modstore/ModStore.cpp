@@ -17,16 +17,22 @@
  */
 
 #include "ModStore.hpp"
+#include "ModFilesTracker.hpp"
 
 #include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QLoggingCategory>
+#include <QStringList>
 #include <QUuid>
+
+#include <algorithm>
 #include <chrono>
 
 Q_STATIC_LOGGING_CATEGORY(cModStore, "modstore");
 
 namespace vsmm {
-ModStore::ModStore(QObject *parent) : IModStore{parent} {
+ModStore::ModStore(QObject *parent) : IModStore{parent}, mFilesTracker{std::make_unique<modstore::ModFilesTracker>()} {
     using namespace std::chrono_literals;
     mWorkPendingTimer.setSingleShot(true);
     mWorkPendingTimer.setInterval(500ms);
@@ -35,7 +41,13 @@ ModStore::ModStore(QObject *parent) : IModStore{parent} {
         qCDebug(cModStore, "Work pending cleared");
         emit workChanged();
     });
+
+    connect(mFilesTracker.get(), &modstore::ModFilesTracker::filesChanged, this, &ModStore::onModFilesChanged);
 }
+
+// unique_ptr needs the complete tracker to delete it
+ModStore::~ModStore() = default;
+
 void ModStore::setConfig(IConfig *config) {
     if (mConfig) {
         qCWarning(cModStore, "Config already set");
@@ -123,23 +135,6 @@ void ModStore::updateOnline(QStringView id, ModOnlineInfo onlineInfo) {
     emit updatesCountChanged();
 }
 
-void ModStore::reload() {
-    if (mWorkPendingTimer.isActive()) {
-        qCDebug(cModStore, "Reload stopped the pending work clear");
-    }
-    mWorkPendingTimer.stop();
-    qCInfo(cModStore, "Reloading mods");
-    mWorkPending = true;
-    // let modlistmodel drop its rows while the entries are still readable
-    emit modsReloading();
-    mMods.clear();
-    emit workChanged();
-    emit installedModsCountChanged();
-    emit updatesCountChanged();
-    emit enabledModsCountChanged();
-    emit modSelected();
-}
-
 void ModStore::update(const QString &id) { update(UpdateType::One, id); }
 void ModStore::updateAll() { update(UpdateType::All); }
 void ModStore::updateSelected() { update(UpdateType::Selected); }
@@ -213,11 +208,18 @@ void ModStore::remove(const QString &id) {
         return;
     }
 
-    if (!QFile::remove(it->getFileInfo().absoluteFilePath())) {
-        qCCritical(cModStore, "Failed to delete %s", qUtf8Printable(it->getFileInfo().absoluteFilePath()));
+    const QString path = it->getFileInfo().absoluteFilePath();
+    if (!QFile::remove(path)) {
+        qCCritical(cModStore, "Failed to delete %s", qUtf8Printable(path));
         return;
     }
+    mFilesTracker->refresh(path);
+    removeEntry(it);
+}
 
+void ModStore::removeEntry(QHash<QString, ModEntry>::iterator it) {
+    const QString id = it->getId().toString();
+    const QString path = it->getFileInfo().absoluteFilePath();
     // let modlistmodel & imgprovider remove their entries first
     emit modRemoved(it->getId());
 
@@ -228,9 +230,26 @@ void ModStore::remove(const QString &id) {
     emit modSelected();
 
     qCInfo(cModStore, "Mod %s deleted", qUtf8Printable(id));
+
+    // the loader reads its duplicates again, addOnInit keeps the newest
+    const QStringList duplicates = mFilesTracker->findDuplicates(id, path);
+    for (const QString &duplicate : duplicates) {
+        emit modFileFound(duplicate);
+    }
+    if (!duplicates.isEmpty()) {
+        mWorkPendingTimer.stop();
+        mWorkPending = true;
+        emit workChanged();
+    }
 }
 
 bool ModStore::contains(const QString &id) const { return mMods.contains(id); }
+
+QHash<QString, ModEntry>::iterator ModStore::findByFile(const QString &absoluteFilePath) {
+    return std::ranges::find_if(mMods, [&absoluteFilePath](const ModEntry &mod) {
+        return mod.getFileInfo().absoluteFilePath() == absoluteFilePath;
+    });
+}
 
 const ModEntry *ModStore::find(const QString &id) const {
     const auto it = mMods.constFind(id);
@@ -264,12 +283,52 @@ void ModStore::onModUpdateFailed(QString modId, QString reason) {
     emit modUpdateFailed(modId, std::move(reason));
 }
 
-void ModStore::onModsDirChanged() { reload(); }
+void ModStore::onModsDirChanged() {
+    if (mWorkPendingTimer.isActive()) {
+        qCDebug(cModStore, "Reload stopped the pending work clear");
+    }
+    mWorkPendingTimer.stop();
+    qCInfo(cModStore, "Reloading mods");
+    mWorkPending = true;
+
+    mFilesTracker->reset(mGameMngr->getModsDirs());
+
+    // let modlistmodel drop its rows while the entries are still readable
+    emit modsReloading();
+    mMods.clear();
+    emit workChanged();
+    emit installedModsCountChanged();
+    emit updatesCountChanged();
+    emit enabledModsCountChanged();
+    emit modSelected();
+}
+
+void ModStore::onModFilesChanged(const QStringList &found, const QStringList &removed) {
+    for (const QString &path : removed + found) {
+        // a changed zip loses its entry too, so an older or equal version still replaces it
+        if (const auto it = findByFile(path); it != mMods.end()) {
+            removeEntry(it);
+        }
+    }
+    for (const QString &path : found) {
+        emit modFileFound(path);
+    }
+
+    // the loads end in onModsReloaded, which clears it again
+    if (!found.isEmpty()) {
+        mWorkPendingTimer.stop();
+        mWorkPending = true;
+        emit workChanged();
+    }
+}
+
 bool ModStore::modsSelected() const {
     return std::ranges::any_of(mMods.begin(), mMods.end(), [](const auto &mod) { return mod.isMarkedForUpdate(); });
 }
 
 void ModStore::addOnInit(ModLocalInfo localModInfo) {
+    mFilesTracker->setModId(localModInfo.mFileInfo.absoluteFilePath(), localModInfo.mId);
+
     // Check if there is already a mod with the same id
     if (auto it = mMods.find(localModInfo.mId); it != mMods.end()) {
         if (it->getVersion() >= localModInfo.mVersion) {
@@ -317,6 +376,7 @@ void ModStore::addFromGUI(ModLocalInfo localModInfo) {
                    qUtf8Printable(target));
         return;
     }
+    mFilesTracker->refresh(target, localModInfo.mId);
     localModInfo.mFileInfo = QFileInfo{target};
 
     QString id = localModInfo.mId;
@@ -368,23 +428,29 @@ void ModStore::updateMod(ModLocalInfo localModInfo) {
         emit modUpdateFailed(it->getId(), u"Failed to copy the update into the mods folder"_s);
         return;
     }
+    const QString copiedTo = newModFilePath;
+    const QString oldPath = it->getFileInfo().absoluteFilePath();
 
     // remove old mod if should be removed and only if copying succeeded
     if (mConfig->general().deleteOldModVersion) {
-        if (!QFile::moveToTrash(it->getFileInfo().absoluteFilePath())) {
+        if (!QFile::moveToTrash(oldPath)) {
             qCWarning(cModStore, "Failed to move mod %s to trash", qUtf8Printable(it->toString()));
         } else {
             if (hasTemporaryName) {
-                if (QFile::rename(newModFilePath, it->getFileInfo().absoluteFilePath())) {
-                    newModFilePath = it->getFileInfo().absoluteFilePath();
+                if (QFile::rename(newModFilePath, oldPath)) {
+                    newModFilePath = oldPath;
                 } else {
                     qCWarning(cModStore, "Failed to rename file %s to %s", qUtf8Printable(newModFilePath),
-                              qUtf8Printable(it->getFileInfo().absoluteFilePath()));
+                              qUtf8Printable(oldPath));
                 }
             }
             qCDebug(cModStore, "Moved mod %s to trash", qUtf8Printable(it->toString()));
         }
     }
+
+    mFilesTracker->refresh(copiedTo, localModInfo.mId);
+    // a kept old zip becomes a duplicate of the update, a trashed one is forgotten
+    mFilesTracker->refresh(oldPath, localModInfo.mId);
 
     // update file info for newly copied mod
     localModInfo.mFileInfo = QFileInfo{newModFilePath};

@@ -20,6 +20,7 @@
 
 #include <InterfacesExport.hpp>
 #include <ModEntry.hpp>
+#include <QDir>
 #include <QJsonObject>
 #include <QObject>
 #include <QString>
@@ -34,6 +35,9 @@ class INTERFACES_EXPORT IModStore : public QObject {
 
   public:
     enum class ModLoadType : std::uint8_t { Init = 0, GUI, Update };
+    // which files in a mods dir are mods, shared by the scan and the watcher
+    static constexpr QLatin1StringView MOD_FILE_PATTERN{"*.zip"};
+    static constexpr QDir::Filters MOD_FILE_TYPES{QDir::Files | QDir::Readable | QDir::NoDotAndDotDot};
 
     explicit IModStore(QObject *parent = nullptr) : QObject{parent} {}
     ~IModStore() override;
@@ -52,7 +56,8 @@ class INTERFACES_EXPORT IModStore : public QObject {
     void modUpdateInstalling(QStringView modId);                              // used by modupdatemodel
     void modUpdateFinished(QStringView modId);                                // used by modupdatemodel
     void modUpdateFailed(QStringView modId, QString reason);                  // used by modupdatemodel
-    void modsLoaded(); // loader has nothing left in progress, used by modupdatemodel
+    void modsLoaded();                      // loader has nothing left in progress, used by modupdatemodel
+    void modFileFound(const QString &path); // a zip in a mods dir to load, used by modloader
 
   public slots:
     virtual void onModsReloaded() = 0;

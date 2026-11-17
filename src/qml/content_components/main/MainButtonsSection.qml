@@ -27,20 +27,6 @@ RowLayout
     }
 
     Button {
-        text: qsTr("Sync")
-        icon.source: Theme.icons.syncIcon
-        display: AbstractButton.TextBesideIcon
-        Layout.preferredHeight: 40
-
-        tooltipText: qsTr("Refresh mod list")
-
-        defaultColor: Theme.colors.accent
-
-        enabled: ModStore.workPending === false
-        onClicked: ModStore.reload()
-    }
-
-    Button {
         id: updateButton
 
         text: qsTr("Update all")
