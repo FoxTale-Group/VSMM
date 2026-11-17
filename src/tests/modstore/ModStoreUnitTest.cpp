@@ -96,6 +96,33 @@ class ModStoreUnitTest : public QObject {
         return QTest::qWaitFor([this] { return !mStore->isWorkPending(); });
     }
 
+    // the reload a mods dir change starts, it lists the known zips and arms the watch
+    void watchModsDirs() {
+        setComponents();
+        QTest::ignoreMessage(QtInfoMsg, "Reloading mods");
+        emit mGameMngr->modsDirsChanged();
+    }
+
+    [[nodiscard]] static QStringList foundPaths(const QSignalSpy &found) {
+        QStringList paths;
+        for (const QList<QVariant> &args : found) {
+            paths.append(args.at(0).toString());
+        }
+        return paths;
+    }
+
+    // a scan that kept the newer zip and dropped the older one
+    void scanBothVersions() {
+        const QFileInfo newer = writeStubZip(modsDir(), u"carryon-2.0.0.zip"_s);
+        const QFileInfo older = writeStubZip(modsDir(), u"carryon-1.0.0.zip"_s);
+        watchModsDirs();
+        mStore->add(localInfo(modId(), u"2.0.0"_s, newer), vsmm::ModStore::ModLoadType::Init);
+        QTest::ignoreMessage(QtInfoMsg,
+                             qPrintable(u"Mod carryon@1.0.0 already has newer version in mods folder %1"_s.arg(
+                                 modsDir().absolutePath())));
+        mStore->add(localInfo(modId(), u"1.0.0"_s, older), vsmm::ModStore::ModLoadType::Init);
+    }
+
   private slots:
     void init() {
         onlyStoreLogs();
@@ -899,6 +926,256 @@ class ModStoreUnitTest : public QObject {
 
         QCOMPARE(changed.count(), 1);
         QCOMPARE(mStore->property("enabledModsCount").toInt(), 0);
+    }
+
+    // only the new zip goes to the loader, known zips and other files stay quiet
+    void newZipInAWatchedDirIsAnnounced() {
+        const QFileInfo known = writeStubZip(modsDir(), u"carryon-1.0.0.zip"_s);
+        watchModsDirs();
+        mStore->add(localInfo(modId(), u"1.0.0"_s, known), vsmm::ModStore::ModLoadType::Init);
+        QVERIFY(finishScan());
+        QSignalSpy found{mStore.get(), &vsmm::ModStore::modFileFound};
+        const QString added = modsDir().absoluteFilePath(u"bees-1.0.0.zip"_s);
+        QTest::ignoreMessage(QtInfoMsg, qPrintable(u"Mod file %1 was added"_s.arg(added)));
+
+        QVERIFY(writeFile(modsDir().absoluteFilePath(u"notes.txt"_s), "not a mod"));
+        QVERIFY(writeStubZip(modsDir(), u"bees-1.0.0.zip"_s).exists());
+
+        QTRY_COMPARE(foundPaths(found), QStringList{added});
+        QVERIFY(mStore->contains(modId()));
+        // the loader ends it once the zip is read
+        QVERIFY(mStore->isWorkPending());
+    }
+
+    // removed before the load, so an older zip in its place still becomes the entry
+    void rewrittenZipDropsItsEntryAndIsAnnouncedAgain() {
+        const QFileInfo zip = writeStubZip(modsDir(), u"carryon.zip"_s);
+        QVERIFY(backdate(zip.absoluteFilePath()));
+        watchModsDirs();
+        mStore->add(localInfo(modId(), u"1.0.0"_s, zip), vsmm::ModStore::ModLoadType::Init);
+        QVERIFY(finishScan());
+        QSignalSpy found{mStore.get(), &vsmm::ModStore::modFileFound};
+        QSignalSpy removed{mStore.get(), &vsmm::ModStore::modRemoved};
+        QTest::ignoreMessage(QtInfoMsg, qPrintable(u"Mod file %1 was changed"_s.arg(zip.absoluteFilePath())));
+        QTest::ignoreMessage(QtInfoMsg, "Mod carryon deleted");
+
+        QVERIFY(writeFile(zip.absoluteFilePath(), "older build"));
+
+        QTRY_COMPARE(foundPaths(found), QStringList{zip.absoluteFilePath()});
+        QCOMPARE(removed.count(), 1);
+        QVERIFY(!mStore->contains(modId()));
+        QVERIFY(mStore->isWorkPending());
+
+        mStore->add(localInfo(modId(), u"0.9.0"_s, zip), vsmm::ModStore::ModLoadType::Init);
+        QCOMPARE(str(mStore->find(modId())->getVersion()), u"0.9.0"_s);
+    }
+
+    void deletedZipDropsItsEntryWithoutALoad() {
+        const QFileInfo zip = writeStubZip(modsDir(), u"carryon-1.0.0.zip"_s);
+        watchModsDirs();
+        mStore->add(localInfo(modId(), u"1.0.0"_s, zip), vsmm::ModStore::ModLoadType::Init);
+        QVERIFY(finishScan());
+        QSignalSpy found{mStore.get(), &vsmm::ModStore::modFileFound};
+        QSignalSpy removed{mStore.get(), &vsmm::ModStore::modRemoved};
+        QTest::ignoreMessage(QtInfoMsg, qPrintable(u"Mod file %1 was removed"_s.arg(zip.absoluteFilePath())));
+        QTest::ignoreMessage(QtInfoMsg, "Mod carryon deleted");
+
+        QVERIFY(QFile::remove(zip.absoluteFilePath()));
+
+        QTRY_VERIFY(!mStore->contains(modId()));
+        QCOMPARE(removed.count(), 1);
+        QVERIFY(found.isEmpty());
+        QVERIFY(!mStore->isWorkPending());
+    }
+
+    // the copy is a known zip already, the loader must not read it a second time
+    void guiInstallIsNotAnnouncedByTheWatcher() {
+        watchModsDirs();
+        QVERIFY(finishScan());
+        QSignalSpy found{mStore.get(), &vsmm::ModStore::modFileFound};
+        addMod(stagingDir(), u"bees"_s, u"1.0.0"_s, vsmm::ModStore::ModLoadType::GUI);
+        // a later zip shows the tracker checked the dir
+        const QString later = modsDir().absoluteFilePath(u"rivers-1.0.0.zip"_s);
+        QTest::ignoreMessage(QtInfoMsg, qPrintable(u"Mod file %1 was added"_s.arg(later)));
+
+        QVERIFY(writeStubZip(modsDir(), u"rivers-1.0.0.zip"_s).exists());
+
+        QTRY_COMPARE(foundPaths(found), QStringList{later});
+        QVERIFY(mStore->contains(u"bees"_s));
+    }
+
+    void installedUpdateIsNotAnnouncedByTheWatcher() {
+        vsmm::GeneralSettings general;
+        general.deleteOldModVersion = false;
+        mConfig->setGeneral(general);
+        const QFileInfo installed = writeStubZip(modsDir(), u"carryon-1.0.0.zip"_s);
+        watchModsDirs();
+        mStore->add(localInfo(modId(), u"1.0.0"_s, installed), vsmm::ModStore::ModLoadType::Init);
+        QVERIFY(finishScan());
+        QSignalSpy found{mStore.get(), &vsmm::ModStore::modFileFound};
+        QTest::ignoreMessage(QtInfoMsg, "Got newer version of mod carryon@1.1.0, replacing");
+        addMod(stagingDir(), modId(), u"1.1.0"_s, vsmm::ModStore::ModLoadType::Update);
+        const QString later = modsDir().absoluteFilePath(u"rivers-1.0.0.zip"_s);
+        QTest::ignoreMessage(QtInfoMsg, qPrintable(u"Mod file %1 was added"_s.arg(later)));
+
+        QVERIFY(writeStubZip(modsDir(), u"rivers-1.0.0.zip"_s).exists());
+
+        QTRY_COMPARE(foundPaths(found), QStringList{later});
+        QCOMPARE(str(mStore->find(modId())->getVersion()), u"1.1.0"_s);
+    }
+
+    void reloadWatchesOnlyTheNewModsDirs() {
+        watchModsDirs();
+        QTest::ignoreMessage(QtInfoMsg, "Reloading mods");
+        mGameMngr->setModsDirs({stagingDir()});
+        QVERIFY(finishScan());
+        QSignalSpy found{mStore.get(), &vsmm::ModStore::modFileFound};
+        const QString staged = stagingDir().absoluteFilePath(u"bees-1.0.0.zip"_s);
+        QTest::ignoreMessage(QtInfoMsg, qPrintable(u"Mod file %1 was added"_s.arg(staged)));
+
+        QVERIFY(writeStubZip(modsDir(), u"carryon-1.0.0.zip"_s).exists());
+        QVERIFY(writeStubZip(stagingDir(), u"bees-1.0.0.zip"_s).exists());
+
+        QTRY_COMPARE(foundPaths(found), QStringList{staged});
+    }
+
+    // a mods dir missing at the reload has no known zips, the install still goes through
+    void guiInstallIntoAModsDirCreatedAfterTheReload() {
+        const QDir later{mTempDir->filePath(u"later"_s)};
+        mGameMngr->setModsDirs({later});
+        watchModsDirs();
+        QVERIFY(QDir{}.mkpath(later.absolutePath()));
+
+        addMod(stagingDir(), u"bees"_s, u"1.0.0"_s, vsmm::ModStore::ModLoadType::GUI);
+
+        QVERIFY(mStore->contains(u"bees"_s));
+        QVERIFY(later.exists(u"bees-1.0.0.zip"_s));
+    }
+
+    void duplicateZipComesBackWhenTheNewerZipIsDeleted_data() {
+        QTest::addColumn<bool>("newerFirst");
+        QTest::newRow("newer-scanned-first") << true;
+        QTest::newRow("older-scanned-first") << false;
+    }
+
+    // the older zip lost at the scan, it is the mod again once the newer one is gone
+    void duplicateZipComesBackWhenTheNewerZipIsDeleted() {
+        QFETCH(bool, newerFirst);
+        const QFileInfo older = writeStubZip(modsDir(), u"carryon-1.0.0.zip"_s);
+        const QFileInfo newer = writeStubZip(modsDir(), u"carryon-2.0.0.zip"_s);
+        watchModsDirs();
+        if (newerFirst) {
+            QTest::ignoreMessage(QtInfoMsg,
+                                 qPrintable(u"Mod carryon@1.0.0 already has newer version in mods folder %1"_s.arg(
+                                     modsDir().absolutePath())));
+            mStore->add(localInfo(modId(), u"2.0.0"_s, newer), vsmm::ModStore::ModLoadType::Init);
+            mStore->add(localInfo(modId(), u"1.0.0"_s, older), vsmm::ModStore::ModLoadType::Init);
+        } else {
+            QTest::ignoreMessage(QtInfoMsg, "Got newer version of mod carryon@2.0.0, replacing");
+            mStore->add(localInfo(modId(), u"1.0.0"_s, older), vsmm::ModStore::ModLoadType::Init);
+            mStore->add(localInfo(modId(), u"2.0.0"_s, newer), vsmm::ModStore::ModLoadType::Init);
+        }
+        QVERIFY(finishScan());
+        QSignalSpy found{mStore.get(), &vsmm::ModStore::modFileFound};
+        QTest::ignoreMessage(QtInfoMsg, qPrintable(u"Mod file %1 was removed"_s.arg(newer.absoluteFilePath())));
+        QTest::ignoreMessage(QtInfoMsg, "Mod carryon deleted");
+
+        QVERIFY(QFile::remove(newer.absoluteFilePath()));
+
+        QTRY_COMPARE(foundPaths(found), QStringList{older.absoluteFilePath()});
+        QVERIFY(!mStore->contains(modId()));
+        QVERIFY(mStore->isWorkPending());
+    }
+
+    // both dirs change in one look, the newer entry goes after the known zips are updated, so no zip loads twice
+    void changedDuplicateInAnotherDirIsAnnouncedOnce() {
+        mGameMngr->setModsDirs({modsDir(), stagingDir()});
+        const QFileInfo newer = writeStubZip(modsDir(), u"carryon-2.0.0.zip"_s);
+        const QFileInfo older = writeStubZip(stagingDir(), u"carryon-1.0.0.zip"_s);
+        QVERIFY(backdate(older.absoluteFilePath()));
+        watchModsDirs();
+        mStore->add(localInfo(modId(), u"2.0.0"_s, newer), vsmm::ModStore::ModLoadType::Init);
+        QTest::ignoreMessage(QtInfoMsg,
+                             qPrintable(u"Mod carryon@1.0.0 already has newer version in mods folder %1"_s.arg(
+                                 modsDir().absolutePath())));
+        mStore->add(localInfo(modId(), u"1.0.0"_s, older), vsmm::ModStore::ModLoadType::Init);
+        QVERIFY(finishScan());
+        QSignalSpy found{mStore.get(), &vsmm::ModStore::modFileFound};
+        QTest::ignoreMessage(QtInfoMsg, qPrintable(u"Mod file %1 was removed"_s.arg(newer.absoluteFilePath())));
+        QTest::ignoreMessage(QtInfoMsg, qPrintable(u"Mod file %1 was changed"_s.arg(older.absoluteFilePath())));
+        QTest::ignoreMessage(QtInfoMsg, "Mod carryon deleted");
+
+        QVERIFY(QFile::remove(newer.absoluteFilePath()));
+        QVERIFY(writeFile(older.absoluteFilePath(), "rebuilt"));
+
+        QTRY_COMPARE(foundPaths(found), QStringList{older.absoluteFilePath()});
+    }
+
+    void removeBringsBackTheDuplicateZip() {
+        scanBothVersions();
+        QVERIFY(finishScan());
+        QSignalSpy found{mStore.get(), &vsmm::ModStore::modFileFound};
+        QSignalSpy work{mStore.get(), &vsmm::ModStore::workChanged};
+        QTest::ignoreMessage(QtInfoMsg, "Mod carryon deleted");
+
+        mStore->remove(modId());
+
+        QCOMPARE(foundPaths(found), QStringList{modsDir().absoluteFilePath(u"carryon-1.0.0.zip"_s)});
+        QVERIFY(mStore->isWorkPending());
+        QCOMPARE(work.count(), 1);
+    }
+
+    // gone from disk before its turn, so there is nothing for the loader to read
+    void deletedDuplicateZipIsNotAnnounced() {
+        scanBothVersions();
+        QVERIFY(finishScan());
+        QVERIFY(QFile::remove(modsDir().absoluteFilePath(u"carryon-1.0.0.zip"_s)));
+        QSignalSpy found{mStore.get(), &vsmm::ModStore::modFileFound};
+        QTest::ignoreMessage(QtInfoMsg, "Mod carryon deleted");
+
+        mStore->remove(modId());
+
+        QVERIFY(found.isEmpty());
+        QVERIFY(!mStore->isWorkPending());
+    }
+
+    // one look can load a zip twice, a later rewrite still goes to the loader once
+    void zipLoadedTwiceIsAnnouncedOnceWhenRewritten() {
+        const QFileInfo zip = writeStubZip(modsDir(), u"carryon-1.0.0.zip"_s);
+        QVERIFY(backdate(zip.absoluteFilePath()));
+        watchModsDirs();
+        mStore->add(localInfo(modId(), u"1.0.0"_s, zip), vsmm::ModStore::ModLoadType::Init);
+        QTest::ignoreMessage(QtInfoMsg,
+                             qPrintable(u"Mod carryon@1.0.0 already has newer version in mods folder %1"_s.arg(
+                                 modsDir().absolutePath())));
+        mStore->add(localInfo(modId(), u"1.0.0"_s, zip), vsmm::ModStore::ModLoadType::Init);
+        QVERIFY(finishScan());
+        QSignalSpy found{mStore.get(), &vsmm::ModStore::modFileFound};
+        QTest::ignoreMessage(QtInfoMsg, qPrintable(u"Mod file %1 was changed"_s.arg(zip.absoluteFilePath())));
+        QTest::ignoreMessage(QtInfoMsg, "Mod carryon deleted");
+
+        QVERIFY(writeFile(zip.absoluteFilePath(), "new build"));
+
+        QTRY_COMPARE(foundPaths(found), QStringList{zip.absoluteFilePath()});
+    }
+
+    // with deleteOldModVersion off the old zip stays, and is the mod again once the update is removed
+    void oldZipKeptByAnUpdateComesBackWhenTheUpdateIsRemoved() {
+        vsmm::GeneralSettings general;
+        general.deleteOldModVersion = false;
+        mConfig->setGeneral(general);
+        const QFileInfo installed = writeStubZip(modsDir(), u"carryon-1.0.0.zip"_s);
+        watchModsDirs();
+        mStore->add(localInfo(modId(), u"1.0.0"_s, installed), vsmm::ModStore::ModLoadType::Init);
+        QTest::ignoreMessage(QtInfoMsg, "Got newer version of mod carryon@1.1.0, replacing");
+        addMod(stagingDir(), modId(), u"1.1.0"_s, vsmm::ModStore::ModLoadType::Update);
+        QVERIFY(finishScan());
+        QSignalSpy found{mStore.get(), &vsmm::ModStore::modFileFound};
+        QTest::ignoreMessage(QtInfoMsg, "Mod carryon deleted");
+
+        mStore->remove(modId());
+
+        QCOMPARE(foundPaths(found), QStringList{modsDir().absoluteFilePath(u"carryon-1.0.0.zip"_s)});
     }
 };
 

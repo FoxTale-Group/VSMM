@@ -19,7 +19,9 @@
 #pragma once
 
 #include <QByteArray>
+#include <QDateTime>
 #include <QFile>
+#include <QFileInfo>
 #include <QString>
 
 namespace vsmm::test {
@@ -35,5 +37,12 @@ namespace vsmm::test {
 [[nodiscard]] inline QByteArray readFile(const QString &path) {
     QFile file{path};
     return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray{};
+}
+
+// windows watcher only compares mtimes, a rewrite in the same clock tick goes unseen
+[[nodiscard]] inline bool backdate(const QString &path) {
+    QFile file{path};
+    return file.open(QIODevice::ReadWrite) &&
+           file.setFileTime(QFileInfo{path}.lastModified().addSecs(-60), QFileDevice::FileModificationTime);
 }
 } // namespace vsmm::test
