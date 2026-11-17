@@ -26,6 +26,8 @@
 #include <QJsonDocument>
 #include <QLoggingCategory>
 #include <QRegularExpression>
+#include <QSqlDatabase>
+#include <QSqlQuery>
 #include <QStandardPaths>
 #include <QTest>
 #include <QUuid>
@@ -124,9 +126,10 @@ class ModLoaderIntegrationTest : public QObject {
         mLoader->setGameMngr(&mApp->gameMngr());
     }
 
-    [[nodiscard]] QStringList requestedPaths() const {
+    // from skips the requests of an earlier session
+    [[nodiscard]] QStringList requestedPaths(qsizetype from = 0) const {
         QStringList paths;
-        for (const auto &request : mServer->requests()) {
+        for (const auto &request : mServer->requests().sliced(from)) {
             paths.append(QString::fromUtf8(request.mTarget));
         }
         paths.sort();
@@ -331,6 +334,52 @@ class ModLoaderIntegrationTest : public QObject {
         QTRY_VERIFY(settled());
         QCOMPARE(disabledModsOnDisk(mApp->gameDir()), (QJsonArray{u"carryon@1.0.0"_s, u"carryon@1.1.0"_s}));
         QVERIFY(mApp->gameMngr().getDisabledMods().contains(u"carryon"_s));
+    }
+
+    static void nextSessionUsesTheStoredInfo_data() {
+        QTest::addColumn<bool>("oldList");
+        QTest::addColumn<QString>("released");
+        QTest::addColumn<QStringList>("requested");
+
+        QTest::newRow("fresh-list") << false << QString{RELEASED} << QStringList{};
+        QTest::newRow("old-list") << true << QString{RELEASED} << QStringList{u"/api/mods"_s};
+        QTest::newRow("old-list-newer-release")
+            << true << u"2026-11-01 10:00:00"_s << QStringList{u"/api/mod/carryon"_s, u"/api/mods"_s};
+    }
+
+    void nextSessionUsesTheStoredInfo() {
+        QFETCH(const bool, oldList);
+        QFETCH(const QString, released);
+        QFETCH(const QStringList, requested);
+        QVERIFY(!writeMod(mApp->modsDir(), u"carryon"_s, u"1.0.0"_s).isEmpty());
+        mServer->setFallback(info(modJson()));
+        QVERIFY(mApp->start());
+        QTRY_VERIFY(settled());
+
+        if (oldList) {
+            // an hour back, older than the loader's limit
+            const QString connection = u"modloader-test"_s;
+            {
+                QSqlDatabase db = QSqlDatabase::addDatabase(u"QSQLITE"_s, connection);
+                db.setDatabaseName(cacheDir() + "/modinfocache.db"_L1);
+                QSqlQuery query{db};
+                QVERIFY(db.open());
+                QVERIFY(query.exec(u"UPDATE mod_list_stored SET stored_at = stored_at - 3600"_s));
+                QCOMPARE(query.numRowsAffected(), 1);
+            }
+            QSqlDatabase::removeDatabase(connection);
+        }
+        // a new session over the same files and database, the loader goes before the store it points at
+        mLoader.reset();
+        mCache.reset();
+        mCache = std::make_unique<vsmm::ModInfoCache>();
+        const qsizetype firstSession = mServer->requestCount();
+        mServer->route("/api/mods", modList(released));
+        QVERIFY(mApp->restart());
+
+        QTRY_VERIFY(settled());
+        QVERIFY(hasOnlineInfo(u"carryon"_s));
+        QCOMPARE(requestedPaths(firstSession), requested);
     }
 };
 

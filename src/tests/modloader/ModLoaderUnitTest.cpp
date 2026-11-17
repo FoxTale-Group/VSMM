@@ -75,6 +75,8 @@ enum class BrokenZip : std::uint8_t { NotAZip, Missing, NoModInfo, Encrypted };
     return QUrl{u"https://mods.vintagestory.at/api/mod/%1"_s.arg(id)};
 }
 
+const QUrl MOD_LIST_URL{u"https://mods.vintagestory.at/api/mods"_s};
+
 [[nodiscard]] QString tempPath(const QString &fileName) {
     return QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QDir::separator() + fileName;
 }
@@ -134,6 +136,20 @@ class ModLoaderUnitTest : public QObject {
         mLoader->setStore(mStore.get());
         mLoader->setInfoCache(mCache.get());
         mFinished = std::make_unique<QSignalSpy>(mLoader.get(), &vsmm::ModLoader::allModsReloaded);
+    }
+
+    // carryon scanned with a cache, it waits for the list, which is request 0
+    [[nodiscard]] bool scanWaitingForTheList() {
+        setCache();
+        if (writeMod().isEmpty()) {
+            return false;
+        }
+        QTest::ignoreMessage(QtInfoMsg, "Scan started for 1 mods across 1 dirs");
+        if (!mLoader->initModsList()) {
+            return false;
+        }
+        return QTest::qWaitFor([this] { return mStore->addCalls().size() == 1; }) && mHttp->callCount() == 1 &&
+               mHttp->call(0).mUrl == MOD_LIST_URL;
     }
 
     // carryon with an update in the store and requested, true once its download started
@@ -846,6 +862,137 @@ class ModLoaderUnitTest : public QObject {
         QCOMPARE(mHttp->callCount(), 1);
         QVERIFY(mGameMngr->addedDisabledMods().isEmpty());
         QCOMPARE(mStore->failedCalls(), failedWith(u"Different updated mod got: betterruins expected: carryon"_s));
+    }
+
+    void secondInfoCacheIsIgnored() {
+        QVERIFY(scanWaitingForTheList());
+        vsmm::ModInfoCacheMock other;
+        QTest::ignoreMessage(QtWarningMsg, "ModInfoCache already set");
+        mLoader->setInfoCache(&other);
+
+        other.emitListStored(true);
+        QVERIFY(mCache->getCalls().isEmpty());
+
+        mCache->emitListStored(true);
+        QCOMPARE(mCache->getCalls(), QStringList{QString::fromLatin1(MOD_ID)});
+    }
+
+    void firstScanLooksUpModsOnlyAfterTheListIsStored() {
+        QVERIFY(scanWaitingForTheList());
+        QCOMPARE(mHttp->call(0).mContentType, u"application/json"_s);
+
+        QVERIFY(mHttp->succeed(0, "[list]"));
+        QCOMPARE(mCache->storedLists(), QList<QByteArray>{"[list]"});
+        QVERIFY(mCache->getCalls().isEmpty());
+
+        mCache->emitListStored(true);
+        QCOMPARE(mCache->getCalls(), QStringList{QString::fromLatin1(MOD_ID)});
+        // the loader requests a miss and stores it for the next scan
+        QCOMPARE(mHttp->callCount(), 2);
+        QCOMPARE(mHttp->call(1).mUrl, apiUrl());
+        QVERIFY(mHttp->succeed(1, apiResponse()));
+        QCOMPARE(mCache->setCalls().size(), 1);
+        QCOMPARE(mCache->setCalls().at(0).mId, QString::fromLatin1(MOD_ID));
+        QCOMPARE(mCache->setCalls().at(0).mInfo, onlineInfo());
+        QCOMPARE(mStore->onlineCalls().size(), 1);
+        QTRY_COMPARE(mFinished->count(), 1);
+    }
+
+    void cachedInfoIsNotRequested() {
+        QVERIFY(scanWaitingForTheList());
+        mCache->store(QString::fromLatin1(MOD_ID), onlineInfo());
+
+        mCache->emitListStored(true);
+
+        QCOMPARE(mStore->onlineCalls().size(), 1);
+        QCOMPARE(mStore->onlineCalls().at(0).mOnlineInfo, onlineInfo());
+        QCOMPARE(mHttp->callCount(), 1);
+        QVERIFY(mCache->setCalls().isEmpty());
+        QTRY_COMPARE(mFinished->count(), 1);
+    }
+
+    void failedListStillUsesTheCache() {
+        QVERIFY(scanWaitingForTheList());
+        mCache->store(QString::fromLatin1(MOD_ID), onlineInfo());
+
+        QTest::ignoreMessage(QtWarningMsg, "Error retrieving the mod list: timeout");
+        QVERIFY(mHttp->fail(0, u"timeout"_s));
+
+        QVERIFY(mCache->storedLists().isEmpty());
+        QCOMPARE(mStore->onlineCalls().size(), 1);
+        QTRY_COMPARE(mFinished->count(), 1);
+    }
+
+    static void rescanDoesNotDownloadTheList_data() {
+        QTest::addColumn<bool>("stored");
+
+        QTest::newRow("stored") << true;
+        QTest::newRow("not-stored") << false;
+    }
+
+    void rescanDoesNotDownloadTheList() {
+        QFETCH(const bool, stored);
+        QVERIFY(scanWaitingForTheList());
+        mCache->store(QString::fromLatin1(MOD_ID), onlineInfo());
+        mCache->emitListStored(stored);
+        QTRY_COMPARE(mFinished->count(), 1);
+
+        QTest::ignoreMessage(QtInfoMsg, "Scan started for 1 mods across 1 dirs");
+        mStore->reload();
+
+        // no wait, the lookup comes right after the zip is read
+        QTRY_COMPARE(mFinished->count(), 2);
+        QCOMPARE(mHttp->callCount(), 1);
+        QCOMPARE(mCache->getCalls().size(), 2);
+    }
+
+    static void storedListIsDownloadedOnlyWhenOld_data() {
+        QTest::addColumn<int>("ageMinutes");
+        QTest::addColumn<bool>("downloaded");
+
+        QTest::newRow("fresh") << 29 << false;
+        QTest::newRow("old") << 31 << true;
+    }
+
+    void storedListIsDownloadedOnlyWhenOld() {
+        QFETCH(const int, ageMinutes);
+        QFETCH(const bool, downloaded);
+
+        setCache(QDateTime::currentDateTimeUtc().addSecs(-60LL * ageMinutes));
+
+        QCOMPARE(mHttp->callCount(), downloaded ? 1 : 0);
+        if (downloaded) {
+            QCOMPARE(mHttp->call(0).mUrl, MOD_LIST_URL);
+        }
+    }
+
+    void reloadDuringTheWaitLooksUpEachLoad() {
+        QVERIFY(scanWaitingForTheList());
+
+        QTest::ignoreMessage(QtInfoMsg, "Scan started for 1 mods across 1 dirs");
+        mStore->reload();
+        QTRY_COMPARE(mStore->addCalls().size(), 2);
+        // the loader reuses the running download
+        QCOMPARE(mHttp->callCount(), 1);
+
+        mCache->emitListStored(true);
+        QCOMPARE(mCache->getCalls(), (QStringList{QString::fromLatin1(MOD_ID), QString::fromLatin1(MOD_ID)}));
+        QVERIFY(mHttp->succeed(1, apiResponse()));
+        QCOMPARE(mFinished->count(), 0);
+        QVERIFY(mHttp->succeed(2, apiResponse()));
+        QTRY_COMPARE(mFinished->count(), 1);
+    }
+
+    void modRemovedDuringTheWaitIsNotLookedUp() {
+        QVERIFY(scanWaitingForTheList());
+        QVERIFY(QFile::remove(modsPath(u"carryon.zip"_s)));
+
+        QTest::ignoreMessage(QtInfoMsg, "Scan started for 0 mods across 1 dirs");
+        mStore->reload();
+        mCache->emitListStored(true);
+
+        QVERIFY(mCache->getCalls().isEmpty());
+        QTRY_COMPARE(mFinished->count(), 1);
     }
 };
 

@@ -50,8 +50,9 @@ class ModStoreMock final : public IModStore {
         bool operator==(const FailedCall &) const = default;
     };
 
-    // only keeps what it received, the loader tests check it
+    // findable afterwards like in ModStore, without its signals
     void add(ModLocalInfo localModInfo, ModLoadType loadType) override {
+        mMods.insert(localModInfo.mId, ModEntry{localModInfo});
         mAddCalls.append({std::move(localModInfo), loadType});
     }
     void updateOnline(QStringView id, ModOnlineInfo onlineInfo) override {
