@@ -300,8 +300,8 @@
 /*!
     \fn void vsmm::ModUpdateModel::clear()
 
-    Removes all rows of a finished batch and emits countChanged() and
-    progressChanged(). Logs a warning and does nothing while \l active is
+    Removes all rows of a finished batch and emits countChanged(),
+    finishedCountChanged(), failedCountChanged() and totalProgressChanged(). Logs a warning and does nothing while \l active is
     \c true. Does nothing when the model is empty.
 */
 
@@ -313,12 +313,34 @@
 */
 
 /*!
-    \fn void vsmm::ModUpdateModel::progressChanged()
+    \fn void vsmm::ModUpdateModel::finishedCountChanged()
 
-    Emitted when \l finishedCount, \l failedCount, \l totalProgress or
-    \l active can have changed. This happens when a batch starts, on every
-    download progress step, on every state change and in clear(). Only QML
+    Emitted when \l finishedCount can have changed, that is when a batch
+    starts, when a mod ends as \c Done or \c Failed and in clear(). Only QML
     bindings use this signal.
+*/
+
+/*!
+    \fn void vsmm::ModUpdateModel::failedCountChanged()
+
+    Emitted when \l failedCount can have changed, that is when a batch starts,
+    when a mod ends as \c Failed and in clear(). Only QML bindings use this
+    signal.
+*/
+
+/*!
+    \fn void vsmm::ModUpdateModel::totalProgressChanged()
+
+    Emitted when \l totalProgress can have changed, that is when a batch
+    starts, on every download progress step, on every state change and in
+    clear(). Only QML bindings use this signal.
+*/
+
+/*!
+    \fn void vsmm::ModUpdateModel::activeChanged()
+
+    Emitted when \l active changes, that is when a batch starts and when its
+    last running mod ends. Only QML bindings use this signal.
 */
 
 /*!
