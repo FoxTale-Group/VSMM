@@ -39,7 +39,7 @@ class INTERFACES_EXPORT IModStore : public QObject {
     ~IModStore() override;
 
     virtual void add(ModLocalInfo localModInfo, ModLoadType loadType) = 0;
-    virtual void updateOnline(QStringView id, QJsonObject onlineInfo) = 0;
+    virtual void updateOnline(QStringView id, ModOnlineInfo onlineInfo) = 0;
     [[nodiscard]] virtual const ModEntry *find(const QString &id) const = 0;
 
   signals:

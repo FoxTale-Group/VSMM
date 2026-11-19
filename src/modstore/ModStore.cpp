@@ -109,7 +109,7 @@ void ModStore::add(ModLocalInfo localModInfo, ModLoadType loadType) {
     }
 }
 
-void ModStore::updateOnline(QStringView id, QJsonObject onlineInfo) {
+void ModStore::updateOnline(QStringView id, ModOnlineInfo onlineInfo) {
     const auto it = mMods.find(id);
     if (it == mMods.end()) {
         qCWarning(cModStore, "Online info for unknown mod %s", qUtf8Printable(id.toString()));

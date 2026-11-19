@@ -19,6 +19,7 @@
 #pragma once
 
 #include <ModEntryExport.hpp>
+#include <QDateTime>
 #include <QFileInfo>
 #include <QJsonObject>
 #include <semver.hpp>
@@ -51,16 +52,43 @@ struct MODENTRY_EXPORT ModLocalInfo {
     operator QString() const { return toString(); }
 };
 
+struct MODENTRY_EXPORT ModRelease {
+    qint64 mReleaseId{}, mFileId{}, mDownloads{};
+    QString mModIdStr, mFileName, mChangelog;
+    semver::version<> mModVersion;
+    QDateTime mCreated;
+    QUrl mMainFile;
+    QList<semver::version<>> mGameVersions; // release "tags"
+    bool operator==(const ModRelease &) const = default;
+
+    [[nodiscard]] static std::optional<ModRelease> fromJson(const QJsonObject &release);
+};
+
+struct MODENTRY_EXPORT ModScreenshot {
+    qint64 mFileId{};
+    QUrl mMainFile, mThumbnail;
+    QString mFileName;
+    QDateTime mCreated;
+    bool operator==(const ModScreenshot &) const = default;
+
+    [[nodiscard]] static ModScreenshot fromJson(const QJsonObject &screenshot);
+};
+
+struct MODENTRY_EXPORT ModOnlineInfo {
+    qint64 mModId{}, mAssetId{}, mDownloads{}, mFollows{}, mComments{}, mTrendingPoints{};
+    QString mName, mAuthor, mUrlAlias, mSide, mType, mText;
+    QDateTime mCreated, mLastModified, mLastReleased; // server time, parsed as UTC
+    QUrl mLogo, mHomepage, mSourceCode, mIssueTracker, mWiki, mTrailerVideo;
+    QStringList mTags;
+    QList<ModRelease> mReleases;
+    QList<ModScreenshot> mScreenshots;
+    bool operator==(const ModOnlineInfo &) const = default;
+
+    [[nodiscard]] static ModOnlineInfo fromJson(const QJsonObject &mod);
+};
+
 class MODENTRY_EXPORT ModEntry {
   public:
-    struct LatestVersion {
-        QUrl mUrl;
-        semver::version<> mVersion;
-        QString mFileName;
-        QStringList mSupportedVersions;
-        bool mHasUpdate{false};
-    };
-
     explicit ModEntry(ModLocalInfo info);
 
     [[nodiscard]] QString toString() const;
@@ -75,48 +103,32 @@ class MODENTRY_EXPORT ModEntry {
     [[nodiscard]] const QFileInfo &getFileInfo() const;
     [[nodiscard]] bool isMarkedForUpdate() const;
     [[nodiscard]] bool isFavorite() const;
+    [[nodiscard]] bool hasUpdate() const;
     void setMarkedForUpdate(bool marked);
     void setFavorite(bool favorite);
 
-    void initOnlineInfo(QJsonObject json, const semver::version<> &gameVersion, bool cfgIncludePrerelease);
+    void initOnlineInfo(ModOnlineInfo onlineInfo, const semver::version<> &gameVersion, bool cfgIncludePrerelease);
 
     // Online
     [[nodiscard]] const QUrl &getUrl() const;
-    [[nodiscard]] const LatestVersion &getLatestVersion() const;
+    [[nodiscard]] const ModRelease *getLatestVersion() const;
     [[nodiscard]] const QStringList &getTags() const;
     [[nodiscard]] QStringView getSide() const;
-    [[nodiscard]] bool hasUpdate() const;
     [[nodiscard]] const QUrl &getLogoUrl() const;
 
   private:
-    static constexpr QLatin1StringView ONLINE_LOGOFILE_JSON_KEY{"logofile"};
-
-    struct OnlineInfo {
-        QString mName, mAuthor, mSide;
-        QStringList mTags;
-        QUrl mUrl;
-        LatestVersion mLatestVersion;
-        QUrl mLogoUrl;
-    };
-
-    void initName(const QJsonObject &json);
-    void initLatestRelease(const QJsonObject &json, const semver::version<> &gameVersion, bool cfgIncludePrerelease);
-    void initAuthors(const QJsonObject &json);
-    void initTags(const QJsonObject &json);
-    void initModUrl(const QJsonObject &json);
-    void initSide(const QJsonObject &json);
-    void initLogoUrl(const QJsonObject &json);
-
-    [[nodiscard]] std::optional<QPair<QJsonObject, semver::version<>>>
-    getLatestVersion(QJsonArray releases, const semver::version<> &gameVersion, bool cfgIncludePrerelease) const;
+    [[nodiscard]] std::optional<ModRelease> findLatestRelease(const semver::version<> &gameVersion,
+                                                              bool cfgIncludePrerelease) const;
 
     QString mName;
     semver::version<> mVersion;
     QStringList mAuthors;
     QString mModId;
     QFileInfo mFileInfo;
-    OnlineInfo mOnlineInfo;
+    ModOnlineInfo mOnlineInfo;
+    QUrl mUrl;
     bool mMarkedForUpdate{false};
     bool mFavorite{false};
+    std::optional<ModRelease> mLatestVersion;
 };
 } // namespace vsmm

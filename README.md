@@ -66,7 +66,7 @@ glance which mods have updates available, all inside a custom, frameless, dark-t
 
 ### Linux:
 - Ubuntu 26.04 LTS / Fedora 42 / Arch Linux
-- [Qt 6.10](https://wiki.qt.io/Qt_6.10_Release) or newer
+- [Qt 6.10](https://wiki.qt.io/Qt_6.10_Release) or newer, with its SQLite driver (`libqt6sql6-sqlite` on Ubuntu)
 - [libzip](https://libzip.org/)
 
 > [!IMPORTANT]
@@ -222,7 +222,7 @@ On the first launch you need to 'tell' VSMM where is the game data folder and it
 
 - A C++23-capable compiler
 - [CMake](https://cmake.org/) ≥ 4.2 and [Ninja](https://ninja-build.org/)
-- [Qt 6](https://www.qt.io/) - `Core`, `Quick`, `Qml`, `Network`, `QuickControls2`
+- [Qt 6](https://www.qt.io/) - `Core`, `Quick`, `Qml`, `Network`, `QuickControls2`, `Sql`
 - [libzip](https://libzip.org/)
 
 ## On Linux:
@@ -233,7 +233,7 @@ Install required build dependencies using your distribution package manager.
 sudo pacman -S cmake ninja qt6-base qt6-declarative libzip 
 
 # For Ubuntu:
-sudo apt install cmake ninja-build qt6-{base,declarative}-dev libzip-dev
+sudo apt install cmake ninja-build qt6-{base,declarative}-dev libqt6sql6-sqlite libzip-dev
 
 # For Fedora:
 sudo dnf install cmake ninja-build libzip-devel qt6-qtbase-devel qt6-qtquickcontrols2-devel

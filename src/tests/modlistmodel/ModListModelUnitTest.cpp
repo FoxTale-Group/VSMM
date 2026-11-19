@@ -82,8 +82,8 @@ class ModListModelUnitTest : public QObject {
         mStore->add(mod(u"animalcages"_s));
     }
 
-    void applyOnline(const QString &id, const QJsonObject &json) {
-        mStore->entry(id).initOnlineInfo(json, ver(QString::fromLatin1(GAME_VERSION)), false);
+    void applyOnline(const QString &id, vsmm::ModOnlineInfo info) {
+        mStore->entry(id).initOnlineInfo(std::move(info), ver(QString::fromLatin1(GAME_VERSION)), false);
         mStore->update(id);
     }
 
@@ -327,8 +327,8 @@ class ModListModelUnitTest : public QObject {
         QCOMPARE(role(0, Roles::HasUpdateRole).toBool(), false);
         QCOMPARE(role(0, Roles::FavoriteRole).toBool(), false);
         QCOMPARE(role(0, Roles::MarkedForUpdateRole).toBool(), false);
-        // no online info yet, semver default, qml only shows it next to an update
-        QCOMPARE(role(0, Roles::LatestVersionRole).toString(), str(semver::version<>{}));
+        // no update, so the installed version
+        QCOMPARE(role(0, Roles::LatestVersionRole).toString(), u"1.2.3"_s);
 
         // qml binds it to a string property, so an empty string rather than an invalid variant
         const QVariant icon = role(0, Roles::IconRole);
@@ -340,7 +340,7 @@ class ModListModelUnitTest : public QObject {
         mStore->add(mod(u"carryon"_s));
         const QSignalSpy changed{mModel.get(), &QAbstractItemModel::dataChanged};
 
-        applyOnline(u"carryon"_s, modJson({release(u"1.1.0"_s, {u"1.22.0"_s})}));
+        applyOnline(u"carryon"_s, onlineInfo({release(u"1.1.0"_s, {u"1.22.0"_s})}));
 
         QCOMPARE(changed.count(), 1);
         QCOMPARE(changedRows(changed.at(0)), qMakePair(0, 0));
@@ -360,10 +360,10 @@ class ModListModelUnitTest : public QObject {
     // same id format ModImageProvider parses, see iconId() in its test
     void iconRoleBuildsTheProviderId() {
         mStore->add(mod(u"carryon"_s));
-        QJsonObject json = modJson();
-        json.insert("logofile"_L1, u"https://mods.vintagestory.at/files/asset/4405/logo.png"_s);
+        vsmm::ModOnlineInfo info = onlineInfo();
+        info.mLogo = QUrl{u"https://mods.vintagestory.at/files/asset/4405/logo.png"_s};
 
-        applyOnline(u"carryon"_s, json);
+        applyOnline(u"carryon"_s, std::move(info));
 
         QCOMPARE(role(0, Roles::IconRole).toString(),
                  u"image://modicon/carryon?url=https%3A%2F%2Fmods.vintagestory.at%2Ffiles%2Fasset%2F4405%2Flogo.png"_s);

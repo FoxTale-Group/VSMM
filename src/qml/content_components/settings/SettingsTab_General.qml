@@ -122,5 +122,8 @@ TabPanel {
         }
 
         LayoutVerticalSpacer{}
+
+        // TODO: Slider - cache refresh interval (mins)
+        // TODO(advanced tab): cache refresh button
     }
 }

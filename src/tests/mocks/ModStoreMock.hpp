@@ -36,7 +36,7 @@ class ModStoreMock final : public IModStore {
     };
     struct OnlineCall {
         QString mId;
-        QJsonObject mOnlineInfo;
+        ModOnlineInfo mOnlineInfo;
     };
     struct ProgressCall {
         QString mId;
@@ -50,11 +50,12 @@ class ModStoreMock final : public IModStore {
         bool operator==(const FailedCall &) const = default;
     };
 
-    // only keeps what it received, the loader tests check it
+    // findable afterwards like in ModStore, without its signals
     void add(ModLocalInfo localModInfo, ModLoadType loadType) override {
+        mMods.insert(localModInfo.mId, ModEntry{localModInfo});
         mAddCalls.append({std::move(localModInfo), loadType});
     }
-    void updateOnline(QStringView id, QJsonObject onlineInfo) override {
+    void updateOnline(QStringView id, ModOnlineInfo onlineInfo) override {
         mOnlineCalls.append({id.toString(), std::move(onlineInfo)});
     }
     void onModsReloaded() override { ++mReloadedCount; }

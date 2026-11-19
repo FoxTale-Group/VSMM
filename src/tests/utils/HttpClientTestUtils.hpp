@@ -104,6 +104,8 @@ class FakeHttpServer : public QTcpServer {
         return QUrl{u"http://127.0.0.1:%1/%2"_s.arg(serverPort()).arg(path)};
     }
 
+    // a routed path always gets its reply, before the queue
+    void route(QByteArray target, Response response) { mRoutes.insert(std::move(target), std::move(response)); }
     // queued replies are handed out in order, the fallback answers everything after them
     void enqueue(Response response) { mQueued.append(std::move(response)); }
     void setFallback(Response response) { mFallback = std::move(response); }
@@ -151,8 +153,11 @@ class FakeHttpServer : public QTcpServer {
     }
 
     void answer(QTcpSocket *socket, Request request) {
+        const auto routed = mRoutes.constFind(request.mTarget);
+        const Response response = routed != mRoutes.constEnd() ? routed.value()
+                                  : mQueued.isEmpty()           ? mFallback
+                                                                : mQueued.takeFirst();
         mRequests.append(std::move(request));
-        const Response response = mQueued.isEmpty() ? mFallback : mQueued.takeFirst();
 
         const qsizetype promised = response.mBody.size() + (response.mTruncateBody ? TRUNCATED_BY : 0);
         // no-store unless asked, else the disk cache may answer and the next request never reaches here
@@ -179,6 +184,7 @@ class FakeHttpServer : public QTcpServer {
     // how much body a truncated reply promises and never sends
     static constexpr qsizetype TRUNCATED_BY{32};
 
+    QMap<QByteArray, Response> mRoutes;
     QList<Response> mQueued;
     Response mFallback;
     QList<Request> mRequests;

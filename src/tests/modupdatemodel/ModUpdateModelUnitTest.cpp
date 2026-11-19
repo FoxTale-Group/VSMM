@@ -38,7 +38,7 @@ constexpr auto GAME_VERSION = "1.22.5";
 // installed 1.0.0, the API offers 1.1.0 for this game version
 [[nodiscard]] vsmm::ModEntry modWithUpdate(const QString &id) {
     vsmm::ModEntry mod{localInfo(id, u"1.0.0"_s, QFileInfo{})};
-    mod.initOnlineInfo(modJson({release(u"1.1.0"_s, {u"1.22.0"_s})}), ver(QString::fromLatin1(GAME_VERSION)), false);
+    mod.initOnlineInfo(onlineInfo({release(u"1.1.0"_s, {u"1.22.0"_s})}), ver(QString::fromLatin1(GAME_VERSION)), false);
     return mod;
 }
 

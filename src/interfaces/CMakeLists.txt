@@ -6,6 +6,7 @@ set(SOURCES IConfig.hpp
         IGameMngr.hpp
         IModStore.hpp
         ConfigTypes.hpp
+        IModInfoCache.hpp
         Interfaces.cpp)
 qt_add_library(${PROJECT_NAME} SHARED ${SOURCES})
 

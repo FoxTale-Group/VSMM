@@ -283,6 +283,13 @@ def main() -> int:
     # plugin can be given its own exclusions.
     run(["linuxdeploy", "--appdir", "AppDir", *excludes], cwd=build_dir)
 
+    sql_driver_excludes = [
+        arg
+        for driver in ("libqsqlodbc*", "libqsqlpsql*", "libqsqlmysql*", "libqsqlmimer*", "libqsqlibase*",
+                       "libqsqloci*", "libqsqldb2*")
+        for arg in ("--exclude-library", driver)
+    ]
+
     # kimg_*: KDE's kimageformats installs extra decoders (RAW, EXR, JPEG-XR) into Qt's
     # plugin directory on some distributions. VSMM only loads PNG and SVG, and one of those
     # decoders with an unresolved dependency aborts the entire deployment.
@@ -293,12 +300,18 @@ def main() -> int:
             "AppDir",
             "--exclude-library",
             "kimg_*",
+            *sql_driver_excludes,
             *excludes,
         ],
         cwd=build_dir,
     )
 
     prune_orphaned_libs(appdir)
+
+    # Checks if driver was properly included
+    sqlite_driver = appdir / "usr" / "plugins" / "sqldrivers" / "libqsqlite.so"
+    if not sqlite_driver.is_file():
+        fail(f"linuxdeploy-plugin-qt did not deploy {sqlite_driver.relative_to(appdir)}")
 
     run(
         ["linuxdeploy", "--appdir", "AppDir", "--output", "appimage", *excludes],

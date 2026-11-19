@@ -22,14 +22,19 @@
 
 #include <IGameMngr.hpp>
 #include <IHttpClient.hpp>
+#include <IModInfoCache.hpp>
 #include <IModStore.hpp>
 #include <ModLoaderExport.hpp>
 
 #include <QDir>
+#include <QStringList>
 #include <QThreadPool>
+#include <QTimer>
 #include <qqmlintegration.h>
 
+#include <chrono>
 #include <expected>
+#include <optional>
 
 namespace vsmm {
 
@@ -44,7 +49,7 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     QML_NAMED_ELEMENT(ModLoader)
     QML_SINGLETON
 
-    static constexpr QLatin1StringView DEFAULT_API_URL{"https://mods.vintagestory.at/api/mod/"};
+    static constexpr QLatin1StringView DEFAULT_API_URL{"https://mods.vintagestory.at/api/"};
     static constexpr QLatin1StringView DOWNLOAD_CONTENT_TYPE{"application/zip"};
     static constexpr QLatin1StringView ONLINE_CONTENT_TYPE{"application/json"};
     static constexpr QLatin1StringView ONLINE_JSON_ROOT_KEY{"mod"};
@@ -56,14 +61,16 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     static constexpr QLatin1StringView LOCAL_JSON_DESC_KEY{"description"};
     static constexpr QLatin1StringView LOCAL_JSON_SIDE_KEY{"side"};
     static constexpr QLatin1StringView LOCAL_JSON_DEPS_KEY{"dependencies"};
+    // the loader uses a stored list younger than this without downloading it
+    static constexpr std::chrono::minutes LIST_MAX_AGE{30};
 
   public:
-    ModLoader();
+    explicit ModLoader(QObject *parent = nullptr);
     bool initModsList();
     void setHttpClient(IHttpClient *httpClient);
+    void setInfoCache(IModInfoCache *infoCache);
     void setGameMngr(IGameMngr *gameMngr);
     void setStore(IModStore *store);
-    // mod id is appended to it
     void setApiUrl(QUrl apiUrl);
     void load(QFileInfo &&fileInfo);
     Q_INVOKABLE void load(const QUrl &filePath);
@@ -79,7 +86,11 @@ class MODLOADER_EXPORT ModLoader : public QObject {
   private:
     // updatedModId names the requested mod for an Update load, so a broken download can be reported
     void load_(QFileInfo fileInfo, IModStore::ModLoadType modLoadType, QString updatedModId = {});
-    void onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion, QString modId);
+    void fetchOnlineInfo(const QString &modId);
+    void cachedOrRequestedInfo(const QString &modId);
+    void fetchModList();
+    void onModListStored();
+    void onModUpdateRetrieved(QByteArray data, ModRelease latestVersion, QString modId);
     void reportUpdateFailed(QString modId, QString reason);
     void incrementModsLoadingInProgress(qint64 count = 1);
     void decrementModsLoadingInProgress(bool notify = true);
@@ -87,12 +98,17 @@ class MODLOADER_EXPORT ModLoader : public QObject {
     [[nodiscard]] static std::expected<ModLocalInfo, QString> getLocalInfoFromZip(QFileInfo fileInfo);
     [[nodiscard]] static std::expected<ModLocalInfo, QString> parseLocalJson(const QByteArray &jsonByteArray,
                                                                              QFileInfo &&fileInfo);
-    [[nodiscard]] static QJsonObject createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId);
+    [[nodiscard]] static std::optional<ModOnlineInfo> createOnlineModEntry(const QByteArray &jsonByteArray,
+                                                                           QAnyStringView modId);
 
     IGameMngr *mGameMngr{nullptr};
     IModStore *mStore{nullptr};
     QUrl mApiUrl{QString{DEFAULT_API_URL}};
     IHttpClient *mHttpClient{nullptr};
+    IModInfoCache *mInfoCache{nullptr};
+    bool mHoldLookups{false};
+    QStringList mWaitingForList;
+    QTimer mModListRefresher;
     QAtomicInteger<quint32> mModsLoadingInProgress{0};
     QThreadPool mThreadPoolExtractZips{this};
     QThreadPool mThreadPoolProcessUpdate{this};

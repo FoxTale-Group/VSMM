@@ -31,6 +31,7 @@ add_subdirectory(modloader ModLoader)
 add_subdirectory(modsortfiltermodel ModSortFilterModel)
 add_subdirectory(modupdatemodel ModUpdateModel)
 add_subdirectory(gamemngr GameMngr)
+add_subdirectory(modinfocache ModInfoCache)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)
@@ -57,7 +58,8 @@ set(PROJECT_DEPENDENCIES_AND_LIBRARIES
         ModSortFilterModel
         ModUpdateModel
         HttpClient
-        GameMngr)
+        GameMngr
+        ModInfoCache)
 add_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES_AND_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_DEPENDENCIES_AND_LIBRARIES} Qt6::QuickControls2)
 
@@ -191,6 +193,7 @@ if (UNIX AND NOT APPLE)
             qml6-module-qtquick-effects,
             qml6-module-qtquick-window,
             libqt6network6,
+            libqt6sql6-sqlite,
             qt6-qpa-plugins,
             libzip5"
     )

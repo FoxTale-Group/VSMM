@@ -18,6 +18,7 @@
 
 #include <HttpClientTestUtils.hpp>
 #include <ModEntryTestUtils.hpp>
+#include <ModInfoCache.hpp>
 #include <ModLoader.hpp>
 #include <ModUpdateModel.hpp>
 #include <RealComponents.hpp>
@@ -52,6 +53,14 @@ namespace {
     return {.mBody = QJsonDocument{body}.toJson(QJsonDocument::Compact)};
 }
 
+// /api/mods without the tested mods, so their stored details count as fresh
+[[nodiscard]] Response modList() {
+    const QJsonObject other{
+        {"modid"_L1, 1}, {"modidstrs"_L1, QJsonArray{"othermod"_L1}}, {"lastreleased"_L1, "2026-10-14 14:48:50"_L1}};
+    const QJsonObject body{{"statuscode"_L1, "200"_L1}, {"mods"_L1, QJsonArray{other}}};
+    return {.mBody = QJsonDocument{body}.toJson(QJsonDocument::Compact)};
+}
+
 [[nodiscard]] Response download(QByteArray zip) { return {.mContentType = "application/zip", .mBody = std::move(zip)}; }
 
 [[nodiscard]] QString cacheDir() { return QStandardPaths::writableLocation(QStandardPaths::CacheLocation); }
@@ -83,6 +92,7 @@ class ModUpdateModelIntegrationTest : public QObject {
 
     std::unique_ptr<FakeHttpServer> mServer;
     std::unique_ptr<vsmm::HttpClient> mHttp;
+    std::unique_ptr<vsmm::ModInfoCache> mCache;
     std::unique_ptr<RealComponents> mApp;
     std::unique_ptr<vsmm::ModLoader> mLoader;
     std::unique_ptr<vsmm::ModUpdateModel> mModel;
@@ -98,8 +108,9 @@ class ModUpdateModelIntegrationTest : public QObject {
     // same order as App
     void connectComponents() {
         mLoader = std::make_unique<vsmm::ModLoader>();
-        mLoader->setApiUrl(mServer->url("api/mod/"_L1));
+        mLoader->setApiUrl(mServer->url("api/"_L1));
         mLoader->setHttpClient(mHttp.get());
+        mLoader->setInfoCache(mCache.get());
         mLoader->setStore(&mApp->store());
         mLoader->setGameMngr(&mApp->gameMngr());
         mModel = std::make_unique<vsmm::ModUpdateModel>();
@@ -142,7 +153,9 @@ class ModUpdateModelIntegrationTest : public QObject {
         mUpdateFileName = u"vsmm-modupdatemodel-%1.zip"_s.arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
         mServer = std::make_unique<FakeHttpServer>();
         QVERIFY(mServer->start());
+        mServer->route("/api/mods", modList());
         mHttp = std::make_unique<vsmm::HttpClient>();
+        mCache = std::make_unique<vsmm::ModInfoCache>();
         mApp = std::make_unique<RealComponents>();
         mApp->beforeValidate([this] { connectComponents(); });
     }
@@ -152,9 +165,12 @@ class ModUpdateModelIntegrationTest : public QObject {
         mLoader.reset();
         mModel.reset();
         mApp.reset();
+        mCache.reset();
         mHttp.reset();
         mServer.reset();
         QFile::remove(tempPath(mUpdateFileName));
+        // every test starts without stored details
+        QDir{cacheDir()}.removeRecursively();
     }
 
     void updateAllShowsTheBatchFromQueuedToDone() {

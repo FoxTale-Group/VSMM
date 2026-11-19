@@ -19,6 +19,7 @@
 #include "ModLoader.hpp"
 #include "constants.hpp"
 
+#include <QDateTime>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QLoggingCategory>
@@ -36,13 +37,16 @@ Q_STATIC_LOGGING_CATEGORY(cModLoader, "modloader");
 
 namespace {
 using namespace Qt::StringLiterals;
-QUrl GetModUrlApi(const QUrl &apiUrl, QAnyStringView modId) { return u"%1%2"_s.arg(apiUrl.toString(), modId); }
+QUrl GetModUrlApi(const QUrl &apiUrl, QAnyStringView modId) { return u"%1mod/%2"_s.arg(apiUrl.toString(), modId); }
+QUrl GetModListUrlApi(const QUrl &apiUrl) { return u"%1mods"_s.arg(apiUrl.toString()); }
 } // namespace
 
 namespace vsmm {
-ModLoader::ModLoader() {
+ModLoader::ModLoader(QObject *parent) : QObject{parent} {
     mThreadPoolExtractZips.setMaxThreadCount(std::min(4, QThread::idealThreadCount()));
     mThreadPoolProcessUpdate.setMaxThreadCount(std::min(4, QThread::idealThreadCount()));
+
+    connect(&mModListRefresher, &QTimer::timeout, this, &ModLoader::fetchModList);
 }
 
 bool ModLoader::initModsList() {
@@ -101,6 +105,30 @@ void ModLoader::setHttpClient(IHttpClient *httpClient) {
     // GCOVR_EXCL_STOP
 
     mHttpClient = httpClient;
+}
+
+void ModLoader::setInfoCache(IModInfoCache *infoCache) {
+    if (mInfoCache) {
+        qCWarning(cModLoader, "ModInfoCache already set");
+        return;
+    }
+    // GCOVR_EXCL_START
+    if (!infoCache) {
+        qCFatal(cModLoader, "ModInfoCache is null");
+        return;
+    }
+    // GCOVR_EXCL_STOP
+
+    mInfoCache = infoCache;
+    connect(mInfoCache, &IModInfoCache::modListStored, this, &ModLoader::onModListStored);
+
+    const QDateTime storedAt = mInfoCache->modListStoredAt();
+    const auto age = QDateTime::currentDateTimeUtc() - storedAt;
+    if (!storedAt.isValid() || age >= LIST_MAX_AGE) {
+        fetchModList();
+        return;
+    }
+    mModListRefresher.start(LIST_MAX_AGE - age);
 }
 
 void ModLoader::setGameMngr(IGameMngr *gameMngr) {
@@ -169,11 +197,18 @@ void ModLoader::onModUpdateRequested(QStringList modIds) {
             continue;
         }
 
+        const auto latestRelease = mod->getLatestVersion();
+        if (!latestRelease) {
+            qCCritical(cModLoader, "Mod %s has no update", qUtf8Printable(id));
+            decrementModsLoadingInProgress(false);
+            continue;
+        }
+
         // copied, the entry is replaced once the update is installed
-        ModEntry::LatestVersion latestVersion = mod->getLatestVersion();
-        const QUrl url = latestVersion.mUrl;
-        qCDebug(cModLoader, "Downloading %s %s from %s", qUtf8Printable(id), latestVersion.mVersion.to_string().c_str(),
-                qUtf8Printable(url.toString()));
+        ModRelease latestVersion = *latestRelease;
+        const QUrl url = latestVersion.mMainFile;
+        qCDebug(cModLoader, "Downloading %s %s from %s", qUtf8Printable(id),
+                latestVersion.mModVersion.to_string().c_str(), qUtf8Printable(url.toString()));
         mHttpClient->sendGet(
             url, this, DOWNLOAD_CONTENT_TYPE,
             [this, id = id, latestVersion = std::move(latestVersion)](QByteArray data) mutable {
@@ -195,7 +230,7 @@ void ModLoader::onModUpdateRequested(QStringList modIds) {
     }
 }
 
-void ModLoader::onModUpdateRetrieved(QByteArray data, ModEntry::LatestVersion latestVersion, QString modId) {
+void ModLoader::onModUpdateRetrieved(QByteArray data, ModRelease latestVersion, QString modId) {
     mThreadPoolProcessUpdate.start([this, latestVersion = std::move(latestVersion), data = std::move(data),
                                     modId = std::move(modId)] mutable {
         QFile modUpdateFile{QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QDir::separator() +
@@ -269,20 +304,7 @@ void ModLoader::load_(QFileInfo fileInfo, IModStore::ModLoadType modLoadType, QS
                     }
 
                     mStore->add(std::move(modInfo_), modLoadType);
-                    mHttpClient->sendGet(
-                        GetModUrlApi(mApiUrl, modId), this, ONLINE_CONTENT_TYPE,
-                        [this, modId](QByteArray data) mutable {
-                            if (QJsonObject modObj = createOnlineModEntry(data, modId); !modObj.isEmpty()) {
-                                mStore->updateOnline(modId, std::move(modObj));
-                            }
-                            decrementModsLoadingInProgress();
-                        },
-                        [this, modId](QString error) {
-                            qCWarning(cModLoader, "Error retrieving info for %s: %s", qUtf8Printable(modId),
-                                      qUtf8Printable(std::move(error)));
-                            decrementModsLoadingInProgress();
-                        },
-                        {});
+                    fetchOnlineInfo(modId);
                 },
                 Qt::QueuedConnection);
             return;
@@ -294,6 +316,84 @@ void ModLoader::load_(QFileInfo fileInfo, IModStore::ModLoadType modLoadType, QS
         }
         QMetaObject::invokeMethod(this, [this] { decrementModsLoadingInProgress(); }, Qt::QueuedConnection);
     });
+}
+
+void ModLoader::fetchOnlineInfo(const QString &modId) {
+    // only set while a list download runs
+    if (mHoldLookups) {
+        mWaitingForList.append(modId);
+        return;
+    }
+    cachedOrRequestedInfo(modId);
+}
+
+void ModLoader::cachedOrRequestedInfo(const QString &modId) {
+    // GCOVR_EXCL_START
+    if (!mInfoCache) {
+        qCFatal(cModLoader, "ModInfoCache is not set");
+    }
+    // GCOVR_EXCL_STOP
+
+    if (auto cached = mInfoCache->getModInfo(modId); cached) {
+        qCDebug(cModLoader, "Using cached info for %s", qUtf8Printable(modId));
+        mStore->updateOnline(modId, std::move(*cached));
+        decrementModsLoadingInProgress();
+        return;
+    }
+    mHttpClient->sendGet(
+        GetModUrlApi(mApiUrl, modId), this, ONLINE_CONTENT_TYPE,
+        [this, modId](QByteArray data) mutable {
+            if (auto onlineInfo = createOnlineModEntry(data, modId); onlineInfo) {
+                mInfoCache->setModInfo(modId, *onlineInfo);
+                mStore->updateOnline(modId, std::move(*onlineInfo));
+            }
+            decrementModsLoadingInProgress();
+        },
+        [this, modId](QString error) {
+            qCWarning(cModLoader, "Error retrieving info for %s: %s", qUtf8Printable(modId),
+                      qUtf8Printable(std::move(error)));
+            decrementModsLoadingInProgress();
+        },
+        [modId](const long long received, const long long total) {
+            if (total < 0) {
+                return;
+            }
+            qCDebug(cModLoader, "Downloading mod %s info for %lld of %lld", qUtf8Printable(modId), received, total);
+        });
+}
+
+void ModLoader::fetchModList() {
+    mHoldLookups = true;
+    qCDebug(cModLoader, "Downloading the mod list");
+    mHttpClient->sendGet(
+        GetModListUrlApi(mApiUrl), this, ONLINE_CONTENT_TYPE,
+        [this](QByteArray data) { mInfoCache->storeModList(std::move(data)); },
+        [this](QString error) {
+            qCWarning(cModLoader, "Error retrieving the mod list: %s", qUtf8Printable(std::move(error)));
+            onModListStored();
+        },
+        [](const long long received, const long long total) {
+            if (total < 0) {
+                return;
+            }
+            qCDebug(cModLoader, "Downloading mod list %lld of %lld", received, total);
+        });
+}
+
+void ModLoader::onModListStored() {
+    mModListRefresher.start(LIST_MAX_AGE);
+    mHoldLookups = false;
+
+    for (const QString &modId : mWaitingForList) {
+        // a reload during the wait removed it from the store
+        if (mStore->find(modId)) {
+            cachedOrRequestedInfo(modId);
+        } else {
+            decrementModsLoadingInProgress();
+        }
+    }
+
+    mWaitingForList.clear();
 }
 
 std::expected<ModLocalInfo, QString> ModLoader::getLocalInfoFromZip(QFileInfo fileInfo) {
@@ -373,7 +473,7 @@ std::expected<ModLocalInfo, QString> ModLoader::parseLocalJson(const QByteArray 
     return info;
 }
 
-QJsonObject ModLoader::createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId) {
+std::optional<ModOnlineInfo> ModLoader::createOnlineModEntry(const QByteArray &jsonByteArray, QAnyStringView modId) {
     QJsonParseError parseError{.error = QJsonParseError::NoError};
     auto responseJsonObj = QJsonDocument::fromJson(jsonByteArray, &parseError);
     if (parseError.error != QJsonParseError::NoError) {
@@ -401,6 +501,6 @@ QJsonObject ModLoader::createOnlineModEntry(const QByteArray &jsonByteArray, QAn
         return {};
     }
 
-    return responseObj[ONLINE_JSON_ROOT_KEY].toObject();
+    return ModOnlineInfo::fromJson(responseObj[ONLINE_JSON_ROOT_KEY].toObject());
 }
 } // namespace vsmm

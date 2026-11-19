@@ -19,6 +19,7 @@
 #include "IConfig.hpp"
 #include "IGameMngr.hpp"
 #include "IHttpClient.hpp"
+#include "IModInfoCache.hpp"
 #include "IModStore.hpp"
 
 namespace vsmm {
@@ -26,4 +27,5 @@ IConfig::~IConfig() = default;
 IGameMngr::~IGameMngr() = default;
 IHttpClient::~IHttpClient() = default;
 IModStore::~IModStore() = default;
+IModInfoCache::~IModInfoCache() = default;
 } // namespace vsmm
