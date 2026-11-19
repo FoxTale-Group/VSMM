@@ -50,8 +50,6 @@ ModLoader::ModLoader(QObject *parent) : QObject{parent} {
 }
 
 bool ModLoader::initModsList() {
-    static const QStringList modsExts{{"*.zip"}};
-
     // GCOVR_EXCL_START
     if (!mGameMngr) {
         qCFatal(cModLoader, "GameMngr is not set");
@@ -59,6 +57,7 @@ bool ModLoader::initModsList() {
     // GCOVR_EXCL_STOP
 
     QList<QDir> modsDirs = mGameMngr->getModsDirs();
+
     if (modsDirs.isEmpty()) {
         if (!mModsLoadingInProgress.loadRelaxed()) {
             emit allModsReloaded();
@@ -74,7 +73,8 @@ bool ModLoader::initModsList() {
             continue;
         }
 
-        auto entries = modsDir.entryInfoList(modsExts, QDir::Files | QDir::Readable | QDir::NoDotAndDotDot);
+        auto entries = modsDir.entryInfoList({IModStore::MOD_FILE_PATTERN}, IModStore::MOD_FILE_TYPES);
+
         qCDebug(cModLoader, "Scanning %s: %lld zips", qUtf8Printable(modsDir.path()),
                 static_cast<long long>(entries.size()));
         scanned += static_cast<int>(entries.size());
@@ -161,6 +161,7 @@ void ModLoader::setStore(IModStore *store) {
     mStore = store;
     connect(mStore, &IModStore::modsReloading, this, &ModLoader::onModsReloading);
     connect(mStore, &IModStore::modUpdateRequested, this, &ModLoader::onModUpdateRequested);
+    connect(mStore, &IModStore::modFileFound, this, [this](const QString &path) { load(QFileInfo{path}); });
     connect(this, &ModLoader::allModsReloaded, mStore, &IModStore::onModsReloaded);
 }
 

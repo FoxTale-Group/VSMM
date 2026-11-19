@@ -152,7 +152,7 @@ class ModImageProviderIntegrationTest : public QObject {
         const ResponsePtr first = request(u"carryon"_s);
         QVERIFY(settledLater(first.get()).mError.isEmpty());
 
-        mApp->store().reload();
+        emit mApp->gameMngr().modsDirsChanged();
 
         const ResponsePtr second = request(u"carryon"_s);
         QCOMPARE(settledLater(second.get()).mImage.size(), QSize(8, 8));
@@ -215,7 +215,7 @@ class ModImageProviderIntegrationTest : public QObject {
         const ResponsePtr first = request(u"carryon"_s);
         QVERIFY(settledLater(first.get()).mError.isEmpty());
 
-        mApp->store().reload();
+        emit mApp->gameMngr().modsDirsChanged();
 
         const ResponsePtr second = request(u"carryon"_s);
         const Settled result = settledLater(second.get());
@@ -235,7 +235,7 @@ class ModImageProviderIntegrationTest : public QObject {
         QCOMPARE(settledLater(first.get()).mImage.size(), QSize(8, 8));
         QCOMPARE(mServer->requestCount(), 2);
 
-        mApp->store().reload();
+        emit mApp->gameMngr().modsDirsChanged();
 
         const ResponsePtr second = request(u"carryon"_s);
         const Settled result = settledLater(second.get());

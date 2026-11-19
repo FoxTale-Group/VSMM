@@ -1,7 +1,7 @@
 project(ModStore VERSION 1.0)
 include(GenerateExportHeader)
 
-set(SOURCES ModStore.cpp ModStore.hpp)
+set(SOURCES ModStore.cpp ModStore.hpp ModFilesTracker.cpp ModFilesTracker.hpp)
 qt_add_library(${PROJECT_NAME} SHARED ${SOURCES})
 add_dependencies(${PROJECT_NAME} ModEntry Interfaces)
 
