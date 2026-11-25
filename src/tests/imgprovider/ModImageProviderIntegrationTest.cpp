@@ -70,6 +70,10 @@ class ModImageProviderIntegrationTest : public QObject {
     // a cache miss finishes later, the fetch is only queued when the response is handed back
     [[nodiscard]] static Settled settledLater(QQuickImageResponse *response) {
         QSignalSpy finished{response, &QQuickImageResponse::finished};
+        // it may have finished while the test waited for another response
+        if (Settled done = settled(response); !done.mImage.isNull() || !done.mError.isEmpty()) {
+            return done;
+        }
         QTest::qVerify(finished.wait(), "response finished", "", __FILE__, __LINE__);
         return settled(response);
     }
@@ -77,6 +81,13 @@ class ModImageProviderIntegrationTest : public QObject {
     // the queued fetch would already be out, so a short spin is enough to prove nothing else went out
     [[nodiscard]] bool noRequestBeyond(qsizetype count) const {
         return !QTest::qWaitFor([this, count] { return mServer->requestCount() > count; }, 100);
+    }
+
+    // an id without a zip fails to open it once, then falls back to the logo
+    static void ignoreMissingZip(const int times = 1) {
+        for (int i = 0; i < times; ++i) {
+            QTest::ignoreMessage(QtWarningMsg, QRegularExpression{u"^Failed to open zip archive : "_s});
+        }
     }
 
     static void addMod(vsmm::ModStore &store, const QDir &dir, const QString &id) {
@@ -122,6 +133,7 @@ class ModImageProviderIntegrationTest : public QObject {
     }
 
     void iconIsDownloadedDecodedAndServed() {
+        ignoreMissingZip();
         mServer->setFallback(png());
 
         const ResponsePtr response = request(u"carryon"_s);
@@ -135,6 +147,7 @@ class ModImageProviderIntegrationTest : public QObject {
     }
 
     void secondRequestIsServedFromMemory() {
+        ignoreMissingZip();
         mServer->setFallback(png());
         const ResponsePtr first = request(u"carryon"_s);
         QVERIFY(settledLater(first.get()).mError.isEmpty());
@@ -148,6 +161,7 @@ class ModImageProviderIntegrationTest : public QObject {
 
     // a rescan may bring new logos, so the store reload has to reach the provider
     void storeReloadRefetchesTheIcon() {
+        ignoreMissingZip(2);
         mServer->setFallback(png());
         const ResponsePtr first = request(u"carryon"_s);
         QVERIFY(settledLater(first.get()).mError.isEmpty());
@@ -160,6 +174,7 @@ class ModImageProviderIntegrationTest : public QObject {
     }
 
     void storeRemoveForgetsOnlyThatModsIcon() {
+        ignoreMissingZip(3);
         mServer->setFallback(png());
         addMod(mApp->store(), mApp->modsDir(), u"carryon"_s);
         addMod(mApp->store(), mApp->modsDir(), u"petai"_s);
@@ -181,6 +196,7 @@ class ModImageProviderIntegrationTest : public QObject {
 
     // a 404 is not remembered as a mod without an icon, the next request asks again
     void missingIconIsRetryable() {
+        ignoreMissingZip();
         mServer->enqueue({.mStatus = 404});
         mServer->setFallback(png());
         QTest::ignoreMessage(QtWarningMsg,
@@ -198,6 +214,7 @@ class ModImageProviderIntegrationTest : public QObject {
 
     // the api answering with a web page must not end up decoded as a logo
     void wrongContentTypeIsAnError() {
+        ignoreMissingZip();
         mServer->setFallback({.mContentType = "text/html", .mBody = pngBytes()});
         QTest::ignoreMessage(QtWarningMsg,
                              "Failed to download icon for carryon: Received data with incorrect content type.");
@@ -211,6 +228,7 @@ class ModImageProviderIntegrationTest : public QObject {
 
     // the memory cache is dropped on reload, a fresh disk cache entry still spares the network
     void freshDiskCacheEntrySurvivesAReload() {
+        ignoreMissingZip(2);
         mServer->setFallback(png(true));
         const ResponsePtr first = request(u"carryon"_s);
         QVERIFY(settledLater(first.get()).mError.isEmpty());
@@ -226,6 +244,7 @@ class ModImageProviderIntegrationTest : public QObject {
 
     // the white icons came from a bad disk cache entry, a cut reply must never be the one served later
     void truncatedReplyIsRetriedAndOnlyTheFullIconIsCached() {
+        ignoreMissingZip(2);
         Response cut = png(true);
         cut.mTruncateBody = true;
         mServer->enqueue(cut);

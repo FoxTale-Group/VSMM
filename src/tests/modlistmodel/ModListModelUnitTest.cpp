@@ -330,10 +330,10 @@ class ModListModelUnitTest : public QObject {
         // no update, so the installed version
         QCOMPARE(role(0, Roles::LatestVersionRole).toString(), u"1.2.3"_s);
 
-        // qml binds it to a string property, so an empty string rather than an invalid variant
+        // no logo url yet, the provider still reads the icon from the zip
         const QVariant icon = role(0, Roles::IconRole);
         QCOMPARE(icon.typeId(), QMetaType::QString);
-        QVERIFY(icon.toString().isEmpty());
+        QCOMPARE(icon.toString(), u"image://modicon/carryon@1.2.3?file=&url="_s);
     }
 
     void onlineInfoOverridesLocalInfo() {
@@ -359,14 +359,18 @@ class ModListModelUnitTest : public QObject {
 
     // same id format ModImageProvider parses, see iconId() in its test
     void iconRoleBuildsTheProviderId() {
-        mStore->add(mod(u"carryon"_s));
+        // the space must survive the round trip through the id
+        const QFileInfo zip{u"/mods/carry on.zip"_s};
+        mStore->add(vsmm::ModEntry{localInfo(u"carryon"_s, u"1.0.0"_s, zip)});
         vsmm::ModOnlineInfo info = onlineInfo();
         info.mLogo = QUrl{u"https://mods.vintagestory.at/files/asset/4405/logo.png"_s};
 
         applyOnline(u"carryon"_s, std::move(info));
 
+        // the version is part of the id, so an update in place still makes qml ask again
         QCOMPARE(role(0, Roles::IconRole).toString(),
-                 u"image://modicon/carryon?url=https%3A%2F%2Fmods.vintagestory.at%2Ffiles%2Fasset%2F4405%2Flogo.png"_s);
+                 u"image://modicon/carryon@1.0.0?file=%1&url=https%3A%2F%2Fmods.vintagestory.at%2Ffiles%2Fasset%2F4405%2Flogo.png"_s
+                     .arg(QString::fromLatin1(QUrl::toPercentEncoding(zip.absoluteFilePath()))));
     }
 
     void favoriteIsShown() {
