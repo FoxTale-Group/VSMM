@@ -41,6 +41,8 @@ class ZIPARCHIVE_EXPORT ZipArchive {
     [[nodiscard]] std::expected<FileIndex, QString> getFileIndex(QUtf8StringView fileName) const;
     [[nodiscard]] std::expected<QByteArray, QString> getFileContent(FileIndex fileIndex) const;
 
+    [[nodiscard]] QStringView getFile() const { return mFile; }
+
   private:
     struct ZipCloser {
         void operator()(zip_t *fp) const { zip_close(fp); }

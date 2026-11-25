@@ -63,13 +63,9 @@ QVariant ModListModel::data(const QModelIndex &index, int role) const {
     case HasUpdateRole:
         return mod->hasUpdate();
     case IconRole: {
-        const QUrl logoUrl = mod->getLogoUrl();
-        // wait for online info
-        if (logoUrl.isEmpty()) {
-            return QString();
-        }
-        return u"image://modicon/%1?url=%2"_s.arg(mod->getId().toString(),
-                                                  QString::fromLatin1(QUrl::toPercentEncoding(logoUrl.toString())));
+        return u"image://modicon/%1?file=%2&url=%3"_s.arg(
+            *mod, QString::fromLatin1(QUrl::toPercentEncoding(mod->getFileInfo().absoluteFilePath())),
+            QString::fromLatin1(QUrl::toPercentEncoding(mod->getLogoUrl().toString())));
     }
     case IdRole:
         return mod->getId().toString();
