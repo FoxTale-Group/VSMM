@@ -44,8 +44,10 @@ using namespace Qt::StringLiterals;
 }
 
 // the id ModListModel::IconRole builds, minus the image://modicon/ prefix the engine strips
-[[nodiscard]] inline QString iconId(const QString &modId, const QString &logoUrl) {
-    return u"%1?url=%2"_s.arg(modId, QString::fromLatin1(QUrl::toPercentEncoding(logoUrl)));
+// modKey is the mod id, ModListModel adds @version to it
+[[nodiscard]] inline QString iconId(const QString &modKey, const QString &logoUrl, const QString &zipPath = {}) {
+    return u"%1?file=%2&url=%3"_s.arg(modKey, QString::fromLatin1(QUrl::toPercentEncoding(zipPath)),
+                                      QString::fromLatin1(QUrl::toPercentEncoding(logoUrl)));
 }
 
 // what a response holds once it settled, textureFactory() hands its factory to the caller

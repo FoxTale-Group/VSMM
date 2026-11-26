@@ -45,12 +45,14 @@ class IMGPROVIDER_EXPORT ModImageProvider : public QQuickAsyncImageProvider {
     void onModRemoved(QStringView modId);
 
   private:
-    void download(QString modId, QUrl url);
-    void finish(QString modId, QImage image, QString error, bool permanentError = false);
+    void download(QString id, QUrl url);
+    void finish(QString id, QImage image, QString error = {}, bool permanentError = false);
+    void getModIconFromFileOrDownload(QString id, QString filePath, QUrl logoUrl);
+    // TODO: Make the cache size configurable through settings
     static constexpr qsizetype CACHE_SIZE{32 * 1024 * 1024}; // 32 MiB
     IHttpClient *mHttpClient{nullptr};
     QCache<QString, QImage> mCache{CACHE_SIZE};
-    QSet<QString> mInProgress, mNoIcon;
+    QSet<QString> mInProgress, mNoIcon, mNoLocalIcon;
     QThreadPool mDecodeImagesPool{this};
     mutable QMutex mMutex;
 };

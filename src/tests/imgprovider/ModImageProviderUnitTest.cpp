@@ -19,22 +19,31 @@
 #include <HttpClientMock.hpp>
 #include <ImageTestUtils.hpp>
 #include <ModImageProvider.hpp>
+#include <ZipTestUtils.hpp>
 
 #include <QBuffer>
 #include <QColor>
+#include <QFile>
 #include <QGuiApplication>
 #include <QImage>
 #include <QLoggingCategory>
 #include <QQuickImageResponse>
+#include <QRegularExpression>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QUrl>
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 
 using namespace Qt::StringLiterals;
 using namespace vsmm::test;
+
+namespace {
+enum class UnusableIcon : std::uint8_t { Undecodable, Encrypted, MissingZip };
+} // namespace
 
 class ModImageProviderUnitTest : public QObject {
     Q_OBJECT
@@ -66,6 +75,20 @@ class ModImageProviderUnitTest : public QObject {
         return !QTest::qWaitFor([&http, count] { return http.callCount() > count; }, 100);
     }
 
+    // a zip read finishes on the decode pool, the answer reaches the response through the event loop
+    [[nodiscard]] static Settled settledLater(QQuickImageResponse *response) {
+        QSignalSpy finished{response, &QQuickImageResponse::finished};
+        QTest::qVerify(finished.wait(), "response finished", "", __FILE__, __LINE__);
+        return settled(response);
+    }
+
+    // an id without a zip fails to open it once, then falls back to the logo
+    static void ignoreMissingZip(const int times = 1) {
+        for (int i = 0; i < times; ++i) {
+            QTest::ignoreMessage(QtWarningMsg, QRegularExpression{u"^Failed to open zip archive : "_s});
+        }
+    }
+
     static void ignoreDecodeFailure(const QLatin1StringView modId) {
         QTest::ignoreMessage(QtWarningMsg,
                              qPrintable(u"Failed to decode icon for %1: invalid image data"_s.arg(modId)));
@@ -89,6 +112,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void theLogoUrlSurvivesTheIdRoundTrip() {
+        ignoreMissingZip();
         QFETCH(QString, logoUrl);
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
@@ -104,6 +128,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void aDownloadedIconResolvesThePendingResponse() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -124,10 +149,34 @@ class ModImageProviderUnitTest : public QObject {
         QCOMPARE(result.mImage.size(), QSize(8, 8));
         QCOMPARE(result.mImage.pixelColor(0, 0), QColor{Qt::red});
         QCOMPARE(downloaded.count(), 1);
-        QCOMPARE(downloaded.at(0).at(0).toString(), QString{MOD_ID});
+        // the whole id, a response only takes the answer for its own id
+        QCOMPARE(downloaded.at(0).at(0).toString(), iconId(QString{MOD_ID}, QString{LOGO}));
+    }
+
+    void downloadProgressIsLoggedOnceTheTotalIsKnown() {
+        ignoreMissingZip();
+        // the progress line is a debug one, init() resets the rules for the next test
+        QLoggingCategory::setFilterRules(u"*=false\nimageprovider=true"_s);
+        vsmm::HttpClientMock http;
+        vsmm::ModImageProvider provider;
+        provider.setHttpClient(&http);
+
+        const ResponsePtr response = request(provider, iconId(QString{MOD_ID}, QString{LOGO}));
+        QVERIFY(waitForRequests(http, 1));
+
+        // an unknown total logs nothing
+        QVERIFY(http.progress(0, 10, -1));
+        QTest::ignoreMessage(QtDebugMsg, "Downloaded modicon for carryon (10 of 20)");
+        QVERIFY(http.progress(0, 10, 20));
+
+        // progress alone resolves nothing
+        const Settled result = settled(response.get());
+        QVERIFY(result.mImage.isNull());
+        QVERIFY(result.mError.isEmpty());
     }
 
     void aValidRequestedSizeScalesTheDeliveredImageWithIgnoreAspectRatio() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -143,6 +192,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void aValidRequestedSizeScalesTheDeliveredImageWithKeepAspectRatio() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -159,6 +209,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void aWideRequestedSizeKeepsTheAspectRatio() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -175,6 +226,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void aCachedIconIsServedWithoutASecondRequest() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -196,6 +248,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void twoRequestsForOneModShareASingleDownload() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -218,6 +271,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void eachModIsResolvedOnlyByItsOwnDownload() {
+        ignoreMissingZip(2);
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -240,6 +294,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void undecodableBytesMarkTheModAsHavingNoIcon() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -256,11 +311,12 @@ class ModImageProviderUnitTest : public QObject {
 
         // bytes that will not decode are a permanent answer: no retry on the next scroll into view
         const ResponsePtr second = request(provider, iconId(QString{MOD_ID}, QString{LOGO}));
-        QCOMPARE(settled(second.get()).mError, u"No icon for mod"_s);
+        QCOMPARE(settled(second.get()).mError, u"No icon for mod %1"_s.arg(MOD_ID));
         QVERIFY(noRequestBeyond(http, 1));
     }
 
     void aDownloadFailureLeavesTheModRetryable() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -292,6 +348,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void reloadingTheModsDropsEveryRememberedAnswer() {
+        ignoreMissingZip(2);
         QFETCH(bool, undecodable);
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
@@ -318,6 +375,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void removingAModForgetsOnlyThatMod() {
+        ignoreMissingZip(3);
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -346,6 +404,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void removingAModClearsItsNoIconMark() {
+        ignoreMissingZip(2);
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -366,6 +425,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void aCancelledResponseIsNotResolvedTwice() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -390,6 +450,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void anIconOutlivingItsResponseStillReachesTheCache() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -409,6 +470,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void anIconTooBigForTheCacheIsStillDelivered() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
@@ -430,7 +492,215 @@ class ModImageProviderUnitTest : public QObject {
         QVERIFY(waitForRequests(http, 2));
     }
 
+    void aZipIconIsServedWithoutADownload() {
+        vsmm::HttpClientMock http;
+        vsmm::ModImageProvider provider;
+        provider.setHttpClient(&http);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString zip = dir.filePath(u"carryon.zip"_s);
+        QVERIFY(writeArchive(zip, {{"modicon.png", pngBytes({16, 8}, Qt::red)}}));
+
+        const ResponsePtr response = request(provider, iconId(QString{MOD_ID}, QString{LOGO}, zip));
+
+        const Settled result = settledLater(response.get());
+        QVERIFY(result.mError.isEmpty());
+        QCOMPARE(result.mImage.size(), QSize(16, 8));
+        QCOMPARE(result.mImage.pixelColor(0, 0), QColor{Qt::red});
+        QVERIFY(noRequestBeyond(http, 0));
+    }
+
+    void aCachedZipIconIsServedWithoutReadingTheZip() {
+        vsmm::HttpClientMock http;
+        vsmm::ModImageProvider provider;
+        provider.setHttpClient(&http);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString zip = dir.filePath(u"carryon.zip"_s);
+        QVERIFY(writeArchive(zip, {{"modicon.png", pngBytes({16, 8}, Qt::red)}}));
+        const QString id = iconId(QString{MOD_ID}, QString{LOGO}, zip);
+        const ResponsePtr first = request(provider, id);
+        QVERIFY(settledLater(first.get()).mError.isEmpty());
+
+        QVERIFY(QFile::remove(zip));
+        QTest::failOnWarning(QRegularExpression{u"zip archive"_s});
+        const ResponsePtr second = request(provider, id);
+
+        // resolved before it was even handed back
+        QCOMPARE(settled(second.get()).mImage.size(), QSize(16, 8));
+    }
+
+    void aZipWithoutAnIconFallsBackToTheLogo() {
+        vsmm::HttpClientMock http;
+        vsmm::ModImageProvider provider;
+        provider.setHttpClient(&http);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString zip = dir.filePath(u"carryon.zip"_s);
+        QVERIFY(writeArchive(zip, {{"modinfo.json", "{}"}}));
+        QTest::ignoreMessage(QtWarningMsg, qPrintable(u"Modicon not found in zip archive %1"_s.arg(zip)));
+
+        const ResponsePtr response = request(provider, iconId(QString{MOD_ID}, QString{LOGO}, zip));
+        QVERIFY(waitForRequests(http, 1));
+        QCOMPARE(http.call(0).mUrl, QUrl{QString{LOGO}});
+        QSignalSpy finished{response.get(), &QQuickImageResponse::finished};
+        QVERIFY(http.succeed(0, pngBytes({8, 8}, Qt::blue)));
+
+        QTRY_COMPARE(finished.count(), 1);
+        QCOMPARE(settled(response.get()).mImage.pixelColor(0, 0), QColor{Qt::blue});
+    }
+
+    void anUnusableZipIconFallsBackToTheLogo_data() {
+        QTest::addColumn<UnusableIcon>("unusable");
+        QTest::newRow("undecodable") << UnusableIcon::Undecodable;
+        QTest::newRow("encrypted") << UnusableIcon::Encrypted;
+        QTest::newRow("missing-zip") << UnusableIcon::MissingZip;
+    }
+
+    void anUnusableZipIconFallsBackToTheLogo() {
+        QFETCH(UnusableIcon, unusable);
+        vsmm::HttpClientMock http;
+        vsmm::ModImageProvider provider;
+        provider.setHttpClient(&http);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString zip = dir.filePath(u"carryon.zip"_s);
+        if (unusable == UnusableIcon::Undecodable) {
+            QVERIFY(writeArchive(zip, {{"modicon.png", "not an image"}}));
+            ignoreDecodeFailure(MOD_ID);
+        } else if (unusable == UnusableIcon::Encrypted) {
+            if (!writeEncryptedArchive(zip, {"modicon.png", pngBytes()})) {
+                QSKIP("libzip was built without encryption support");
+            }
+            QTest::ignoreMessage(QtWarningMsg, qPrintable(u"Failed to retrieve modicon for %1"_s.arg(MOD_ID)));
+        } else {
+            QTest::ignoreMessage(QtWarningMsg, QRegularExpression{u"^Failed to open zip archive %1: "_s.arg(
+                                                   QRegularExpression::escape(zip))});
+        }
+
+        const ResponsePtr response = request(provider, iconId(QString{MOD_ID}, QString{LOGO}, zip));
+
+        QVERIFY(waitForRequests(http, 1));
+        QCOMPARE(http.call(0).mUrl, QUrl{QString{LOGO}});
+    }
+
+    void aModWithoutAnyIconAsksForNothing() {
+        vsmm::HttpClientMock http;
+        vsmm::ModImageProvider provider;
+        provider.setHttpClient(&http);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString zip = dir.filePath(u"carryon.zip"_s);
+        QVERIFY(writeArchive(zip, {{"modinfo.json", "{}"}}));
+        QTest::ignoreMessage(QtWarningMsg, qPrintable(u"Modicon not found in zip archive %1"_s.arg(zip)));
+        // no online info yet, so no logo url either
+        const QString id = iconId(QString{MOD_ID}, QString{}, zip);
+
+        const ResponsePtr first = request(provider, id);
+        QCOMPARE(settledLater(first.get()).mError, u"No icon url for mod %1"_s.arg(MOD_ID));
+
+        // not a permanent answer, but the zip is remembered as having no icon
+        QVERIFY(QFile::remove(zip));
+        QTest::failOnWarning(QRegularExpression{u"zip archive"_s});
+        const ResponsePtr second = request(provider, id);
+        QCOMPARE(settledLater(second.get()).mError, u"No icon url for mod %1"_s.arg(MOD_ID));
+        QVERIFY(noRequestBeyond(http, 0));
+    }
+
+    void aZipWithoutAnIconIsReadAgainOnceTheModIsForgotten_data() {
+        QTest::addColumn<bool>("reload");
+        QTest::newRow("removed") << false;
+        QTest::newRow("reloaded") << true;
+    }
+
+    void aZipWithoutAnIconIsReadAgainOnceTheModIsForgotten() {
+        QFETCH(bool, reload);
+        vsmm::HttpClientMock http;
+        vsmm::ModImageProvider provider;
+        provider.setHttpClient(&http);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString zip = dir.filePath(u"carryon.zip"_s);
+        QVERIFY(writeArchive(zip, {{"modinfo.json", "{}"}}));
+        QTest::ignoreMessage(QtWarningMsg, qPrintable(u"Modicon not found in zip archive %1"_s.arg(zip)));
+        const QString id = iconId(QString{MOD_ID}, QString{}, zip);
+        const ResponsePtr first = request(provider, id);
+        QCOMPARE(settledLater(first.get()).mError, u"No icon url for mod %1"_s.arg(MOD_ID));
+
+        if (reload) {
+            provider.onModsReloading();
+        } else {
+            provider.onModRemoved(u"carryon");
+        }
+        QVERIFY(writeArchive(zip, {{"modicon.png", pngBytes({8, 8}, Qt::blue)}}));
+
+        const ResponsePtr second = request(provider, id);
+        QCOMPARE(settledLater(second.get()).mImage.pixelColor(0, 0), QColor{Qt::blue});
+    }
+
+    void removingAModDropsTheIconsOfAllItsVersions() {
+        vsmm::HttpClientMock http;
+        vsmm::ModImageProvider provider;
+        provider.setHttpClient(&http);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString older = dir.filePath(u"carryon-1.0.0.zip"_s);
+        const QString newer = dir.filePath(u"carryon-1.1.0.zip"_s);
+        const QString lib = dir.filePath(u"carryonlib.zip"_s);
+        QVERIFY(writeArchive(older, {{"modicon.png", pngBytes({8, 8}, Qt::red)}}));
+        QVERIFY(writeArchive(newer, {{"modicon.png", pngBytes({8, 8}, Qt::green)}}));
+        QVERIFY(writeArchive(lib, {{"modicon.png", pngBytes({8, 8}, Qt::blue)}}));
+        const QString olderId = iconId(u"carryon@1.0.0"_s, QString{LOGO}, older);
+        const QString newerId = iconId(u"carryon@1.1.0"_s, QString{LOGO}, newer);
+        // shares the carryon prefix, but is another mod
+        const QString libId = iconId(u"carryonlib@1.0.0"_s, QString{OTHER_LOGO}, lib);
+
+        // each version is an entry of its own
+        const ResponsePtr olderFirst = request(provider, olderId);
+        QCOMPARE(settledLater(olderFirst.get()).mImage.pixelColor(0, 0), QColor{Qt::red});
+        const ResponsePtr newerFirst = request(provider, newerId);
+        QCOMPARE(settledLater(newerFirst.get()).mImage.pixelColor(0, 0), QColor{Qt::green});
+        const ResponsePtr libFirst = request(provider, libId);
+        QCOMPARE(settledLater(libFirst.get()).mImage.pixelColor(0, 0), QColor{Qt::blue});
+
+        provider.onModRemoved(u"carryon");
+        QVERIFY(writeArchive(older, {{"modicon.png", pngBytes({8, 8}, Qt::yellow)}}));
+        QVERIFY(writeArchive(newer, {{"modicon.png", pngBytes({8, 8}, Qt::yellow)}}));
+
+        // both versions come from the rewritten zips, carryonlib still from the cache
+        const ResponsePtr olderAgain = request(provider, olderId);
+        QCOMPARE(settledLater(olderAgain.get()).mImage.pixelColor(0, 0), QColor{Qt::yellow});
+        const ResponsePtr newerAgain = request(provider, newerId);
+        QCOMPARE(settledLater(newerAgain.get()).mImage.pixelColor(0, 0), QColor{Qt::yellow});
+        const ResponsePtr libAgain = request(provider, libId);
+        QCOMPARE(settled(libAgain.get()).mImage.pixelColor(0, 0), QColor{Qt::blue});
+        QVERIFY(noRequestBeyond(http, 0));
+    }
+
+    void aZipIconTooBigForTheCacheIsStillDelivered() {
+        vsmm::HttpClientMock http;
+        vsmm::ModImageProvider provider;
+        provider.setHttpClient(&http);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString zip = dir.filePath(u"carryon.zip"_s);
+        // just past CACHE_SIZE: 4096 * 2049 * 4 bytes is 32 MiB plus one row
+        QVERIFY(writeArchive(zip, {{"modicon.png", pngBytes({4096, 2049})}}));
+        const QString id = iconId(QString{MOD_ID}, QString{LOGO}, zip);
+
+        QTest::ignoreMessage(QtWarningMsg, qPrintable(u"Failed to cache icon for %1"_s.arg(MOD_ID)));
+        const ResponsePtr first = request(provider, id);
+        QCOMPARE(settledLater(first.get()).mImage.size(), QSize(4096, 2049));
+
+        // nothing was cached, so the next row reads the zip again
+        QTest::ignoreMessage(QtWarningMsg, qPrintable(u"Failed to cache icon for %1"_s.arg(MOD_ID)));
+        const ResponsePtr second = request(provider, id);
+        QCOMPARE(settledLater(second.get()).mImage.size(), QSize(4096, 2049));
+        QVERIFY(noRequestBeyond(http, 0));
+    }
+
     void theHttpClientIsSetOnce() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::HttpClientMock other;
         vsmm::ModImageProvider provider;
@@ -447,6 +717,7 @@ class ModImageProviderUnitTest : public QObject {
     }
 
     void aReceiverMayCallBackIntoTheProviderWhileHandlingImageDownloaded() {
+        ignoreMissingZip();
         vsmm::HttpClientMock http;
         vsmm::ModImageProvider provider;
         provider.setHttpClient(&http);
